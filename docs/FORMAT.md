@@ -46,7 +46,15 @@ corners, origin top-left), then scaled by `clip.scale`, rotated, and moved by `c
 
 `materials.speeds[]`: `mode` 0 = constant `speed`; 1 = curve, `curve_speed.speed_points[{x, y}]`
 with x = normalized timeline position, y = speed multiplier. We integrate the curve and normalize it
-so the whole `source_timerange` is consumed.
+so the whole `source_timerange` is consumed. Speed curves of a compound clip apply to its nested
+timeline, so nested audio gets the composed map (parent curve ∘ inner speed).
+
+`segment.is_tone_modify` = the clip's "Pitch" toggle: speed changes pitch (tape-style). Otherwise the
+pitch is preserved. Both kinds can play at once, so the mix picks the algorithm per clip.
+
+Reverse: `segment.reverse` = true and the video material's `reverse_path` points to a fully reversed
+copy of the whole media that CapCut renders into the project folder (`##_draftpath_placeholder_…##/<md5>.mp4`,
+with audio). The segment's `source_timerange` is in that copy's time base (verified against an export).
 
 ## Text
 

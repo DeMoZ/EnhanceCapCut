@@ -21,8 +21,10 @@ enum AudioRenderer {
         let composition = AVMutableComposition()
         let mix = AVMutableAudioMix()
         let gain = max(1, timeline.audioClips.map(\.volume).max() ?? 1)
-        var lanes: [(track: AVMutableCompositionTrack, params: AVMutableAudioMixInputParameters, end: Int64)] = []
-        var anyPitchShift = false
+        // Each lane is one composition track with its own pitch algorithm: CapCut keeps the pitch of
+        // sped-up clips unless the clip's "pitch" toggle is on, which plays them like a tape (varispeed).
+        var lanes: [(track: AVMutableCompositionTrack, params: AVMutableAudioMixInputParameters, end: Int64,
+                     varispeed: Bool)] = []
         // Clips with "Isolate voice" / "Reduce noise" play a processed copy of their source.
         let voice = VoiceProcessor(directory: url.deletingLastPathComponent()
             .appendingPathComponent("voice-\(UUID().uuidString)"))
@@ -35,17 +37,19 @@ enum AudioRenderer {
             guard let source = try? await asset.loadTracks(withMediaType: .audio).first,
                   let sourceRange = try? await source.load(.timeRange) else { continue }
 
+            let varispeed = !clip.preservePitch
             let laneIndex: Int
-            if let free = lanes.firstIndex(where: { $0.end <= clip.target.start }) {
+            if let free = lanes.firstIndex(where: { $0.end <= clip.target.start && $0.varispeed == varispeed }) {
                 laneIndex = free
             } else {
                 guard let track = composition.addMutableTrack(withMediaType: .audio,
                                                               preferredTrackID: kCMPersistentTrackID_Invalid) else { continue }
-                lanes.append((track, AVMutableAudioMixInputParameters(track: track), 0))
+                let params = AVMutableAudioMixInputParameters(track: track)
+                params.audioTimePitchAlgorithm = varispeed ? .varispeed : .spectral
+                lanes.append((track, params, 0, varispeed))
                 laneIndex = lanes.count - 1
             }
             let track = lanes[laneIndex].track
-            if !clip.preservePitch && abs(clip.timeMap.averageSpeed - 1) > 0.001 { anyPitchShift = true }
 
             // Pieces of (source range, timeline range); a speed curve is approximated in 50 ms steps.
             let map = clip.timeMap
@@ -101,8 +105,7 @@ enum AudioRenderer {
                 AVLinearPCMIsBigEndianKey: false,
             ])
             output.audioMix = mix
-            // CapCut keeps the pitch unless the clip's "pitch" toggle is on.
-            output.audioTimePitchAlgorithm = anyPitchShift ? .varispeed : .spectral
+            output.audioTimePitchAlgorithm = .spectral
             reader.add(output)
             guard reader.startReading() else { throw RenderError.writerFailed(reader.error?.localizedDescription ?? "audio") }
 

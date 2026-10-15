@@ -52,7 +52,7 @@ private struct Builder {
                 let speed = refs.lazy.compactMap { speeds[$0] }.first
                 let fade = refs.lazy.compactMap { fades[$0] }.first
                 let gain = pow(10, (refs.lazy.compactMap { loudness[$0] }.first?.gainDB ?? 0) / 20)
-                let timeMap = makeTimeMap(segment, speed: speed)
+                var timeMap = makeTimeMap(segment, speed: speed)
                 var voice = VoiceEffects()
                 if let choice = refs.lazy.compactMap({ separations[$0] }).first?.choice {
                     voice.separation = VoiceEffects.Separation(rawValue: choice) ?? .none
@@ -65,7 +65,6 @@ private struct Builder {
                     voice.enhance = min(max(enhance.ambientSoundLevel / 100, 0), 1)
                 }
                 if track.type != "audio" { reportRefs(refs, generic: generic) }
-                if segment.reverse { note("Reverse playback", "reversed clip (rendered forward)") }
 
                 switch track.type {
                 case "video":
@@ -81,7 +80,19 @@ private struct Builder {
                         content = .compound(timeline)
                         compoundAudio = timeline.audioClips
                     } else if let video {
-                        if let url = DraftLoader.resolvePath(video.path, projectURL: projectURL), fm.fileExists(atPath: url.path) {
+                        var path = video.path
+                        if segment.reverse, video.type != "photo" {
+                            // CapCut renders a fully reversed copy into the project folder; the segment's
+                            // source range is in that copy's time base.
+                            if let url = DraftLoader.resolvePath(video.reversePath, projectURL: projectURL),
+                               fm.fileExists(atPath: url.path) {
+                                path = video.reversePath
+                            } else {
+                                note("Reverse playback", "reversed clip without CapCut's reversed copy (rendered forward)")
+                                timeMap = mirrored(timeMap, mediaDuration: video.duration)
+                            }
+                        }
+                        if let url = DraftLoader.resolvePath(path, projectURL: projectURL), fm.fileExists(atPath: url.path) {
                             content = video.type == "photo" ? .photo(url) : .video(url)
                             if video.type != "photo", video.hasAudio, !video.hasSoundSeparated { audioURL = url }
                         } else {
@@ -189,6 +200,13 @@ private struct Builder {
                        targetDuration: target.duration, curvePoints: curve)
     }
 
+    /// Maps a range given in a reversed file's time base back onto the original media (played forward).
+    func mirrored(_ map: TimeMap, mediaDuration: Int64) -> TimeMap {
+        guard mediaDuration > 0 else { return map }
+        let start = max(mediaDuration - map.sourceStart - map.sourceDuration, 0)
+        return TimeMap(sourceStart: start, sourceDuration: map.sourceDuration, targetDuration: map.targetDuration)
+    }
+
     func keyframes(_ segment: Segment) -> [LayerProperty: KeyframeTrack] {
         var result: [LayerProperty: KeyframeTrack] = [:]
         for group in segment.keyframes {
@@ -199,34 +217,34 @@ private struct Builder {
         return result
     }
 
-    /// Re-times a compound clip's audio into the parent timeline (constant speed only).
+    /// Re-times a compound clip's audio into the parent timeline, following the parent's speed and curve.
     /// `voice` (the compound segment's own voice effects) overrides the nested clips' settings.
-    mutating func nestAudio(_ nested: [AudioClip], in segment: Segment, timeMap: TimeMap, volume: Double,
-                            voice: VoiceEffects = VoiceEffects()) -> [AudioClip] {
-        guard timeMap.isConstant else {
-            note("Compound clip", "audio of a compound clip with a speed curve")
-            return []
-        }
-        let speed = timeMap.averageSpeed
+    func nestAudio(_ nested: [AudioClip], in segment: Segment, timeMap: TimeMap, volume: Double,
+                   voice: VoiceEffects = VoiceEffects()) -> [AudioClip] {
         let windowStart = timeMap.sourceStart, windowEnd = timeMap.sourceStart + timeMap.sourceDuration
         var result: [AudioClip] = []
         for clip in nested {
             let start = max(clip.target.start, windowStart), end = min(clip.target.end, windowEnd)
-            guard end > start, clip.timeMap.isConstant else { continue }
-            let innerSpeed = clip.timeMap.averageSpeed
-            let srcStart = clip.timeMap.sourceTime(atOffset: start - clip.target.start)
-            let srcDuration = Int64(Double(end - start) * innerSpeed)
-            let parentStart = segment.targetTimerange.start + Int64(Double(start - windowStart) / speed)
-            let parentDuration = Int64(Double(end - start) / speed)
+            guard end > start else { continue }
+            let o0 = timeMap.offset(atSourceTime: start), o1 = timeMap.offset(atSourceTime: end)
+            guard o1 > o0 else { continue }
             var copy = clip
-            copy.target = TimeRange(start: parentStart, duration: parentDuration)
-            copy.timeMap = TimeMap(sourceStart: srcStart, sourceDuration: srcDuration, targetDuration: parentDuration)
+            copy.target = TimeRange(start: segment.targetTimerange.start + o0, duration: o1 - o0)
+            if timeMap.isConstant && clip.timeMap.isConstant {
+                copy.timeMap = clip.timeMap.slice(from: start - clip.target.start, to: end - clip.target.start)
+                copy.timeMap.targetDuration = o1 - o0
+            } else {
+                copy.timeMap = TimeMap(targetDuration: o1 - o0) { u in
+                    let nestedTime = timeMap.preciseSourceTime(atOffset: Double(o0) + u * Double(o1 - o0))
+                    return clip.timeMap.preciseSourceTime(atOffset: nestedTime - Double(clip.target.start))
+                }
+            }
             copy.volume *= volume
             if voice.separation != .none { copy.voice.separation = voice.separation }
             if let denoise = voice.denoise { copy.voice.denoise = denoise }
             if let enhance = voice.enhance { copy.voice.enhance = enhance }
-            copy.fadeIn = start == clip.target.start ? Int64(Double(clip.fadeIn) / speed) : 0
-            copy.fadeOut = end == clip.target.end ? Int64(Double(clip.fadeOut) / speed) : 0
+            copy.fadeIn = start == clip.target.start ? timeMap.offset(atSourceTime: start + clip.fadeIn) - o0 : 0
+            copy.fadeOut = end == clip.target.end ? o1 - timeMap.offset(atSourceTime: end - clip.fadeOut) : 0
             result.append(copy)
         }
         return result

@@ -16,6 +16,22 @@ public struct TimeMap: Equatable {
         self.curveTable = curvePoints.count >= 2 ? TimeMap.integrate(curvePoints) : nil
     }
 
+    /// A map sampled from a monotonic function giving the source time (µs) at a normalized target
+    /// position u in 0...1. Used to slice and compose maps; a straight line collapses to constant speed.
+    public init(targetDuration: Int64, sampling source: (Double) -> Double) {
+        let n = TimeMap.tableSize
+        var values = (0...n).map { source(Double($0) / Double(n)) }
+        for i in 1...n { values[i] = max(values[i], values[i - 1]) }
+        let start = values[0], span = values[n] - values[0]
+        sourceStart = Int64(start.rounded())
+        sourceDuration = Int64(span.rounded())
+        self.targetDuration = targetDuration
+        guard span > 0 else { curveTable = nil; return }
+        let table = values.map { ($0 - start) / span }
+        let isLine = table.indices.allSatisfy { abs(table[$0] - Double($0) / Double(n)) < 1e-4 }
+        curveTable = isLine ? nil : table
+    }
+
     public var isConstant: Bool { curveTable == nil }
     public var averageSpeed: Double {
         targetDuration > 0 ? Double(sourceDuration) / Double(targetDuration) : 1
@@ -23,9 +39,38 @@ public struct TimeMap: Equatable {
 
     /// Source time (µs) shown at `offset` µs after the segment's timeline start.
     public func sourceTime(atOffset offset: Int64) -> Int64 {
-        guard targetDuration > 0 else { return sourceStart }
-        let u = min(max(Double(offset) / Double(targetDuration), 0), 1)
-        return sourceStart + Int64((normalizedSource(u) * Double(sourceDuration)).rounded())
+        Int64(preciseSourceTime(atOffset: Double(offset)).rounded())
+    }
+
+    public func preciseSourceTime(atOffset offset: Double) -> Double {
+        guard targetDuration > 0 else { return Double(sourceStart) }
+        let u = min(max(offset / Double(targetDuration), 0), 1)
+        return Double(sourceStart) + normalizedSource(u) * Double(sourceDuration)
+    }
+
+    /// Inverse of `sourceTime`: the offset at which source time `time` is shown (clamped to the segment).
+    public func offset(atSourceTime time: Int64) -> Int64 {
+        guard sourceDuration > 0, targetDuration > 0 else { return 0 }
+        let s = min(max(Double(time - sourceStart) / Double(sourceDuration), 0), 1)
+        var u = s
+        if !isConstant {
+            var lo = 0.0, hi = 1.0
+            for _ in 0..<40 {
+                let mid = (lo + hi) / 2
+                if normalizedSource(mid) < s { lo = mid } else { hi = mid }
+            }
+            u = hi
+        }
+        return Int64((u * Double(targetDuration)).rounded())
+    }
+
+    /// The part of this map between two offsets, as a map of its own (offset 0 = `from`).
+    public func slice(from a: Int64, to b: Int64) -> TimeMap {
+        if isConstant {
+            let s0 = sourceTime(atOffset: a)
+            return TimeMap(sourceStart: s0, sourceDuration: sourceTime(atOffset: b) - s0, targetDuration: b - a)
+        }
+        return TimeMap(targetDuration: b - a) { u in preciseSourceTime(atOffset: Double(a) + u * Double(b - a)) }
     }
 
     /// S(u) in 0...1.

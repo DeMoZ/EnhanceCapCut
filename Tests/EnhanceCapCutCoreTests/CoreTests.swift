@@ -1,3 +1,4 @@
+import AVFoundation
 import XCTest
 @testable import EnhanceCapCutCore
 
@@ -27,6 +28,44 @@ final class TimeMapTests: XCTestCase {
         }
         // Fast in the middle, slow at the ends.
         XCTAssertGreaterThan(map.speed(at: 0.5), map.speed(at: 0.02) * 3)
+    }
+
+    private let flashIn = [Point2(x: 0, y: 1), Point2(x: 0.19, y: 5.2), Point2(x: 0.78, y: 5.2),
+                           Point2(x: 0.94, y: 1), Point2(x: 1, y: 1)]
+
+    func testOffsetIsInverseOfSourceTime() {
+        let map = TimeMap(sourceStart: 500_000, sourceDuration: 10_000_000, targetDuration: 2_000_000, curvePoints: flashIn)
+        for o in stride(from: Int64(0), through: 2_000_000, by: 100_000) {
+            XCTAssertEqual(Double(map.offset(atSourceTime: map.sourceTime(atOffset: o))), Double(o), accuracy: 2_000)
+        }
+        let constant = TimeMap(sourceStart: 0, sourceDuration: 4_000_000, targetDuration: 1_000_000)
+        XCTAssertEqual(constant.offset(atSourceTime: 2_000_000), 500_000)
+        XCTAssertEqual(constant.offset(atSourceTime: 9_000_000), 1_000_000)
+    }
+
+    func testSliceFollowsTheCurve() {
+        let map = TimeMap(sourceStart: 0, sourceDuration: 10_000_000, targetDuration: 2_000_000, curvePoints: flashIn)
+        let slice = map.slice(from: 400_000, to: 1_400_000)
+        XCTAssertEqual(slice.targetDuration, 1_000_000)
+        for o in stride(from: Int64(0), through: 1_000_000, by: 50_000) {
+            XCTAssertEqual(Double(slice.sourceTime(atOffset: o)), Double(map.sourceTime(atOffset: 400_000 + o)),
+                           accuracy: 1_000)
+        }
+        // A slice of the constant-speed middle collapses to a constant map.
+        XCTAssertTrue(map.slice(from: 800_000, to: 1_200_000).isConstant)
+        XCTAssertTrue(TimeMap(sourceStart: 0, sourceDuration: 3, targetDuration: 1).slice(from: 0, to: 1).isConstant)
+    }
+
+    func testSampledCompositionOfTwoSpeeds() {
+        // 2x over 3x = 6x.
+        let outer = TimeMap(sourceStart: 1_000_000, sourceDuration: 2_000_000, targetDuration: 1_000_000)
+        let inner = TimeMap(sourceStart: 0, sourceDuration: 9_000_000, targetDuration: 3_000_000)
+        let composed = TimeMap(targetDuration: 1_000_000) { u in
+            inner.preciseSourceTime(atOffset: outer.preciseSourceTime(atOffset: u * 1_000_000))
+        }
+        XCTAssertTrue(composed.isConstant)
+        XCTAssertEqual(composed.sourceStart, 3_000_000)
+        XCTAssertEqual(composed.averageSpeed, 6, accuracy: 1e-6)
     }
 }
 
@@ -172,5 +211,54 @@ final class ColorTests: XCTestCase {
         let d = TextRasterizer.hexColor("#80FF0000")
         XCTAssertEqual(d.alpha, 128.0 / 255, accuracy: 0.01)
         XCTAssertEqual(d.components?[0] ?? 0, 1, accuracy: 0.01)
+    }
+}
+
+final class AudioSpeedTests: XCTestCase {
+    /// A 2x clip keeps its pitch unless "pitch" is toggled; both kinds can share one mix.
+    func testPitchModeIsPerClip() async throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        // 4 s of 440 Hz.
+        let rate = 48_000.0
+        let format = AVAudioFormat(standardFormatWithSampleRate: rate, channels: 1)!
+        let sine = dir.appendingPathComponent("sine.caf")
+        let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(rate * 4))!
+        buffer.frameLength = buffer.frameCapacity
+        for i in 0..<Int(buffer.frameLength) {
+            buffer.floatChannelData![0][i] = Float(0.5 * sin(2 * Double.pi * 440 * Double(i) / rate))
+        }
+        try AVAudioFile(forWriting: sine, settings: format.settings).write(from: buffer)
+
+        let map = TimeMap(sourceStart: 0, sourceDuration: 4_000_000, targetDuration: 2_000_000)
+        let clips = [
+            AudioClip(url: sine, target: TimeRange(start: 0, duration: 2_000_000), timeMap: map,
+                      volume: 1, fadeIn: 0, fadeOut: 0, preservePitch: true),
+            AudioClip(url: sine, target: TimeRange(start: 2_000_000, duration: 2_000_000), timeMap: map,
+                      volume: 1, fadeIn: 0, fadeOut: 0, preservePitch: false),
+        ]
+        let timeline = Timeline(name: "t", canvasSize: CGSize(width: 2, height: 2), duration: 4_000_000, fps: 30,
+                                layers: [], audioClips: clips, report: RenderReport())
+        let out = dir.appendingPathComponent("mix.caf")
+        try await AudioRenderer.render(timeline, to: out, isCancelled: { false }, progress: { _ in })
+
+        let file = try AVAudioFile(forReading: out)
+        let mixed = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length))!
+        try file.read(into: mixed)
+        func frequency(from start: Double, to end: Double) -> Double {
+            let a = Int(start * rate), b = Int(end * rate)
+            var crossings = 0
+            var previous = mixed.floatChannelData![0][a]
+            for i in (a + 1)..<b {
+                let v = mixed.floatChannelData![0][i]
+                if (previous < 0) != (v < 0) { crossings += 1 }
+                previous = v
+            }
+            return Double(crossings) / 2 / (end - start)
+        }
+        XCTAssertEqual(frequency(from: 0.5, to: 1.5), 440, accuracy: 20)
+        XCTAssertEqual(frequency(from: 2.5, to: 3.5), 880, accuracy: 30)
     }
 }

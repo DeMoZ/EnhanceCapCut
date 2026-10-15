@@ -243,12 +243,10 @@ public final class Exporter: @unchecked Sendable {
         var clips: [AudioClip] = []
         for clip in timeline.audioClips {
             let start = max(clip.target.start, range.start), end = min(clip.target.end, range.end)
-            guard end > start, clip.timeMap.isConstant else { continue }
+            guard end > start else { continue }
             var copy = clip
-            let srcStart = clip.timeMap.sourceTime(atOffset: start - clip.target.start)
-            let srcEnd = clip.timeMap.sourceTime(atOffset: end - clip.target.start)
             copy.target = TimeRange(start: start - range.start, duration: end - start)
-            copy.timeMap = TimeMap(sourceStart: srcStart, sourceDuration: srcEnd - srcStart, targetDuration: end - start)
+            copy.timeMap = clip.timeMap.slice(from: start - clip.target.start, to: end - clip.target.start)
             if start != clip.target.start { copy.fadeIn = 0 }
             if end != clip.target.end { copy.fadeOut = 0 }
             clips.append(copy)

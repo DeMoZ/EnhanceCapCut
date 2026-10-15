@@ -27,6 +27,8 @@ Usage counts from the author's 69 projects drive the order of the later mileston
 - [x] Export window: aspect, resolution, frame rate, codec (H.264 / HEVC 8/10-bit / ProRes 422/HQ),
       constant quality or bitrate, captions burn-in, loudness target, output folder and file name
       template; remembers the last choices; lists project features that won't be rendered.
+- [x] Speed polish: reversed clips (CapCut's reversed copy), per-clip pitch mode in one mix, speed
+      curves kept in partial exports and in compound-clip audio. Verified frame-exact on 3x segments.
 - [x] Verified against real projects and the author's CapCut exports: text size, wrapping, positions and
       fallback fonts; SDR colour (identical), HDR→SDR look (measured curve); loudness and peak limiting.
 
@@ -62,7 +64,7 @@ Usage counts from the author's 69 projects drive the order of the later mileston
 
 ## Milestone 4 — cached AI results
 
-- Reverse playback via `reverse_path` (CapCut's pre-rendered reversed media).
+- [x] Reverse playback via `reverse_path` (CapCut's pre-rendered reversed media).
 - `Resources/audioAlg` audio results (vocal separation, voice enhancement) turned out to be obfuscated —
   see FORMAT.md; voice processing is done by us instead (see "Voice processing", milestone 7).
 - Matting / background removal masks (`matting.path`, `mask_video_path`) as alpha.
@@ -95,6 +97,7 @@ Usage counts from the author's 69 projects drive the order of the later mileston
   Cyrillic/Thai lines mid-word, we break at word boundaries; Cyrillic fallback weight differs slightly.
 - Keyframes: linear interpolation only; no bezier easing.
 - Speed curves: video follows the curve exactly; audio follows it in 50 ms steps.
+- Reverse: needs CapCut's reversed copy in the project folder; without it the clip plays forward.
 - Track bit `attribute & 2` is treated as "hidden"; tracks with other flags (e.g. locked) render normally.
 - Voice: "Remove vocal" removes speech well but only part of a sung vocal; processing time is roughly
   1/10 of the processed clips' duration and isn't reflected in the progress bar.
