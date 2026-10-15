@@ -166,6 +166,8 @@ public struct Segment: Decodable {
     public var renderIndex: Int
     public var trackRenderIndex: Int
     public var keyframes: [KeyframeGroup]
+    /// "Loop" playback of a clip shorter than its segment (not supported).
+    public var isLoop: Bool
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.anyKeyed()
@@ -188,6 +190,7 @@ public struct Segment: Decodable {
         renderIndex = Int(c.num("render_index") ?? 0)
         trackRenderIndex = Int(c.num("track_render_index") ?? 0)
         keyframes = c.list("common_keyframes")
+        isLoop = c.bool("is_loop") ?? false
     }
 }
 
@@ -296,6 +299,20 @@ public struct VideoMaterial: Decodable {
     public var hasSoundSeparated: Bool
     public var reversePath: String
     public var crop: Crop
+    /// "Stabilize" level, 0 = off.
+    public var stableLevel: Int
+    /// "Remove background" mode (`matting.flag`), 0 = off; 1 and 3 seen (custom / auto cutout).
+    public var mattingFlag: Int
+    /// AI processing applied to the clip: `video_algorithm.algorithms[].type` plus the names of the
+    /// non-null per-feature configs (e.g. "super_resolution", "deflicker").
+    public var algorithms: [String]
+    /// "Retouch" (face beauty) is on.
+    public var beautyMode: Bool
+
+    /// Per-feature configs inside `video_algorithm` that change the picture when set.
+    static let algorithmConfigs = ["super_resolution", "deflicker", "noise_reduction", "motion_blur_config",
+                                   "smart_complement_frame", "complement_frame_config", "ai_expression_driven",
+                                   "ai_motion_driven", "mouth_shape_driver"]
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.anyKeyed()
@@ -310,6 +327,26 @@ public struct VideoMaterial: Decodable {
         hasSoundSeparated = c.bool("has_sound_separated") ?? false
         reversePath = c.str("reverse_path") ?? ""
         crop = c.opt("crop") ?? Crop()
+        stableLevel = (try? c.nestedContainer(keyedBy: AnyKey.self, forKey: AnyKey("stable")))
+            .flatMap { $0.num("stable_level") }.map { Int($0) } ?? 0
+        mattingFlag = (try? c.nestedContainer(keyedBy: AnyKey.self, forKey: AnyKey("matting")))
+            .flatMap { $0.num("flag") }.map { Int($0) } ?? 0
+        var algorithms: [String] = []
+        if let a = try? c.nestedContainer(keyedBy: AnyKey.self, forKey: AnyKey("video_algorithm")) {
+            algorithms = a.list("algorithms", of: AlgorithmItem.self).map(\.type)
+            for key in Self.algorithmConfigs where a.contains(AnyKey(key)) && !((try? a.decodeNil(forKey: AnyKey(key))) ?? true) {
+                algorithms.append(key)
+            }
+        }
+        self.algorithms = algorithms
+        beautyMode = c.bool("is_set_beauty_mode") ?? false
+    }
+
+    struct AlgorithmItem: Decodable {
+        var type: String
+        init(from decoder: Decoder) throws {
+            type = try decoder.anyKeyed().str("type") ?? "unknown"
+        }
     }
 }
 
@@ -497,6 +534,8 @@ public struct TextMaterial: Decodable {
     public var underline: Bool
     /// `1` = vertical typesetting (unsupported, rendered horizontally).
     public var typesetting: Int
+    /// "Curve" text (bent along an arc), not supported.
+    public var curveEnabled: Bool
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.anyKeyed()
@@ -528,6 +567,8 @@ public struct TextMaterial: Decodable {
         italicDegree = c.num("italic_degree") ?? 0
         underline = c.bool("underline") ?? false
         typesetting = Int(c.num("typesetting") ?? 0)
+        curveEnabled = (try? c.nestedContainer(keyedBy: AnyKey.self, forKey: AnyKey("text_curve")))
+            .flatMap { $0.bool("enable") } ?? false
     }
 }
 

@@ -100,6 +100,13 @@ private struct Builder {
                         }
                     }
                     guard let content else { continue }
+                    reportKeyframes(segment)
+                    if segment.isLoop { note("Playback", "loop") }
+                    if let video { reportVideo(video) }
+                    if isMain, let canvas = refs.lazy.compactMap({ canvases[$0] }).first,
+                       !["canvas_color", "canvas_blur", "canvas_image"].contains(canvas.type) {
+                        note("Canvas", canvas.type)
+                    }
 
                     let layer = VisualLayer(
                         id: segment.id, content: content, trackIndex: trackIndex, renderIndex: segment.renderIndex,
@@ -122,6 +129,7 @@ private struct Builder {
                 case "audio":
                     guard !track.isMuted, segment.volume > 0 else { continue }
                     reportRefs(refs, generic: generic)
+                    reportKeyframes(segment)
                     if let combo = refs.compactMap({ combos[$0] }).first,
                        let timeline = nestedTimeline(combo, depth: depth) {
                         // Audio detached from a compound clip.
@@ -145,6 +153,13 @@ private struct Builder {
                           let parsed = TextContent.parse(text.content),
                           !parsed.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { continue }
                     if text.typesetting != 0 { note("Text", "vertical typesetting (rendered horizontally)") }
+                    if text.curveEnabled { note("Text", "curved text (rendered straight)") }
+                    if parsed.styles.contains(where: { $0.strokes.count > 1 }) { note("Text", "multiple outlines (first one rendered)") }
+                    if parsed.styles.contains(where: { !($0.effectStylePath ?? "").isEmpty }),
+                       !refs.contains(where: { generic[$0]?.1.type == "text_effect" }) {
+                        note("Text effect", "word art")
+                    }
+                    reportKeyframes(segment)
                     let layer = VisualLayer(
                         id: segment.id, content: .text(TextLayerSpec(material: text, content: parsed)),
                         trackIndex: trackIndex, renderIndex: segment.renderIndex, isMainTrack: false,
@@ -259,6 +274,34 @@ private struct Builder {
     mutating func reportRefs(_ refs: [String], generic: [String: (String, GenericMaterial)]) {
         for ref in refs {
             if let (key, item) = generic[ref] { report(key: key, item: item) }
+        }
+    }
+
+    /// Keyframed properties the renderer doesn't animate. Mask keyframes are one entry: the mask itself
+    /// is reported from its material.
+    mutating func reportKeyframes(_ segment: Segment) {
+        var names: Set<String> = []
+        for group in segment.keyframes where !group.keyframes.isEmpty {
+            let type = group.propertyType
+            if let property = LayerProperty(rawValue: type), property != .volume { continue }
+            if type.hasPrefix("KFTypeCommonMask") || type.hasPrefix("KFTypeMask") {
+                names.insert("mask animation")
+            } else {
+                names.insert(type.hasPrefix("KFType") ? String(type.dropFirst(6)) : type)
+            }
+        }
+        for name in names.sorted() { note("Keyframes", name) }
+    }
+
+    /// Per-clip processing stored on the video material itself.
+    mutating func reportVideo(_ video: VideoMaterial) {
+        if video.type != "video", video.type != "photo" { note("Media", "\(video.type) clip") }
+        if video.stableLevel > 0 { note("Stabilization", "level \(video.stableLevel)") }
+        if video.mattingFlag != 0 { note("Remove background", "cutout mode \(video.mattingFlag)") }
+        if video.beautyMode { note("Beauty / makeup", "retouch") }
+        // AI-generated images are already baked into the material's file.
+        for algorithm in Set(video.algorithms).sorted() where !algorithm.hasPrefix("AigcTypeGen") {
+            note("AI processing", algorithm)
         }
     }
 

@@ -141,6 +141,53 @@ final class DraftParsingTests: XCTestCase {
         XCTAssertEqual(timeline.withoutSubtitles().layers.count, 0)
     }
 
+    func testReportsUnsupportedClipFeatures() throws {
+        let photo = FileManager.default.temporaryDirectory.appendingPathComponent("ecc-report-test.png")
+        try Data([0]).write(to: photo)
+        defer { try? FileManager.default.removeItem(at: photo) }
+        let json = """
+        {
+          "tracks": [
+            {"type": "video", "segments": [
+              {"id": "S1", "material_id": "V1", "target_timerange": {"start": 0, "duration": 1000000}, "is_loop": true,
+               "common_keyframes": [
+                 {"property_type": "KFTypePositionX", "keyframe_list": [{"time_offset": 0, "values": [0]}]},
+                 {"property_type": "KFTypeCommonMaskFeather", "keyframe_list": [{"time_offset": 0, "values": [0]}]},
+                 {"property_type": "KFTypeCommonMaskSizeWidth", "keyframe_list": [{"time_offset": 0, "values": [0]}]},
+                 {"property_type": "KFTypeSaturation", "keyframe_list": [{"time_offset": 0, "values": [0]}]}]}
+            ]},
+            {"type": "audio", "segments": [
+              {"id": "S2", "material_id": "A1", "target_timerange": {"start": 0, "duration": 1000000},
+               "common_keyframes": [{"property_type": "KFTypeVolume", "keyframe_list": [{"time_offset": 0, "values": [1]}]}]}
+            ]},
+            {"type": "text", "segments": [
+              {"id": "S3", "material_id": "X1", "target_timerange": {"start": 0, "duration": 1000000}}
+            ]}
+          ],
+          "materials": {
+            "videos": [{"id": "V1", "type": "photo", "path": "\(photo.path)",
+                        "stable": {"stable_level": 3}, "matting": {"flag": 1}, "is_set_beauty_mode": true,
+                        "video_algorithm": {"algorithms": [{"type": "QualityEnhance"}, {"type": "AigcTypeGenImage"}],
+                                            "super_resolution": {"level": 1}, "deflicker": null}}],
+            "audios": [{"id": "A1", "path": "/nonexistent/a.m4a"}],
+            "texts": [{"id": "X1", "text_curve": {"enable": true, "angle": 72},
+                       "content": "{\\"text\\":\\"Hi\\",\\"styles\\":[{\\"range\\":[0,2],\\"strokes\\":[{},{}]}]}"}]
+          }
+        }
+        """
+        let draft = try JSONDecoder().decode(Draft.self, from: Data(json.utf8))
+        let timeline = TimelineBuilder.build(draft: draft, projectURL: URL(fileURLWithPath: "/tmp"))
+        let found = Set(timeline.report.unsupported.map { "\($0.category): \($0.name)" })
+        let expected: Set<String> = [
+            "Keyframes: mask animation", "Keyframes: Saturation", "Keyframes: Volume", "Playback: loop",
+            "Stabilization: level 3", "Remove background: cutout mode 1", "Beauty / makeup: retouch",
+            "AI processing: QualityEnhance", "AI processing: super_resolution",
+            "Text: curved text (rendered straight)", "Text: multiple outlines (first one rendered)",
+        ]
+        XCTAssertEqual(found, expected)
+        XCTAssertEqual(timeline.layers.count, 2, "unsupported features don't drop the clips")
+    }
+
     func testPlaceholderPathResolution() {
         let url = DraftLoader.resolvePath("##_draftpath_placeholder_0E685133-18CE-45ED-8CB8-2904A212EC80_##/audio/a.aac",
                                           projectURL: URL(fileURLWithPath: "/Users/x/Projects/My Project"))
