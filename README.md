@@ -14,13 +14,22 @@ AVFoundation, Core Image/Metal and VideoToolbox hardware encoders.
 > filters, transitions, stickers and text animations are not yet — the export window lists which of
 > them your project uses. See [docs/PLAN.md](docs/PLAN.md).
 
+## Install
+
+1. Download `EnhanceCapCut-x.y.z.pkg` from [Releases](../../releases) and open it. The app goes to
+   `/Applications`.
+2. Follow *Enable the Services entry and a hotkey* below.
+
+> If macOS says the installer is from an unidentified developer, open
+> **System Settings ▸ Privacy & Security** and click **Open Anyway**.
+
 ## Requirements
 
 - macOS 15 or later, Apple Silicon recommended (hardware HEVC/ProRes encoding).
 - Xcode 16+ command line tools (Swift 6 toolchain) to build.
 - Optional: `ffmpeg` (`brew install ffmpeg`) for loudness normalization.
 
-## Build and install
+## Build from source
 
 ```sh
 scripts/build-app.sh --install
@@ -29,9 +38,32 @@ scripts/build-app.sh --install
 This builds `build/EnhanceCapCut.app`, copies it to `~/Applications`, registers it with Launch Services
 and refreshes the Services menu. Without `--install` it only builds.
 
+### Release installer
+
+```sh
+scripts/build-app.sh --pkg
+```
+
+Builds a universal (Apple Silicon + Intel) app and `build/EnhanceCapCut-<version>.pkg`, which installs
+into `/Applications` and refreshes the Services menu. Bump `CFBundleShortVersionString` and
+`CFBundleVersion` in `App/Info.plist` first, then attach the `.pkg` to a GitHub release:
+
+```sh
+gh release create v0.1.0 build/EnhanceCapCut-0.1.0.pkg --title "EnhanceCapCut 0.1.0" --notes-file notes.md
+```
+
+Signed and notarized installer (requires an Apple Developer ID):
+
+```sh
+xcrun notarytool store-credentials enhancecapcut --apple-id you@example.com --team-id TEAMID
+DEV_ID_APP="Developer ID Application: Your Name (TEAMID)" \
+DEV_ID_INSTALLER="Developer ID Installer: Your Name (TEAMID)" \
+NOTARY_PROFILE=enhancecapcut scripts/build-app.sh --pkg
+```
+
 ## Enable the Services entry and a hotkey
 
-1. Launch EnhanceCapCut once from `~/Applications` (this registers the service).
+1. Launch EnhanceCapCut once (this registers the service).
 2. Open **System Settings → Keyboard → Keyboard Shortcuts… → Services → General** and make sure
    **Export with EnhanceCapCut** is checked.
 3. To assign a hotkey, double-click the right side of that row and press the shortcut

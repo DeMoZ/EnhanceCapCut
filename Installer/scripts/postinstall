@@ -1,0 +1,17 @@
+#!/bin/sh
+# Register the app for the logged-in user and refresh their Services menu
+# ("Export with EnhanceCapCut" in CapCut ▸ Services).
+APP="/Applications/EnhanceCapCut.app"
+LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+CONSOLE_USER=$(stat -f%Su /dev/console)
+
+"$LSREGISTER" -f "$APP"
+if [ "$CONSOLE_USER" != "root" ]; then
+  USER_ID=$(id -u "$CONSOLE_USER")
+  as_user() { launchctl asuser "$USER_ID" sudo -u "$CONSOLE_USER" "$@"; }
+  as_user "$LSREGISTER" -f "$APP"
+  # A copy built from source in ~/Applications would provide the same service: keep only this one.
+  as_user "$LSREGISTER" -u "/Users/$CONSOLE_USER/Applications/EnhanceCapCut.app" 2>/dev/null || true
+  as_user /System/Library/CoreServices/pbs -update
+fi
+exit 0

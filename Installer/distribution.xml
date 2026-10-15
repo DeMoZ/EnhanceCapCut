@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<installer-gui-script minSpecVersion="2">
+    <title>EnhanceCapCut</title>
+    <welcome file="welcome.html" mime-type="text/html"/>
+    <conclusion file="conclusion.html" mime-type="text/html"/>
+    <options customize="never" require-scripts="true" hostArchitectures="arm64,x86_64"/>
+    <domains enable_localSystem="true"/>
+    <volume-check>
+        <allowed-os-versions>
+            <os-version min="15.0"/>
+        </allowed-os-versions>
+    </volume-check>
+    <choices-outline>
+        <line choice="default"/>
+    </choices-outline>
+    <choice id="default" title="EnhanceCapCut">
+        <pkg-ref id="__PKG_ID__"/>
+    </choice>
+    <pkg-ref id="__PKG_ID__" version="__VERSION__" onConclusion="none">EnhanceCapCut-component.pkg</pkg-ref>
+</installer-gui-script>
