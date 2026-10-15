@@ -140,6 +140,30 @@ public struct AudioClip {
     public var fadeIn: Int64
     public var fadeOut: Int64
     public var preservePitch: Bool
+    /// "Isolate voice" / "Reduce noise", applied to the source before the mix.
+    public var voice = VoiceEffects()
+}
+
+/// CapCut's per-clip voice processing.
+public struct VoiceEffects: Hashable {
+    public enum Separation: Int {
+        case none = 0
+        /// "Remove vocal": keep only the background (music, ambience).
+        case removeVoice = 1
+        /// "Keep vocal": keep only the voice.
+        case keepVoice = 2
+    }
+
+    public var separation: Separation = .none
+    /// "Reduce noise" strength 0...1, nil when off.
+    public var denoise: Double?
+
+    public init(separation: Separation = .none, denoise: Double? = nil) {
+        self.separation = separation
+        self.denoise = denoise
+    }
+
+    public var isEmpty: Bool { separation == .none && denoise == nil }
 }
 
 public struct RenderReport {

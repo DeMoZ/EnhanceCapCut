@@ -92,6 +92,36 @@ Calibrated against the author's CapCut exports (HEVC Main10, BT.709 tagged):
 - `loudnesses[]`: per-clip "Normalize loudness": `enable`, `target_loudness`, `loudness_param.avg_loudness`.
 - Audio detached from a compound clip is an audio segment referencing the `drafts` material.
 
+## Voice processing
+
+Per-clip toggles live in materials referenced from `extra_material_refs` (on the video segment for
+camera sound, on the audio segment otherwise; one of each per segment, usually present even when off):
+
+- `vocal_separations[]` — "Isolate voice": `choice` 0 = none, **1 = "Remove vocal"** (keep background),
+  **2 = "Keep vocal"** (confirmed by running Apple's sound classifier on CapCut's outputs: choice 1 drops
+  speech 0.80 → 0.04, choice 2 drops music 0.50 → 0.11). Also `time_range` (source range processed),
+  `production_path` (`Resources/audioAlg/<md5>_<start>_<duration>.wav`), `final_algorithm`
+  (`vocal_separate`), `enter_from`, `removed_sounds`. Can't be applied to compound clips, CapCut music,
+  reversed clips or clips over 10 minutes. On audio detached from a compound clip it applies to the
+  whole nested mix.
+- `realtime_denoises[]` — "Reduce noise": `is_denoise`, `denoise_rate` (always 0.85), `denoise_mode` 1,
+  `path` → `CapCut.app/Contents/Resources/audiosami/unet_denoise_44k_music_model_v1.0.model`
+  (`sami_name` `denoise_v2`). Applied while playing/exporting; nothing is cached. In exports it removes
+  wind and water noise almost completely (The edge: wind 0.66 → 0.06), i.e. it behaves like voice
+  isolation, not like a stationary-noise gate.
+- `vocal_beautifys[]` — "Enhance voice": `enable`, `ambient_sound_level` (75 or 100), `production_path`
+  in `Resources/audioAlg` (not rendered yet).
+
+`Resources/audioAlg/*.wav` (also `_vocal`, `_background`, `_human` and `_upload` variants) are 44.1 kHz
+16-bit WAVs, but all except `_upload` are **obfuscated**: windows of the file (header included) are
+XORed with a single byte, at file-dependent sizes and periods, with keys that can differ between the
+header and the body. We don't decode them; `VoiceProcessor` processes the source audio itself.
+
+Matching CapCut's exports: "Keep vocal" = Apple's voice isolation (`AUSoundIsolation`, high-quality voice)
+at 100 %; "Reduce noise" = the same at 85 % wet (`denoise_rate`), 15 % original; "Remove vocal" = source
+minus that voice estimate as a spectral Wiener mask. `AUSoundIsolation` reports zero latency but delays by
+6360 frames at 48 kHz (4159 at 32 kHz); the delay is measured per clip by cross-correlation.
+
 ## Compound clips
 
 `materials.drafts[]` (`type` `combination`) embed a complete nested draft in `draft`. A video segment
@@ -100,6 +130,7 @@ references it via `extra_material_refs`. Nested drafts can reference combination
 ## Usage in the author's 69 projects
 
 ~655 texts (626 captions), speed objects on all 1564 segments, 381 audios, 195 vocal_beautify,
+58 vocal separations (35 keep vocal, 23 remove vocal), 52 "Reduce noise",
 151 loudness, 135 effects (makeup/figure/"Sparkly Skin"/"ART EN 3D" text effects/"Cherry Cola" filter),
 46 stickers (44 "Clock Time"), 26 transitions (18 "Flashback"), 19 hsl, 16 audio_effects,
 11 video_effects, 10 masks, 52 compound clips.

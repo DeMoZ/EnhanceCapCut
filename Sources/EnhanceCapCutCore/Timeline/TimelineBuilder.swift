@@ -34,6 +34,8 @@ private struct Builder {
         // Nested drafts may reference combinations stored in an outer draft.
         for combo in m.drafts where combos[combo.id] == nil { combos[combo.id] = combo }
         let loudness = Dictionary(m.loudnesses.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        let separations = Dictionary(m.vocalSeparations.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        let denoises = Dictionary(m.realtimeDenoises.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         var generic: [String: (String, GenericMaterial)] = [:]
         for (key, items) in m.all { for item in items { generic[item.id] = (key, item) } }
 
@@ -50,6 +52,14 @@ private struct Builder {
                 let fade = refs.lazy.compactMap { fades[$0] }.first
                 let gain = pow(10, (refs.lazy.compactMap { loudness[$0] }.first?.gainDB ?? 0) / 20)
                 let timeMap = makeTimeMap(segment, speed: speed)
+                var voice = VoiceEffects()
+                if let choice = refs.lazy.compactMap({ separations[$0] }).first?.choice {
+                    voice.separation = VoiceEffects.Separation(rawValue: choice) ?? .none
+                    if voice.separation == .none, choice != 0 { note("Audio", "vocal separation mode \(choice)") }
+                }
+                if let denoise = refs.lazy.compactMap({ denoises[$0] }).first, denoise.isDenoise {
+                    voice.denoise = min(max(denoise.rate, 0), 1)
+                }
                 if track.type != "audio" { reportRefs(refs, generic: generic) }
                 if segment.reverse { note("Reverse playback", "reversed clip (rendered forward)") }
 
@@ -87,10 +97,11 @@ private struct Builder {
                     if !muted, let audioURL {
                         clips.append(AudioClip(url: audioURL, target: segment.targetTimerange, timeMap: timeMap,
                                                volume: segment.volume * gain, fadeIn: fade?.fadeIn ?? 0,
-                                               fadeOut: fade?.fadeOut ?? 0, preservePitch: !segment.isToneModify))
+                                               fadeOut: fade?.fadeOut ?? 0, preservePitch: !segment.isToneModify,
+                                               voice: voice))
                     }
                     if !muted, !compoundAudio.isEmpty {
-                        clips += nestAudio(compoundAudio, in: segment, timeMap: timeMap, volume: segment.volume * gain)
+                        clips += nestAudio(compoundAudio, in: segment, timeMap: timeMap, volume: segment.volume * gain, voice: voice)
                     }
 
                 case "audio":
@@ -99,7 +110,8 @@ private struct Builder {
                     if let combo = refs.compactMap({ combos[$0] }).first,
                        let timeline = nestedTimeline(combo, depth: depth) {
                         // Audio detached from a compound clip.
-                        clips += nestAudio(timeline.audioClips, in: segment, timeMap: timeMap, volume: segment.volume * gain)
+                        clips += nestAudio(timeline.audioClips, in: segment, timeMap: timeMap, volume: segment.volume * gain,
+                                           voice: voice)
                         continue
                     }
                     guard let audio = audios[segment.materialId] else { continue }
@@ -110,7 +122,8 @@ private struct Builder {
                     }
                     clips.append(AudioClip(url: url, target: segment.targetTimerange, timeMap: timeMap,
                                            volume: segment.volume * gain, fadeIn: fade?.fadeIn ?? 0,
-                                           fadeOut: fade?.fadeOut ?? 0, preservePitch: !segment.isToneModify))
+                                           fadeOut: fade?.fadeOut ?? 0, preservePitch: !segment.isToneModify,
+                                           voice: voice))
 
                 case "text":
                     guard !track.isHidden, segment.visible, let text = texts[segment.materialId],
@@ -183,7 +196,9 @@ private struct Builder {
     }
 
     /// Re-times a compound clip's audio into the parent timeline (constant speed only).
-    mutating func nestAudio(_ nested: [AudioClip], in segment: Segment, timeMap: TimeMap, volume: Double) -> [AudioClip] {
+    /// `voice` (the compound segment's own voice effects) overrides the nested clips' settings.
+    mutating func nestAudio(_ nested: [AudioClip], in segment: Segment, timeMap: TimeMap, volume: Double,
+                            voice: VoiceEffects = VoiceEffects()) -> [AudioClip] {
         guard timeMap.isConstant else {
             note("Compound clip", "audio of a compound clip with a speed curve")
             return []
@@ -203,6 +218,8 @@ private struct Builder {
             copy.target = TimeRange(start: parentStart, duration: parentDuration)
             copy.timeMap = TimeMap(sourceStart: srcStart, sourceDuration: srcDuration, targetDuration: parentDuration)
             copy.volume *= volume
+            if voice.separation != .none { copy.voice.separation = voice.separation }
+            if let denoise = voice.denoise { copy.voice.denoise = denoise }
             copy.fadeIn = start == clip.target.start ? Int64(Double(clip.fadeIn) / speed) : 0
             copy.fadeOut = end == clip.target.end ? Int64(Double(clip.fadeOut) / speed) : 0
             result.append(copy)
@@ -226,6 +243,8 @@ private struct Builder {
         "speeds", "placeholder_infos", "sound_channel_mappings", "material_colors", "canvases", "beats",
         "loudnesses", "audio_fades", "drafts", "videos", "audios", "texts", "ai_translates", "smart_crops",
         "realtime_denoises_placeholder",
+        // Rendered by VoiceProcessor.
+        "vocal_separations", "realtime_denoises",
     ]
 
     mutating func report(key: String, item: GenericMaterial) {
@@ -242,10 +261,6 @@ private struct Builder {
         case "chromas": note("Chroma key", "chroma key")
         case "vocal_beautifys":
             if item.enable ?? false { note("Audio", "voice enhancement") }
-        case "realtime_denoises":
-            if item.isDenoise ?? false { note("Audio", "noise reduction") }
-        case "vocal_separations":
-            if (item.choice ?? 0) != 0 { note("Audio", "vocal separation (cached AI result)") }
         case "material_animations":
             for animation in item.animationNames { note("Animation", animation) }
         case "effects":

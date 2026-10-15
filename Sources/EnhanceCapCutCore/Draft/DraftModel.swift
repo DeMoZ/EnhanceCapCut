@@ -202,6 +202,8 @@ public struct Materials: Decodable {
     public var audioFades: [AudioFadeMaterial] = []
     public var drafts: [CombinationMaterial] = []
     public var loudnesses: [LoudnessMaterial] = []
+    public var vocalSeparations: [VocalSeparationMaterial] = []
+    public var realtimeDenoises: [RealtimeDenoiseMaterial] = []
     /// Every material of every category, with just the fields used for reporting.
     public var all: [String: [GenericMaterial]] = [:]
 
@@ -216,6 +218,8 @@ public struct Materials: Decodable {
         audioFades = c.list("audio_fades")
         drafts = c.list("drafts")
         loudnesses = c.list("loudnesses")
+        vocalSeparations = c.list("vocal_separations")
+        realtimeDenoises = c.list("realtime_denoises")
         for key in c.allKeys {
             let items: [GenericMaterial] = c.list(key.stringValue)
             if !items.isEmpty { all[key.stringValue] = items }
@@ -401,6 +405,34 @@ public struct LoudnessMaterial: Decodable {
         if let p = try? c.nestedContainer(keyedBy: AnyKey.self, forKey: AnyKey("loudness_param")) {
             averageLoudness = p.num("avg_loudness")
         }
+    }
+}
+
+/// Per-clip "Isolate voice": `choice` 0 = off, 1 = "Remove vocal" (keep the background),
+/// 2 = "Keep vocal". CapCut renders the result into `production_path` (obfuscated, not read by us).
+public struct VocalSeparationMaterial: Decodable {
+    public var id: String
+    public var choice: Int
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.anyKeyed()
+        id = c.str("id") ?? ""
+        choice = c.num("choice").map { Int($0) } ?? 0
+    }
+}
+
+/// Per-clip "Reduce noise". CapCut applies its model while playing/exporting; nothing is cached.
+public struct RealtimeDenoiseMaterial: Decodable {
+    public var id: String
+    public var isDenoise: Bool
+    /// Strength 0...1 (always 0.85 in the author's projects; not adjustable in the UI).
+    public var rate: Double
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.anyKeyed()
+        id = c.str("id") ?? ""
+        isDenoise = c.bool("is_denoise") ?? false
+        rate = c.num("denoise_rate") ?? 0.85
     }
 }
 

@@ -30,6 +30,16 @@ Usage counts from the author's 69 projects drive the order of the later mileston
 - [x] Verified against real projects and the author's CapCut exports: text size, wrapping, positions and
       fallback fonts; SDR colour (identical), HDR→SDR look (measured curve); loudness and peak limiting.
 
+## Voice processing (done)
+
+- [x] "Isolate voice" (`vocal_separations.choice`: 1 = remove vocal, 2 = keep vocal) and "Reduce noise"
+      (`realtime_denoises`), parsed per clip and applied before the mix (`VoiceProcessor`).
+- [x] Keep vocal: Apple's on-device voice isolation (`AUSoundIsolation`); remove vocal: source minus the
+      voice estimate as a spectral Wiener mask; reduce noise: 85 % voice isolation + 15 % original, which
+      matches CapCut's exports (The edge: corr 0.99, same loudness; SaiKeo Beach: corr 0.99).
+- [x] CapCut's cached separation results are not used: they are obfuscated (see FORMAT.md).
+- [x] `ecc voice` auditions the processing on a single file.
+
 ## Milestone 2 — LUT filters
 
 - Read filter packages from CapCut's effect cache (`~/Library/Containers/com.lemon.lvoverseas/Data/Movies/CapCut/User Data/Cache/effect/<id>/<hash>/`)
@@ -48,8 +58,8 @@ Usage counts from the author's 69 projects drive the order of the later mileston
 ## Milestone 4 — cached AI results
 
 - Reverse playback via `reverse_path` (CapCut's pre-rendered reversed media).
-- Vocal separation: use `production_path` audio from `vocal_separations` when `choice != 0`.
-- Voice enhancement (`vocal_beautifys.production_path`) and other `Resources/audioAlg` results.
+- `Resources/audioAlg` audio results (vocal separation, voice enhancement) turned out to be obfuscated —
+  see FORMAT.md; voice processing is done by us instead (see "Voice processing", milestone 7).
 - Matting / background removal masks (`matting.path`, `mask_video_path`) as alpha.
 
 ## Milestone 5 — remaining effects by usage frequency
@@ -64,10 +74,13 @@ Usage counts from the author's 69 projects drive the order of the later mileston
 - Approximate CapCut's beauty and makeup (`makeup_root`, "Sparkly Skin", smoothing) using Apple Vision
   face landmarks and Core Image filters.
 
-## Milestone 7 — audio effects and denoise
+## Milestone 7 — audio effects
 
-- Noise reduction (`realtime_denoises`), voice filters (`audio_effects`: "Booming", "Live House",
-  "Old Hollywood"…) with AVAudioEngine / AUs.
+- Voice filters (`audio_effects`: "Booming", "Live House", "Old Hollywood"…) with AVAudioEngine / AUs.
+- "Enhance voice" (`vocal_beautifys`, 195 uses): CapCut's result is cached obfuscated like vocal
+  separation; approximate it (voice isolation + EQ/compression) or decide on reading the cache.
+- Better "Remove vocal" for songs: a music source-separation model (e.g. Demucs as Core ML) that the
+  user downloads at runtime; Apple's voice isolation only partly removes sung vocals.
 
 ## Known gaps in milestone 1
 
@@ -76,5 +89,7 @@ Usage counts from the author's 69 projects drive the order of the later mileston
 - Keyframes: linear interpolation only; no bezier easing.
 - Speed curves: video follows the curve exactly; audio follows it in 50 ms steps.
 - Track bit `attribute & 2` is treated as "hidden"; tracks with other flags (e.g. locked) render normally.
+- Voice: "Remove vocal" removes speech well but only part of a sung vocal; processing time is roughly
+  1/10 of the processed clips' duration and isn't reflected in the progress bar.
 - Audio: identical media playing simultaneously (clip + compound clip containing it) is ~3 dB louder
   than in CapCut. Per-clip "Normalize loudness" is applied as a static gain from CapCut's stored measurement.

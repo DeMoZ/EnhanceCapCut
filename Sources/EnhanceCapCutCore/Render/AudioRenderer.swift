@@ -23,9 +23,15 @@ enum AudioRenderer {
         let gain = max(1, timeline.audioClips.map(\.volume).max() ?? 1)
         var lanes: [(track: AVMutableCompositionTrack, params: AVMutableAudioMixInputParameters, end: Int64)] = []
         var anyPitchShift = false
+        // Clips with "Isolate voice" / "Reduce noise" play a processed copy of their source.
+        let voice = VoiceProcessor(directory: url.deletingLastPathComponent()
+            .appendingPathComponent("voice-\(UUID().uuidString)"))
+        defer { voice.removeFiles() }
 
         for clip in timeline.audioClips.sorted(by: { $0.target.start < $1.target.start }) {
-            let asset = AVURLAsset(url: clip.url)
+            let processed = try await voice.process(clip, isCancelled: isCancelled)
+            let sourceShift = processed?.sourceOffset ?? 0
+            let asset = AVURLAsset(url: processed?.url ?? clip.url)
             guard let source = try? await asset.loadTracks(withMediaType: .audio).first,
                   let sourceRange = try? await source.load(.timeRange) else { continue }
 
@@ -48,7 +54,7 @@ enum AudioRenderer {
             for k in 0..<steps {
                 let o0 = clip.target.duration * Int64(k) / Int64(steps)
                 let o1 = clip.target.duration * Int64(k + 1) / Int64(steps)
-                let s0 = map.sourceTime(atOffset: o0), s1 = map.sourceTime(atOffset: o1)
+                let s0 = map.sourceTime(atOffset: o0) - sourceShift, s1 = map.sourceTime(atOffset: o1) - sourceShift
                 let src = CMTimeRange(start: us(s0), end: us(s1)).intersection(sourceRange)
                 guard src.duration > .zero, o1 > o0 else { continue }
                 let at = us(clip.target.start + o0)

@@ -9,7 +9,8 @@ in your folder. Rendering is done by EnhanceCapCut itself from the project file 
 AVFoundation, Core Image/Metal and VideoToolbox hardware encoders.
 
 > Status: milestone 1. Cuts, overlays, speed (incl. curves), transforms and keyframes, canvas
-> backgrounds, photos, compound clips, texts and captions, and the audio mix are rendered. CapCut effects,
+> backgrounds, photos, compound clips, texts and captions, and the audio mix (incl. "Isolate voice" —
+> keep or remove vocal — and "Reduce noise") are rendered. CapCut effects,
 > filters, transitions, stickers and text animations are not yet — the export window lists which of
 > them your project uses. See [docs/PLAN.md](docs/PLAN.md).
 
@@ -72,12 +73,14 @@ ecc list                                   # projects, * = open in CapCut
 ecc info ChiangMaiMarkets                   # what will be rendered, unsupported features, missing media
 ecc render 1014 -o ~/Movies/1014.mp4 --codec hevc10 --quality 70
 ecc render 1014 --from 10 --duration 5 --codec prores422 -o /tmp/test.mov
+ecc voice clip.mov -o voice.wav --keep-voice # audition the voice processing on one file
 ```
 
 Options: `--codec h264|hevc|hevc10|prores422|prores422HQ`, `--quality 0-100`, `--bitrate Mbps`,
 `--fps N`, `--aspect project|9:16|1:1|16:9`, `--height 720|1080|1440|2160`, `--lufs -14`,
 `--no-subtitles`, `--from s`, `--duration s`. Without a project argument the open project is used;
-unspecified options fall back to the app's saved settings.
+unspecified options fall back to the app's saved settings. `ecc voice` takes `--keep-voice`,
+`--remove-voice` and/or `--denoise 0.85`.
 
 ## Development
 
