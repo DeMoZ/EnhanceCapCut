@@ -79,15 +79,17 @@ enum AudioRenderer {
             let v = Float(clip.volume / gain)
             let start = clip.target.start, end = clip.target.end
             let fadeIn = min(clip.fadeIn, clip.target.duration / 2), fadeOut = min(clip.fadeOut, clip.target.duration / 2)
-            if fadeIn > 0 {
-                params.setVolumeRamp(fromStartVolume: 0, toEndVolume: v, timeRange: CMTimeRange(start: us(start), duration: us(fadeIn)))
-            } else {
-                params.setVolume(v, at: us(start))
+            // Volume points on one lane form a piecewise-linear envelope: a plain `setVolume(_:at:)`
+            // ramps from the previous clip's volume across this whole clip. Explicit ramps covering
+            // the clip from start to end pin the level (fade in, hold, fade out).
+            func ramp(_ from: Float, _ to: Float, _ t0: Int64, _ t1: Int64) {
+                guard t1 > t0 else { return }
+                params.setVolumeRamp(fromStartVolume: from, toEndVolume: to,
+                                     timeRange: CMTimeRange(start: us(t0), end: us(t1)))
             }
-            if fadeOut > 0 {
-                params.setVolumeRamp(fromStartVolume: v, toEndVolume: 0,
-                                     timeRange: CMTimeRange(start: us(end - fadeOut), duration: us(fadeOut)))
-            }
+            ramp(0, v, start, start + fadeIn)
+            ramp(v, v, start + fadeIn, end - fadeOut)
+            ramp(v, 0, end - fadeOut, end)
             lanes[laneIndex].end = end
         }
         mix.inputParameters = lanes.map(\.params)
