@@ -1,0 +1,15 @@
+.DS_Store
+/.build/
+/build/
+/.swiftpm/
+*.xcodeproj/xcuserdata/
+DerivedData/
+# Never commit user media, renders or CapCut project files
+*.mp4
+*.mov
+*.m4a
+*.wav
+*.caf
+/renders/
+/samples/
+draft_info.json

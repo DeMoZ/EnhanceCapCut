@@ -1,0 +1,159 @@
+import CoreGraphics
+import Foundation
+
+/// A draft resolved into what the renderer needs: visual layers in paint order and audio clips.
+public final class Timeline {
+    public let name: String
+    /// The draft's canvas in pixels. Layout is relative, so any output size can be rendered.
+    public let canvasSize: CGSize
+    public let duration: Int64
+    public let fps: Double
+    /// Bottom to top.
+    public let layers: [VisualLayer]
+    public let audioClips: [AudioClip]
+    public let report: RenderReport
+
+    init(name: String, canvasSize: CGSize, duration: Int64, fps: Double, layers: [VisualLayer],
+         audioClips: [AudioClip], report: RenderReport) {
+        self.name = name
+        self.canvasSize = canvasSize
+        self.duration = duration
+        self.fps = fps
+        self.layers = layers
+        self.audioClips = audioClips
+        self.report = report
+    }
+
+    /// The same timeline without caption (auto-subtitle) clips.
+    public func withoutSubtitles() -> Timeline {
+        let kept = layers.filter { layer in
+            if case let .text(spec) = layer.content { return spec.material.type != "subtitle" }
+            return true
+        }
+        return Timeline(name: name, canvasSize: canvasSize, duration: duration, fps: fps, layers: kept,
+                        audioClips: audioClips, report: report)
+    }
+
+    public var hasSubtitles: Bool {
+        layers.contains { layer in
+            if case let .text(spec) = layer.content { return spec.material.type == "subtitle" }
+            return false
+        }
+    }
+}
+
+public enum VisualContent {
+    case video(URL)
+    case photo(URL)
+    case text(TextLayerSpec)
+    case compound(Timeline)
+}
+
+public struct TextLayerSpec {
+    public var material: TextMaterial
+    public var content: TextContent
+}
+
+/// Layer properties that can be keyframed.
+public enum LayerProperty: String, CaseIterable {
+    case positionX = "KFTypePositionX"
+    case positionY = "KFTypePositionY"
+    case scaleX = "KFTypeScaleX"
+    case scaleY = "KFTypeScaleY"
+    case rotation = "KFTypeRotation"
+    case alpha = "KFTypeAlpha"
+    case volume = "KFTypeVolume"
+}
+
+public struct LayerTransform: Equatable {
+    public var scaleX: Double
+    public var scaleY: Double
+    /// Degrees, clockwise.
+    public var rotation: Double
+    /// Half-canvas units, +y up.
+    public var positionX: Double
+    public var positionY: Double
+    public var flipH: Bool
+    public var flipV: Bool
+    public var alpha: Double
+}
+
+public final class VisualLayer {
+    public let id: String
+    public let content: VisualContent
+    public let trackIndex: Int
+    public let renderIndex: Int
+    /// The first video track: its clips get the canvas background.
+    public let isMainTrack: Bool
+    public let target: TimeRange
+    public let timeMap: TimeMap
+    public let crop: Crop
+    public let clip: Clip
+    public let uniformScale: Bool
+    public let keyframes: [LayerProperty: KeyframeTrack]
+    public let canvas: CanvasMaterial?
+
+    init(id: String, content: VisualContent, trackIndex: Int, renderIndex: Int, isMainTrack: Bool,
+         target: TimeRange, timeMap: TimeMap, crop: Crop, clip: Clip, uniformScale: Bool,
+         keyframes: [LayerProperty: KeyframeTrack], canvas: CanvasMaterial?) {
+        self.id = id
+        self.content = content
+        self.trackIndex = trackIndex
+        self.renderIndex = renderIndex
+        self.isMainTrack = isMainTrack
+        self.target = target
+        self.timeMap = timeMap
+        self.crop = crop
+        self.clip = clip
+        self.uniformScale = uniformScale
+        self.keyframes = keyframes
+        self.canvas = canvas
+    }
+
+    public func isActive(at t: Int64) -> Bool { t >= target.start && t < target.end }
+
+    /// Clip transform at timeline time `t`, with keyframes applied.
+    public func transform(at t: Int64) -> LayerTransform {
+        let offset = t - target.start
+        func kf(_ p: LayerProperty) -> Double? { keyframes[p]?.value(at: offset) }
+        var sx = kf(.scaleX) ?? clip.scale.x
+        var sy = kf(.scaleY) ?? clip.scale.y
+        if uniformScale {
+            if keyframes[.scaleX] != nil { sy = sx } else if keyframes[.scaleY] != nil { sx = sy }
+        }
+        return LayerTransform(
+            scaleX: sx, scaleY: sy,
+            rotation: kf(.rotation) ?? clip.rotation,
+            positionX: kf(.positionX) ?? clip.transform.x,
+            positionY: kf(.positionY) ?? clip.transform.y,
+            flipH: clip.flipHorizontal, flipV: clip.flipVertical,
+            alpha: kf(.alpha) ?? clip.alpha)
+    }
+}
+
+public struct AudioClip {
+    public var url: URL
+    public var target: TimeRange
+    public var timeMap: TimeMap
+    /// Linear gain; CapCut allows values above 1.
+    public var volume: Double
+    public var fadeIn: Int64
+    public var fadeOut: Int64
+    public var preservePitch: Bool
+}
+
+public struct RenderReport {
+    public struct Item: Hashable, Identifiable {
+        public var category: String
+        public var name: String
+        public var count: Int
+        public var id: String { category + "/" + name }
+    }
+
+    /// Effects, transitions, stickers, filters... present in the project but not rendered.
+    public var unsupported: [Item] = []
+    /// Media files referenced by the project that don't exist on disk (rendered as empty).
+    public var missingFiles: [String] = []
+
+    public var isEmpty: Bool { unsupported.isEmpty && missingFiles.isEmpty }
+}

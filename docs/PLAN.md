@@ -1,0 +1,80 @@
+# EnhanceCapCut roadmap
+
+EnhanceCapCut renders the CapCut project that is open in the editor to a video file with our own
+renderer and our own export parameters. CapCut has no plugin API and we don't patch the app; the
+entry point is a macOS Services menu item, and rendering reads the project's `draft_info.json`.
+
+Effects that CapCut implements with its own resource packages are re-implemented in our code.
+CapCut's shaders, Lua scripts and other resource files are never copied into this repository;
+reading the user's own cached resources (e.g. LUT images) at render time is fine.
+
+Usage counts from the author's 69 projects drive the order of the later milestones
+(see [FORMAT.md](FORMAT.md)).
+
+## Milestone 1 — own export of the basic edit (done)
+
+- [x] SwiftPM package: `EnhanceCapCutCore` library, `EnhanceCapCut` app, `ecc` CLI, app bundle script.
+- [x] Services menu entry "Export with EnhanceCapCut" (no input, any app, bindable to a hotkey).
+- [x] Open-project detection (`.locked` file) with a project picker fallback.
+- [x] Tolerant draft parser: tracks, segments, clip transforms, keyframes, crop, speeds (incl. curves),
+      volumes, fades, canvases, texts/subtitles, compound clips, per-clip loudness normalization.
+- [x] Renderer: AVFoundation decoding, Core Image (Metal) compositing, HDR→SDR tone mapping,
+      cuts, overlays in CapCut's render order, constant and curve speed, transforms and keyframes,
+      canvas colour/blur/image, photos, compound clips (nested drafts), text and captions with
+      fonts, fill, outline and background.
+- [x] Audio: mix of all audio tracks and clip sound, volume (incl. >100%), fades, speed, optional
+      EBU R128 loudness normalization (ffmpeg `loudnorm`, two-pass, linear).
+- [x] Export window: aspect, resolution, frame rate, codec (H.264 / HEVC 8/10-bit / ProRes 422/HQ),
+      constant quality or bitrate, captions burn-in, loudness target, output folder and file name
+      template; remembers the last choices; lists project features that won't be rendered.
+- [x] Verified against real projects and the author's CapCut exports: text size, wrapping, positions and
+      fallback fonts; SDR colour (identical), HDR→SDR look (measured curve); loudness and peak limiting.
+
+## Milestone 2 — LUT filters
+
+- Read filter packages from CapCut's effect cache (`~/Library/Containers/com.lemon.lvoverseas/Data/Movies/CapCut/User Data/Cache/effect/<id>/<hash>/`)
+  at render time, locate the LUT image, apply it with `CIColorCube` with the filter's intensity.
+- Filter tracks (`effect`/`filter` track types) and per-clip filters; the "Cherry Cola" filter first.
+- Also: HSL adjustments (19 uses) and basic colour adjustments where they map to Core Image.
+
+## Milestone 3 — "Flashback" transition and "Clock Time" stickers
+
+- Transitions: model the overlap of adjacent main-track clips (`is_overlap`, `duration`), render
+  "Flashback" (18 of 26 transitions) as our own Metal/Core Image kernel; then a generic cross-fade
+  fallback for other transitions.
+- Stickers: re-implement "Clock Time" (44 of 46 stickers) natively (clock face drawn with Core Graphics
+  from the segment's time), positioned with the sticker clip transform.
+
+## Milestone 4 — cached AI results
+
+- Reverse playback via `reverse_path` (CapCut's pre-rendered reversed media).
+- Vocal separation: use `production_path` audio from `vocal_separations` when `choice != 0`.
+- Voice enhancement (`vocal_beautifys.production_path`) and other `Resources/audioAlg` results.
+- Matting / background removal masks (`matting.path`, `mask_video_path`) as alpha.
+
+## Milestone 5 — remaining effects by usage frequency
+
+- Video effects (`video_effects`, 11) and body effects (`effects/figure`, 55), most-used first.
+- Text effects / text templates ("ART EN 3D …"), text intro/outro animations (`material_animations`).
+- Masks (`common_mask`: rectangle, circle, brush…) with feather and keyframes.
+- Video clip animations, manual deformation.
+
+## Milestone 6 — beauty / makeup approximations
+
+- Approximate CapCut's beauty and makeup (`makeup_root`, "Sparkly Skin", smoothing) using Apple Vision
+  face landmarks and Core Image filters.
+
+## Milestone 7 — audio effects and denoise
+
+- Noise reduction (`realtime_denoises`), voice filters (`audio_effects`: "Booming", "Live House",
+  "Old Hollywood"…) with AVAudioEngine / AUs.
+
+## Known gaps in milestone 1
+
+- Text: no text effects/animations; vertical typesetting is rendered horizontally; CapCut breaks
+  Cyrillic/Thai lines mid-word, we break at word boundaries; Cyrillic fallback weight differs slightly.
+- Keyframes: linear interpolation only; no bezier easing.
+- Speed curves: video follows the curve exactly; audio follows it in 50 ms steps.
+- Track bit `attribute & 2` is treated as "hidden"; tracks with other flags (e.g. locked) render normally.
+- Audio: identical media playing simultaneously (clip + compound clip containing it) is ~3 dB louder
+  than in CapCut. Per-clip "Normalize loudness" is applied as a static gain from CapCut's stored measurement.
