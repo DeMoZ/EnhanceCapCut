@@ -67,9 +67,6 @@ private struct Builder {
                 if let enhance = refs.lazy.compactMap({ enhancements[$0] }).first, enhance.enable {
                     voice.enhance = min(max(enhance.ambientSoundLevel / 100, 0), 1)
                 }
-<<<<<<< HEAD
-                if track.type != "audio" { reportRefs(refs, generic: generic) }
-=======
                 // A voice filter we can't run (preset not cached, unknown processor) is reported instead.
                 var filterIssue: String?
                 if let effect = refs.lazy.compactMap({ audioEffects[$0] }).first {
@@ -84,8 +81,6 @@ private struct Builder {
                     if let filterIssue { note("Audio effect", filterIssue) }
                 }
                 if track.type != "audio" { reportAll() }
-                if segment.reverse { note("Reverse playback", "reversed clip (rendered forward)") }
->>>>>>> claude/awesome-leavitt-94f99f
 
                 switch track.type {
                 case "video":
@@ -149,12 +144,8 @@ private struct Builder {
 
                 case "audio":
                     guard !track.isMuted, segment.volume > 0 else { continue }
-<<<<<<< HEAD
-                    reportRefs(refs, generic: generic)
-                    reportKeyframes(segment)
-=======
                     reportAll()
->>>>>>> claude/awesome-leavitt-94f99f
+                    reportKeyframes(segment)
                     if let combo = refs.compactMap({ combos[$0] }).first,
                        let timeline = nestedTimeline(combo, depth: depth) {
                         // Audio detached from a compound clip.
@@ -283,14 +274,9 @@ private struct Builder {
             if voice.separation != .none { copy.voice.separation = voice.separation }
             if let denoise = voice.denoise { copy.voice.denoise = denoise }
             if let enhance = voice.enhance { copy.voice.enhance = enhance }
-<<<<<<< HEAD
+            if let filter = voice.filter { copy.voice.filter = filter }
             copy.fadeIn = start == clip.target.start ? timeMap.offset(atSourceTime: start + clip.fadeIn) - o0 : 0
             copy.fadeOut = end == clip.target.end ? o1 - timeMap.offset(atSourceTime: end - clip.fadeOut) : 0
-=======
-            if let filter = voice.filter { copy.voice.filter = filter }
-            copy.fadeIn = start == clip.target.start ? Int64(Double(clip.fadeIn) / speed) : 0
-            copy.fadeOut = end == clip.target.end ? Int64(Double(clip.fadeOut) / speed) : 0
->>>>>>> claude/awesome-leavitt-94f99f
             result.append(copy)
         }
         return result

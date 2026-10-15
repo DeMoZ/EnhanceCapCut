@@ -4,6 +4,8 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
+	<key>CFBundleDisplayName</key>
+	<string>EnhanceCapCut</string>
 	<key>CFBundleExecutable</key>
 	<string>EnhanceCapCut</string>
 	<key>CFBundleIdentifier</key>
@@ -12,18 +14,16 @@
 	<string>6.0</string>
 	<key>CFBundleName</key>
 	<string>EnhanceCapCut</string>
-	<key>CFBundleDisplayName</key>
-	<string>EnhanceCapCut</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.1.0</string>
+	<string>0.2.0</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
-	<key>LSMinimumSystemVersion</key>
-	<string>15.0</string>
+	<string>2</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.video</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>15.0</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSPrincipalClass</key>
@@ -40,7 +40,6 @@
 			<string>exportWithEnhanceCapCut</string>
 			<key>NSPortName</key>
 			<string>EnhanceCapCut</string>
-			<!-- No input: the service works in any app (CapCut exposes no selection to Services). -->
 			<key>NSRequiredContext</key>
 			<dict/>
 			<key>NSSendTypes</key>
