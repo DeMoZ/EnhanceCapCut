@@ -109,8 +109,11 @@ camera sound, on the audio segment otherwise; one of each per segment, usually p
   (`sami_name` `denoise_v2`). Applied while playing/exporting; nothing is cached. In exports it removes
   wind and water noise almost completely (The edge: wind 0.66 → 0.06), i.e. it behaves like voice
   isolation, not like a stationary-noise gate.
-- `vocal_beautifys[]` — "Enhance voice": `enable`, `ambient_sound_level` (75 or 100), `production_path`
-  in `Resources/audioAlg` (not rendered yet).
+- `vocal_beautifys[]` — "Enhance voice": `enable`, `ambient_sound_level` (75 almost everywhere, 100 on
+  two clips), `time_range` (always the whole source file), `production_path`
+  (`Resources/audioAlg/<md5>_0_<duration>.wav`, obfuscated), `voice_change_mode` (null),
+  `is_from_hd_sounds` (false). Used on voiceovers and on camera audio, often together with
+  "Reduce noise".
 
 `Resources/audioAlg/*.wav` (also `_vocal`, `_background`, `_human` and `_upload` variants) are 44.1 kHz
 16-bit WAVs, but all except `_upload` are **obfuscated**: windows of the file (header included) are
@@ -121,6 +124,20 @@ Matching CapCut's exports: "Keep vocal" = Apple's voice isolation (`AUSoundIsola
 at 100 %; "Reduce noise" = the same at 85 % wet (`denoise_rate`), 15 % original; "Remove vocal" = source
 minus that voice estimate as a spectral Wiener mask. `AUSoundIsolation` reports zero latency but delays by
 6360 frames at 48 kHz (4159 at 32 kHz); the delay is measured per clip by cross-correlation.
+
+"Enhance voice", measured on clips where it is the only audible sound (CockScreams voiceover, KoSamet
+IMG_2944 camera audio at 128–135 s, EatingSlugsLong 0–4.4 s with "Reduce noise" too), by fitting the
+export as `g_v·voice + g_a·ambience` per ⅓-octave band (voice = Apple's isolation, ambience = source − voice):
+
+- Voiced parts come out +2.2…3.0 dB louder; coherence with the source is 0.99 from 100 Hz to 6 kHz, so
+  there's no compression or de-essing to speak of, mostly a linear EQ.
+- Low cut: −3 dB around 80 Hz, −8 dB at 63 Hz, −11 dB at 50 Hz, without phase shift (a minimum-phase
+  high-pass drops the waveform correlation with the export from 0.98 to 0.84; forward–backward doesn't).
+- Air boost: +2 dB at 8 kHz, +5 at 10 kHz, +11 at 12.8 kHz, +7 at 16 kHz relative to the speech band.
+- Ambience at level 75: 0.26–0.37 of the voice gain (non-speech frames end up 8–15 dB below the
+  source while speech is +2.8 dB). With "Reduce noise" on as well the ambience lands at −12.5 dB, close
+  to the denoiser's 15 % × the enhancer's gain, i.e. the two don't stack.
+- No export with level 100 exists in the author's library; we assume 100 keeps the ambience whole.
 
 ## Compound clips
 

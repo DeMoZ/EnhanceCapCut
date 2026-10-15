@@ -38,6 +38,11 @@ Usage counts from the author's 69 projects drive the order of the later mileston
       voice estimate as a spectral Wiener mask; reduce noise: 85 % voice isolation + 15 % original, which
       matches CapCut's exports (The edge: corr 0.99, same loudness; SaiKeo Beach: corr 0.99).
 - [x] CapCut's cached separation results are not used: they are obfuscated (see FORMAT.md).
+- [x] "Enhance voice" (`vocal_beautifys`, milestone 7 item): ambience turned down by voice isolation
+      (to 0.3 at `ambient_sound_level` 75), then +2.8 dB, a zero-phase low cut at ~70 Hz and a +13 dB
+      air boost at 13.7 kHz (`VoiceEnhancer`). Against CapCut's exports: KoSamet camera clip frame-level
+      error 2.9 → 0.8 dB, spectrum error 2.9 → 1.3 dB, waveform corr 0.982 → 0.989; EatingSlugs (with
+      "Reduce noise") level error −3.2 → −0.9 dB; ATV/CockScreams voiceovers within 0–1.8 dB.
 - [x] `ecc voice` auditions the processing on a single file.
 
 ## Milestone 2 — LUT filters
@@ -77,8 +82,10 @@ Usage counts from the author's 69 projects drive the order of the later mileston
 ## Milestone 7 — audio effects
 
 - Voice filters (`audio_effects`: "Booming", "Live House", "Old Hollywood"…) with AVAudioEngine / AUs.
-- "Enhance voice" (`vocal_beautifys`, 195 uses): CapCut's result is cached obfuscated like vocal
-  separation; approximate it (voice isolation + EQ/compression) or decide on reading the cache.
+- [x] "Enhance voice" (`vocal_beautifys`, 195 uses): approximated, see "Voice processing". Open: the
+  ambience share for levels other than 75 is extrapolated (no export to check it against); non-speech
+  vocal sounds (imitations, laughter) are partly treated as ambience by Apple's isolation, while CapCut
+  keeps them (CockScreams −1.8 dB).
 - Better "Remove vocal" for songs: a music source-separation model (e.g. Demucs as Core ML) that the
   user downloads at runtime; Apple's voice isolation only partly removes sung vocals.
 

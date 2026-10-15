@@ -36,6 +36,7 @@ private struct Builder {
         let loudness = Dictionary(m.loudnesses.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         let separations = Dictionary(m.vocalSeparations.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         let denoises = Dictionary(m.realtimeDenoises.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        let enhancements = Dictionary(m.vocalBeautifys.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         var generic: [String: (String, GenericMaterial)] = [:]
         for (key, items) in m.all { for item in items { generic[item.id] = (key, item) } }
 
@@ -59,6 +60,9 @@ private struct Builder {
                 }
                 if let denoise = refs.lazy.compactMap({ denoises[$0] }).first, denoise.isDenoise {
                     voice.denoise = min(max(denoise.rate, 0), 1)
+                }
+                if let enhance = refs.lazy.compactMap({ enhancements[$0] }).first, enhance.enable {
+                    voice.enhance = min(max(enhance.ambientSoundLevel / 100, 0), 1)
                 }
                 if track.type != "audio" { reportRefs(refs, generic: generic) }
                 if segment.reverse { note("Reverse playback", "reversed clip (rendered forward)") }
@@ -220,6 +224,7 @@ private struct Builder {
             copy.volume *= volume
             if voice.separation != .none { copy.voice.separation = voice.separation }
             if let denoise = voice.denoise { copy.voice.denoise = denoise }
+            if let enhance = voice.enhance { copy.voice.enhance = enhance }
             copy.fadeIn = start == clip.target.start ? Int64(Double(clip.fadeIn) / speed) : 0
             copy.fadeOut = end == clip.target.end ? Int64(Double(clip.fadeOut) / speed) : 0
             result.append(copy)
@@ -244,7 +249,7 @@ private struct Builder {
         "loudnesses", "audio_fades", "drafts", "videos", "audios", "texts", "ai_translates", "smart_crops",
         "realtime_denoises_placeholder",
         // Rendered by VoiceProcessor.
-        "vocal_separations", "realtime_denoises",
+        "vocal_separations", "realtime_denoises", "vocal_beautifys",
     ]
 
     mutating func report(key: String, item: GenericMaterial) {
@@ -259,8 +264,6 @@ private struct Builder {
         case "audio_effects": note("Audio effect", name)
         case "manual_deformations": note("Manual deformation", "body/face reshape")
         case "chromas": note("Chroma key", "chroma key")
-        case "vocal_beautifys":
-            if item.enable ?? false { note("Audio", "voice enhancement") }
         case "material_animations":
             for animation in item.animationNames { note("Animation", animation) }
         case "effects":

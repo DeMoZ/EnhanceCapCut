@@ -13,6 +13,9 @@ import AVFoundation
 ///   wind, water and other ambience, not just stationary hiss, which the voice isolation reproduces.
 ///   On a clip whose voice is removed, the background gets a stationary-noise spectral gate
 ///   (`SpectralDenoiser`) instead; on a "Keep vocal" clip there's nothing left to remove.
+/// - Enhance voice: the ambience (source minus voice) is turned down by `VoiceEnhancer.ambientGain`,
+///   then `VoiceEnhancer` applies CapCut's gain and EQ. With "Reduce noise" also on, the lower of the
+///   two ambience levels wins. Not applied to "Remove vocal" clips (no voice left to enhance).
 ///
 /// Each clip's source range (plus some context) is processed once and cached for the render.
 final class VoiceProcessor {
@@ -64,11 +67,15 @@ final class VoiceProcessor {
         var offset = sourceStart
         switch clip.voice.separation {
         case .none:
-            if let strength = clip.voice.denoise {
+            // The share of the ambience (source − voice) that's kept.
+            var ambience: Double?
+            if let strength = clip.voice.denoise { ambience = 1 - strength }
+            if let level = clip.voice.enhance { ambience = min(ambience ?? 1, VoiceEnhancer.ambientGain(level: level)) }
+            if let ambience, ambience < 1 {
                 let (voice, latency) = try isolateVoice(sourceURL, isCancelled: isCancelled)
                 url = newFile("denoised")
                 try Self.blend(source: sourceURL, voice: voice, voiceStart: AVAudioFramePosition(latency),
-                               voiceAmount: Float(strength), to: url, isCancelled: isCancelled)
+                               voiceAmount: Float(1 - ambience), to: url, isCancelled: isCancelled)
             }
         case .keepVoice:
             let (voice, latency) = try isolateVoice(sourceURL, isCancelled: isCancelled)
@@ -86,6 +93,11 @@ final class VoiceProcessor {
             try SpectralDenoiser.process(try Self.read(url), to: try Self.write(denoised), strength: strength,
                                          isCancelled: isCancelled)
             url = denoised
+        }
+        if clip.voice.enhance != nil, clip.voice.separation != .removeVoice {
+            let enhanced = newFile("enhanced")
+            try VoiceEnhancer.process(try Self.read(url), to: try Self.write(enhanced), isCancelled: isCancelled)
+            url = enhanced
         }
         let output = Output(url: url, sourceOffset: offset)
         cache[key] = output
@@ -286,6 +298,87 @@ final class VoiceProcessor {
     }
 
     static func us(frames: Int) -> Int64 { Int64((Double(frames) / sampleRate * 1_000_000).rounded()) }
+}
+
+/// CapCut's "Enhance voice", approximated from the author's exports (see docs/FORMAT.md): the voice
+/// comes out ~2.8 dB louder with the rumble below ~80 Hz cut and a strong "air" boost around 13 kHz;
+/// the ambience is kept at a level-dependent share. The ambience reduction itself happens in
+/// `VoiceProcessor` (voice isolation blend); this applies the gain and EQ.
+enum VoiceEnhancer {
+    /// Broadband gain on voiced parts (+2.8 dB; 2.2–3.0 dB on three clips).
+    static let gain: Float = 1.38
+    /// Zero-phase high-pass: a 2nd-order Butterworth run forward and backward (exports: −3 dB around
+    /// 80 Hz, −8 dB at 63 Hz, −11 dB at 50 Hz). CapCut's low cut doesn't shift phase: a plain
+    /// minimum-phase filter drops the waveform correlation with the exports from 0.98 to 0.84.
+    static let highPassHz = 68.0
+    /// Peaking boost fitted to the exports (+2 dB at 8 kHz, +5 at 10 kHz, +11 at 12.8 kHz, +7 at 16 kHz).
+    static let airHz = 13_700.0, airGainDB = 12.9, airQ = 1.42
+    /// The ambience share kept at `ambient_sound_level` 75, measured on KoSamet's camera audio as
+    /// 0.26–0.37 of the voice level; the other levels are interpolated as `level^k` (1 at 100, 0 at 0)
+    /// since no export with another level was available to check against.
+    static let ambientAt75 = 0.3
+
+    /// The share of the ambience kept for `level` (0...1).
+    static func ambientGain(level: Double) -> Double {
+        let k = log(ambientAt75) / log(0.75)
+        return pow(min(max(level, 0), 1), k)
+    }
+
+    struct Biquad {
+        var b0, b1, b2, a1, a2: Double
+
+        static func highPass(_ f: Double, q: Double = 1 / 2.squareRoot(), rate: Double) -> Biquad {
+            let w = 2 * Double.pi * f / rate, alpha = sin(w) / (2 * q), cw = cos(w), a0 = 1 + alpha
+            return Biquad(b0: (1 + cw) / 2 / a0, b1: -(1 + cw) / a0, b2: (1 + cw) / 2 / a0,
+                          a1: -2 * cw / a0, a2: (1 - alpha) / a0)
+        }
+
+        static func peak(_ f: Double, gainDB: Double, q: Double, rate: Double) -> Biquad {
+            let a = pow(10, gainDB / 40), w = 2 * Double.pi * f / rate, alpha = sin(w) / (2 * q), cw = cos(w)
+            let a0 = 1 + alpha / a
+            return Biquad(b0: (1 + alpha * a) / a0, b1: -2 * cw / a0, b2: (1 - alpha * a) / a0,
+                          a1: -2 * cw / a0, a2: (1 - alpha / a) / a0)
+        }
+
+        /// Filters `x` in place, forward or backward.
+        func run(_ x: inout [Float], reverse: Bool = false) {
+            var x1 = 0.0, x2 = 0.0, y1 = 0.0, y2 = 0.0
+            for j in 0..<x.count {
+                let i = reverse ? x.count - 1 - j : j
+                let input = Double(x[i])
+                let y = b0 * input + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2
+                x2 = x1; x1 = input; y2 = y1; y1 = y
+                x[i] = Float(y)
+            }
+        }
+    }
+
+    /// Applies the EQ and gain to one channel of a whole clip.
+    static func apply(_ x: inout [Float], rate: Double) {
+        let highPass = Biquad.highPass(highPassHz, rate: rate)
+        highPass.run(&x)
+        highPass.run(&x, reverse: true)
+        Biquad.peak(airHz, gainDB: airGainDB, q: airQ, rate: rate).run(&x)
+        var g = gain
+        vDSP_vsmul(x, 1, &g, &x, 1, vDSP_Length(x.count))
+    }
+
+    /// Processes the whole file in memory (the zero-phase filter runs backward over it).
+    static func process(_ input: AVAudioFile, to output: AVAudioFile, isCancelled: () -> Bool) throws {
+        let format = input.processingFormat
+        let frames = AVAudioFrameCount(input.length)
+        guard frames > 0, let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames) else { return }
+        try input.read(into: buffer)
+        for c in 0..<Int(format.channelCount) {
+            if isCancelled() { throw RenderError.cancelled }
+            let data = buffer.floatChannelData![c]
+            var x = Array(UnsafeBufferPointer(start: data, count: Int(buffer.frameLength)))
+            apply(&x, rate: format.sampleRate)
+            x.withUnsafeBufferPointer { data.update(from: $0.baseAddress!, count: x.count) }
+        }
+        try output.write(from: buffer)
+        output.close()
+    }
 }
 
 /// Applies voice effects to a whole media file and writes a 48 kHz stereo float WAV aligned with the

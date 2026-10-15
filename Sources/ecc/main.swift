@@ -7,7 +7,7 @@ import Foundation
 //   ecc render [project] [-o file] [--codec h264|hevc|hevc10|prores|proreshq] [--quality 0-100 | --bitrate Mbps]
 //              [--fps N] [--aspect project|9:16|1:1|16:9] [--height N] [--lufs -14] [--no-subtitles]
 //              [--from s] [--duration s]
-//   ecc voice <media> -o out.wav [--keep-voice | --remove-voice] [--denoise 0.85]
+//   ecc voice <media> -o out.wav [--keep-voice | --remove-voice] [--denoise 0.85] [--enhance 75]
 
 func fail(_ message: String) -> Never {
     FileHandle.standardError.write((message + "\n").data(using: .utf8)!)
@@ -63,6 +63,7 @@ case "info":
         if clip.voice.separation == .keepVoice { fx += " [keep voice]" }
         if clip.voice.separation == .removeVoice { fx += " [remove voice]" }
         if let d = clip.voice.denoise { fx += String(format: " [denoise %.2f]", d) }
+        if let e = clip.voice.enhance { fx += String(format: " [enhance %.0f]", e * 100) }
         print("  audio \(seconds(clip.target.start))+\(seconds(clip.target.duration)) vol \(String(format: "%.2f", clip.volume)) \(clip.url.lastPathComponent)\(fx)")
     }
     if !timeline.report.unsupported.isEmpty {
@@ -125,13 +126,14 @@ case "render":
     print(String(format: "Done in %.1fs: %@", Date().timeIntervalSince(started), url.path))
 
 case "voice":
-    // Audition "Isolate voice" / "Reduce noise" on a single media file.
+    // Audition "Isolate voice" / "Reduce noise" / "Enhance voice" on a single media file.
     var effects = VoiceEffects()
     if let i = args.firstIndex(of: "--keep-voice") { effects.separation = .keepVoice; args.remove(at: i) }
     if let i = args.firstIndex(of: "--remove-voice") { effects.separation = .removeVoice; args.remove(at: i) }
     if let v = option("--denoise").flatMap(Double.init) { effects.denoise = v }
-    guard let out = option("-o"), let input = args.first else { fail("usage: ecc voice <media> -o out.wav [--keep-voice | --remove-voice] [--denoise 0.85]") }
-    guard !effects.isEmpty else { fail("pass --keep-voice, --remove-voice and/or --denoise") }
+    if let v = option("--enhance").flatMap(Double.init) { effects.enhance = v / 100 }
+    guard let out = option("-o"), let input = args.first else { fail("usage: ecc voice <media> -o out.wav [--keep-voice | --remove-voice] [--denoise 0.85] [--enhance 75]") }
+    guard !effects.isEmpty else { fail("pass --keep-voice, --remove-voice, --denoise and/or --enhance") }
     let started = Date()
     try await VoiceEffectsRenderer.render(URL(fileURLWithPath: (input as NSString).expandingTildeInPath), effects: effects,
                                           to: URL(fileURLWithPath: (out as NSString).expandingTildeInPath))

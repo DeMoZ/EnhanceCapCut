@@ -140,7 +140,7 @@ public struct AudioClip {
     public var fadeIn: Int64
     public var fadeOut: Int64
     public var preservePitch: Bool
-    /// "Isolate voice" / "Reduce noise", applied to the source before the mix.
+    /// "Isolate voice" / "Reduce noise" / "Enhance voice", applied to the source before the mix.
     public var voice = VoiceEffects()
 }
 
@@ -157,13 +157,16 @@ public struct VoiceEffects: Hashable {
     public var separation: Separation = .none
     /// "Reduce noise" strength 0...1, nil when off.
     public var denoise: Double?
+    /// "Enhance voice" ambient sound level 0...1 (`ambient_sound_level` / 100), nil when off.
+    public var enhance: Double?
 
-    public init(separation: Separation = .none, denoise: Double? = nil) {
+    public init(separation: Separation = .none, denoise: Double? = nil, enhance: Double? = nil) {
         self.separation = separation
         self.denoise = denoise
+        self.enhance = enhance
     }
 
-    public var isEmpty: Bool { separation == .none && denoise == nil }
+    public var isEmpty: Bool { separation == .none && denoise == nil && enhance == nil }
 }
 
 public struct RenderReport {

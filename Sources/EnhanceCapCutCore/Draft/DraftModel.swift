@@ -204,6 +204,7 @@ public struct Materials: Decodable {
     public var loudnesses: [LoudnessMaterial] = []
     public var vocalSeparations: [VocalSeparationMaterial] = []
     public var realtimeDenoises: [RealtimeDenoiseMaterial] = []
+    public var vocalBeautifys: [VocalBeautifyMaterial] = []
     /// Every material of every category, with just the fields used for reporting.
     public var all: [String: [GenericMaterial]] = [:]
 
@@ -220,6 +221,7 @@ public struct Materials: Decodable {
         loudnesses = c.list("loudnesses")
         vocalSeparations = c.list("vocal_separations")
         realtimeDenoises = c.list("realtime_denoises")
+        vocalBeautifys = c.list("vocal_beautifys")
         for key in c.allKeys {
             let items: [GenericMaterial] = c.list(key.stringValue)
             if !items.isEmpty { all[key.stringValue] = items }
@@ -433,6 +435,21 @@ public struct RealtimeDenoiseMaterial: Decodable {
         id = c.str("id") ?? ""
         isDenoise = c.bool("is_denoise") ?? false
         rate = c.num("denoise_rate") ?? 0.85
+    }
+}
+
+/// Per-clip "Enhance voice". CapCut caches its result in `production_path` (obfuscated, not read by us).
+public struct VocalBeautifyMaterial: Decodable {
+    public var id: String
+    public var enable: Bool
+    /// How much of the non-voice sound is kept, 0...100 (75 by default; 100 on a few clips).
+    public var ambientSoundLevel: Double
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.anyKeyed()
+        id = c.str("id") ?? ""
+        enable = c.bool("enable") ?? false
+        ambientSoundLevel = c.num("ambient_sound_level") ?? 75
     }
 }
 

@@ -25,16 +25,22 @@ final class VoiceEffectsParsingTests: XCTestCase {
               {"id": "RD-ON", "is_denoise": true, "denoise_rate": 0.85},
               {"id": "RD-OFF", "is_denoise": false, "denoise_rate": 0.85},
               {"id": "RD-NORATE", "is_denoise": 1}
+            ],
+            "vocal_beautifys": [
+              {"id": "VB-ON", "type": "vocal_beautify", "enable": true, "ambient_sound_level": 75},
+              {"id": "VB-100", "enable": 1, "ambient_sound_level": "100"},
+              {"id": "VB-OFF", "enable": false, "ambient_sound_level": 75},
+              {"id": "VB-NOLEVEL", "enable": true, "ambient_sound_level": null}
             ]
           },
           "tracks": [{"type": "audio", "segments": [
-            {"material_id": "A", "extra_material_refs": ["VS-KEEP", "RD-ON"],
+            {"material_id": "A", "extra_material_refs": ["VS-KEEP", "RD-ON", "VB-ON"],
              "target_timerange": {"start": 0, "duration": 1000000}, "source_timerange": {"start": 0, "duration": 1000000}},
-            {"material_id": "A", "extra_material_refs": ["VS-REMOVE", "RD-OFF"],
+            {"material_id": "A", "extra_material_refs": ["VS-REMOVE", "RD-OFF", "VB-OFF"],
              "target_timerange": {"start": 1000000, "duration": 1000000}},
-            {"material_id": "A", "extra_material_refs": ["VS-OFF", "RD-NORATE"],
+            {"material_id": "A", "extra_material_refs": ["VS-OFF", "RD-NORATE", "VB-100"],
              "target_timerange": {"start": 2000000, "duration": 500000}},
-            {"material_id": "A", "extra_material_refs": ["VS-ODD"],
+            {"material_id": "A", "extra_material_refs": ["VS-ODD", "VB-NOLEVEL"],
              "target_timerange": {"start": 2500000, "duration": 500000}}
           ]}]
         }
@@ -43,11 +49,12 @@ final class VoiceEffectsParsingTests: XCTestCase {
         XCTAssertEqual(draft.materials.vocalSeparations.map(\.choice), [2, 1, 0, 7])
         let timeline = TimelineBuilder.build(draft: draft, projectURL: dir)
         let voices = timeline.audioClips.sorted { $0.target.start < $1.target.start }.map(\.voice)
+        XCTAssertEqual(draft.materials.vocalBeautifys.map(\.enable), [true, true, false, true])
         XCTAssertEqual(voices, [
-            VoiceEffects(separation: .keepVoice, denoise: 0.85),
+            VoiceEffects(separation: .keepVoice, denoise: 0.85, enhance: 0.75),
             VoiceEffects(separation: .removeVoice),
-            VoiceEffects(denoise: 0.85),
-            VoiceEffects(),
+            VoiceEffects(denoise: 0.85, enhance: 1),
+            VoiceEffects(enhance: 0.75),
         ])
         // Supported effects are no longer listed; an unknown separation mode is.
         let audioItems = timeline.report.unsupported.filter { $0.category == "Audio" }.map(\.name)
@@ -120,6 +127,45 @@ final class SpectralProcessingTests: XCTestCase {
     }
 }
 
+final class VoiceEnhancerTests: XCTestCase {
+    func testAmbientGainMapping() {
+        XCTAssertEqual(VoiceEnhancer.ambientGain(level: 0.75), VoiceEnhancer.ambientAt75, accuracy: 1e-9)
+        XCTAssertEqual(VoiceEnhancer.ambientGain(level: 1), 1, accuracy: 1e-9)
+        XCTAssertEqual(VoiceEnhancer.ambientGain(level: 0), 0, accuracy: 1e-9)
+        XCTAssertLessThan(VoiceEnhancer.ambientGain(level: 0.5), VoiceEnhancer.ambientGain(level: 0.75))
+    }
+
+    /// Steady-state gain (dB) of the enhancer's EQ for a sine at `hz`.
+    private func gainDB(_ hz: Double) throws -> Double {
+        let sr = VoiceProcessor.sampleRate
+        let tone = (0..<Int(sr)).map { Float(0.1 * sin(2 * Double.pi * hz * Double($0) / sr)) }
+        let out = try VoiceSignal.process(tone) { input, output in
+            try VoiceEnhancer.process(input, to: output, isCancelled: { false })
+        }
+        let middle = 12_000..<36_000
+        return Double(20 * log10(VoiceSignal.rms(out[middle]) / VoiceSignal.rms(tone[middle])))
+    }
+
+    func testEQMatchesTheMeasuredCurve() throws {
+        let base = 20 * log10(Double(VoiceEnhancer.gain))
+        XCTAssertEqual(try gainDB(1_000), base, accuracy: 0.3, "speech band: flat gain")
+        XCTAssertEqual(try gainDB(4_000), base, accuracy: 0.6)
+        XCTAssertLessThan(try gainDB(50) - base, -9, "rumble cut")
+        XCTAssertEqual(try gainDB(12_800) - base, 11, accuracy: 1.5, "air boost")
+    }
+
+    func testHighPassIsZeroPhase() throws {
+        // A 120 Hz tone (inside the low cut's skirt) must come out in phase with the input.
+        let sr = VoiceProcessor.sampleRate
+        let tone = (0..<Int(sr)).map { Float(0.1 * sin(2 * Double.pi * 120 * Double($0) / sr)) }
+        let out = try VoiceSignal.process(tone) { input, output in
+            try VoiceEnhancer.process(input, to: output, isCancelled: { false })
+        }
+        let middle = 12_000..<36_000
+        XCTAssertGreaterThan(VoiceSignal.correlation(Array(out[middle]), Array(tone[middle])), 0.999)
+    }
+}
+
 /// End-to-end check of AUSoundIsolation with speech from the system voice (`say`) over noise.
 final class VoiceIsolationTests: XCTestCase {
     func testKeepAndRemoveVoice() async throws {
@@ -164,6 +210,11 @@ final class VoiceIsolationTests: XCTestCase {
         let d = min(denoised.count, speech.count)
         let residual = zip(denoised[..<d], speech[..<d]).map { $0 - $1 }
         XCTAssertLessThan(VoiceSignal.rms(residual[...]) / VoiceSignal.rms(noise[...]), 0.5)
+        // Enhance voice: louder speech, in sync, with the bed turned down relative to it.
+        let enhanced = try await render(VoiceEffects(enhance: 0.75))
+        let e = min(enhanced.count, speech.count)
+        XCTAssertGreaterThan(VoiceSignal.correlation(Array(enhanced[..<e]), Array(speech[..<e])), 0.8)
+        XCTAssertGreaterThan(VoiceSignal.rms(enhanced[..<e]), VoiceSignal.rms(speech[..<e]))
     }
 }
 
