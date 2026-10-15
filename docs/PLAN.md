@@ -83,7 +83,12 @@ Usage counts from the author's 69 projects drive the order of the later mileston
 
 ## Milestone 7 — audio effects
 
-- Voice filters (`audio_effects`: "Booming", "Live House", "Old Hollywood"…) with AVAudioEngine / AUs.
+- [x] Voice filters (`audio_effects`: "Booming", "Live House", "Old Hollywood", 16 uses): the cached
+  `mdsp_preset.json` graph runs on our own DSP (`VoiceFilterGraph`), calibrated on ВазелиновыйПень.
+  Open: only the processors those three use are implemented (other filters stay in the report);
+  strength below 1 follows the preset curves but is unverified (all uses are at 1); filters run on the
+  source timeline, before speed changes; Live House is ~5 dB louder than CapCut's export on its only
+  1.2 s clip, part of which is the voice isolation differing there.
 - [x] "Enhance voice" (`vocal_beautifys`, 195 uses): approximated, see "Voice processing". Open: the
   ambience share for levels other than 75 is extrapolated (no export to check it against); non-speech
   vocal sounds (imitations, laughter) are partly treated as ambience by Apple's isolation, while CapCut
@@ -99,6 +104,10 @@ Usage counts from the author's 69 projects drive the order of the later mileston
 - Speed curves: video follows the curve exactly; audio follows it in 50 ms steps.
 - Reverse: needs CapCut's reversed copy in the project folder; without it the clip plays forward.
 - Track bit `attribute & 2` is treated as "hidden"; tracks with other flags (e.g. locked) render normally.
+- Audio mix: clips sharing a mixer lane with different volumes come out at wrong levels (five
+  back-to-back clips of one tone at volume 5 / 0.5 / 8 / 0.5 / 1 render at −14.8 / −11 / −11 / −26.5 /
+  −24.1 dB instead of ≈ −7 / −27 / −3 / −27 / −21); ВазелиновыйПень's quiet Old Hollywood clips play
+  ~7 dB too loud because of it. Not yet investigated (AVAudioMix volume points in `AudioRenderer`).
 - Voice: "Remove vocal" removes speech well but only part of a sung vocal; processing time is roughly
   1/10 of the processed clips' duration and isn't reflected in the progress bar.
 - Audio: identical media playing simultaneously (clip + compound clip containing it) is ~3 dB louder

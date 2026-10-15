@@ -19,6 +19,8 @@ private struct Builder {
     /// Nested drafts of compound clips, built once per combination material.
     var nestedTimelines: [String: Timeline] = [:]
     var combos: [String: CombinationMaterial] = [:]
+    /// Voice filter preset directories by material path and resource id (nil: not usable).
+    var filterDirectories: [String: URL?] = [:]
     let fm = FileManager.default
 
     init(projectURL: URL) { self.projectURL = projectURL }
@@ -37,6 +39,7 @@ private struct Builder {
         let separations = Dictionary(m.vocalSeparations.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         let denoises = Dictionary(m.realtimeDenoises.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         let enhancements = Dictionary(m.vocalBeautifys.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        let audioEffects = Dictionary(m.audioEffects.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         var generic: [String: (String, GenericMaterial)] = [:]
         for (key, items) in m.all { for item in items { generic[item.id] = (key, item) } }
 
@@ -64,7 +67,25 @@ private struct Builder {
                 if let enhance = refs.lazy.compactMap({ enhancements[$0] }).first, enhance.enable {
                     voice.enhance = min(max(enhance.ambientSoundLevel / 100, 0), 1)
                 }
+<<<<<<< HEAD
                 if track.type != "audio" { reportRefs(refs, generic: generic) }
+=======
+                // A voice filter we can't run (preset not cached, unknown processor) is reported instead.
+                var filterIssue: String?
+                if let effect = refs.lazy.compactMap({ audioEffects[$0] }).first {
+                    if let directory = voiceFilterDirectory(effect) {
+                        voice.filter = VoiceFilter(name: effect.name, directory: directory, strength: min(max(effect.strength, 0), 1))
+                    } else {
+                        filterIssue = effect.name.isEmpty ? effect.resourceID : effect.name
+                    }
+                }
+                func reportAll() {
+                    reportRefs(refs, generic: generic)
+                    if let filterIssue { note("Audio effect", filterIssue) }
+                }
+                if track.type != "audio" { reportAll() }
+                if segment.reverse { note("Reverse playback", "reversed clip (rendered forward)") }
+>>>>>>> claude/awesome-leavitt-94f99f
 
                 switch track.type {
                 case "video":
@@ -128,8 +149,12 @@ private struct Builder {
 
                 case "audio":
                     guard !track.isMuted, segment.volume > 0 else { continue }
+<<<<<<< HEAD
                     reportRefs(refs, generic: generic)
                     reportKeyframes(segment)
+=======
+                    reportAll()
+>>>>>>> claude/awesome-leavitt-94f99f
                     if let combo = refs.compactMap({ combos[$0] }).first,
                        let timeline = nestedTimeline(combo, depth: depth) {
                         // Audio detached from a compound clip.
@@ -258,11 +283,29 @@ private struct Builder {
             if voice.separation != .none { copy.voice.separation = voice.separation }
             if let denoise = voice.denoise { copy.voice.denoise = denoise }
             if let enhance = voice.enhance { copy.voice.enhance = enhance }
+<<<<<<< HEAD
             copy.fadeIn = start == clip.target.start ? timeMap.offset(atSourceTime: start + clip.fadeIn) - o0 : 0
             copy.fadeOut = end == clip.target.end ? o1 - timeMap.offset(atSourceTime: end - clip.fadeOut) : 0
+=======
+            if let filter = voice.filter { copy.voice.filter = filter }
+            copy.fadeIn = start == clip.target.start ? Int64(Double(clip.fadeIn) / speed) : 0
+            copy.fadeOut = end == clip.target.end ? Int64(Double(clip.fadeOut) / speed) : 0
+>>>>>>> claude/awesome-leavitt-94f99f
             result.append(copy)
         }
         return result
+    }
+
+    /// The cached preset directory for a voice filter, or nil when it's missing or uses a processor
+    /// `VoiceFilterGraph` doesn't implement.
+    mutating func voiceFilterDirectory(_ effect: AudioEffectMaterial) -> URL? {
+        let key = effect.path + "|" + effect.resourceID
+        if let cached = filterDirectories[key] { return cached }
+        let path = DraftLoader.resolvePath(effect.path, projectURL: projectURL)
+        var directory = VoiceFilter.locate(path: path, resourceID: effect.resourceID)
+        if let dir = directory, (try? VoiceFilterGraph.load(directory: dir)) == nil { directory = nil }
+        filterDirectories[key] = .some(directory)
+        return directory
     }
 
     // MARK: Report
@@ -309,8 +352,8 @@ private struct Builder {
         "speeds", "placeholder_infos", "sound_channel_mappings", "material_colors", "canvases", "beats",
         "loudnesses", "audio_fades", "drafts", "videos", "audios", "texts", "ai_translates", "smart_crops",
         "realtime_denoises_placeholder",
-        // Rendered by VoiceProcessor.
-        "vocal_separations", "realtime_denoises", "vocal_beautifys",
+        // Rendered by VoiceProcessor (voice filters whose preset can't be run are noted where they're read).
+        "vocal_separations", "realtime_denoises", "vocal_beautifys", "audio_effects",
     ]
 
     mutating func report(key: String, item: GenericMaterial) {
@@ -322,7 +365,6 @@ private struct Builder {
         case "stickers": note("Sticker", name)
         case "common_mask", "masks": note("Mask", name)
         case "hsl": note("HSL color", "color adjustment")
-        case "audio_effects": note("Audio effect", name)
         case "manual_deformations": note("Manual deformation", "body/face reshape")
         case "chromas": note("Chroma key", "chroma key")
         case "material_animations":

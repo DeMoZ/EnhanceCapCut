@@ -16,6 +16,8 @@ import AVFoundation
 /// - Enhance voice: the ambience (source minus voice) is turned down by `VoiceEnhancer.ambientGain`,
 ///   then `VoiceEnhancer` applies CapCut's gain and EQ. With "Reduce noise" also on, the lower of the
 ///   two ambience levels wins. Not applied to "Remove vocal" clips (no voice left to enhance).
+/// - Voice filter: the effect's cached processor graph (`VoiceFilterGraph`) runs last, from the
+///   clip's first source sample so reverb tails and compressor state start where CapCut's do.
 ///
 /// Each clip's source range (plus some context) is processed once and cached for the render.
 final class VoiceProcessor {
@@ -98,6 +100,13 @@ final class VoiceProcessor {
             let enhanced = newFile("enhanced")
             try VoiceEnhancer.process(try Self.read(url), to: try Self.write(enhanced), isCancelled: isCancelled)
             url = enhanced
+        }
+        if let filter = clip.voice.filter {
+            if isCancelled() { throw RenderError.cancelled }
+            let filtered = newFile("filtered")
+            let clipStart = AVAudioFramePosition((Double(clip.timeMap.sourceStart - offset) / 1_000_000 * Self.sampleRate).rounded())
+            try Self.applyFilter(filter, to: try Self.read(url), from: max(0, clipStart), output: try Self.write(filtered))
+            url = filtered
         }
         let output = Output(url: url, sourceOffset: offset)
         cache[key] = output
@@ -216,6 +225,26 @@ final class VoiceProcessor {
             try out.write(from: x)
         }
         out.close()
+    }
+
+    /// Runs a voice filter over `input` from frame `start` on (earlier frames pass through untouched).
+    static func applyFilter(_ filter: VoiceFilter, to input: AVAudioFile, from start: AVAudioFramePosition,
+                            output: AVAudioFile) throws {
+        let graph = try VoiceFilterGraph.load(directory: filter.directory)
+        let format = input.processingFormat
+        let frames = AVAudioFrameCount(input.length)
+        guard frames > 0, let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames) else { return }
+        try input.read(into: buffer)
+        let count = Int(buffer.frameLength), first = min(Int(start), count)
+        let channels = (0..<Int(format.channelCount)).map { c in
+            Array(UnsafeBufferPointer(start: buffer.floatChannelData![c] + first, count: count - first))
+        }
+        let processed = try graph.process(channels, rate: format.sampleRate, strength: filter.strength)
+        for (c, x) in processed.enumerated() where c < channels.count {
+            x.withUnsafeBufferPointer { (buffer.floatChannelData![c] + first).update(from: $0.baseAddress!, count: min(x.count, count - first)) }
+        }
+        try output.write(from: buffer)
+        output.close()
     }
 
     // MARK: Delay measurement

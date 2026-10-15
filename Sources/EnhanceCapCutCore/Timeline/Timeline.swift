@@ -159,14 +159,56 @@ public struct VoiceEffects: Hashable {
     public var denoise: Double?
     /// "Enhance voice" ambient sound level 0...1 (`ambient_sound_level` / 100), nil when off.
     public var enhance: Double?
+    /// A voice filter ("Booming", "Old Hollywood"…), applied after the other stages.
+    public var filter: VoiceFilter?
 
-    public init(separation: Separation = .none, denoise: Double? = nil, enhance: Double? = nil) {
+    public init(separation: Separation = .none, denoise: Double? = nil, enhance: Double? = nil, filter: VoiceFilter? = nil) {
         self.separation = separation
         self.denoise = denoise
         self.enhance = enhance
+        self.filter = filter
     }
 
-    public var isEmpty: Bool { separation == .none && denoise == nil && enhance == nil }
+    public var isEmpty: Bool { separation == .none && denoise == nil && enhance == nil && filter == nil }
+}
+
+/// One of CapCut's "Voice filters": its cached processor graph and the strength slider.
+public struct VoiceFilter: Hashable {
+    public var name: String
+    /// The cached effect directory holding `mdsp_preset.json` (and any audio it loops).
+    public var directory: URL
+    /// 0...1.
+    public var strength: Double
+
+    public init(name: String, directory: URL, strength: Double = 1) {
+        self.name = name
+        self.directory = directory
+        self.strength = strength
+    }
+
+    /// Roots of CapCut's effect cache: the sandboxed (App Store) app's and the direct download's.
+    public static var cacheRoots: [URL] {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        return [
+            "Library/Containers/com.lemon.lvoverseas/Data/Movies/CapCut/User Data/Cache/effect",
+            "Movies/CapCut/User Data/Cache/effect",
+        ].map { home.appendingPathComponent($0, isDirectory: true) }
+    }
+
+    /// The cached directory for an effect: `path` (or a folder in it) when it holds a preset,
+    /// otherwise the first `<cache>/<resourceID>/<hash>` that does.
+    public static func locate(path: URL?, resourceID: String, cacheRoots: [URL] = cacheRoots) -> URL? {
+        let fm = FileManager.default
+        func hasPreset(_ dir: URL) -> Bool { fm.fileExists(atPath: dir.appendingPathComponent("mdsp_preset.json").path) }
+        func search(_ folder: URL) -> URL? {
+            if hasPreset(folder) { return folder }
+            let entries = (try? fm.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
+            return entries.sorted(by: { $0.path < $1.path }).first(where: hasPreset)
+        }
+        if let path, let dir = search(path) { return dir }
+        guard !resourceID.isEmpty else { return nil }
+        return cacheRoots.lazy.compactMap { search($0.appendingPathComponent(resourceID, isDirectory: true)) }.first
+    }
 }
 
 public struct RenderReport {

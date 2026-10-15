@@ -147,6 +147,55 @@ export as `g_v·voice + g_a·ambience` per ⅓-octave band (voice = Apple's isol
   to the denoiser's 15 % × the enhancer's gain, i.e. the two don't stack.
 - No export with level 100 exists in the author's library; we assume 100 keeps the ambience whole.
 
+### Voice filters (`audio_effects`)
+
+`materials.audio_effects[]` (`type` `audio_effect`, `category_name` "Voice filters", `sub_type` 1):
+`name`, `resource_id` / `third_resource_id` (the effect id), `path` (the cached effect folder,
+`…/Cache/effect/<resource_id>/<md5>`, in the sandboxed app's container), `audio_adjust_params` (one
+`strength` slider 0…1, default 1; the author's 16 uses are all at 1), `is_vc_clone_tone`, `vc_type`
+("none"). Referenced from the segment's `extra_material_refs` like the other voice materials.
+
+The cached folder holds `config.json` (`SAMIAudioEffect`), `extra.json` (the slider), `preset3.yaml`
+(`music_dsp_effect` → `mdsp_preset.json`) and sometimes audio (Old Hollywood loops a `noise.wav`).
+`mdsp_preset.json` is a processor graph: `nodes` (`processor_name` + `processor_state.parameters`),
+`connections` (audio or `parameter_change`), and `ports` mapping the graph's audio input, its
+strength parameter input and its output to nodes. All three filters share a dry/wet frame: the input
+goes to the effect chain and to a dry gain; two `ParameterChangeTransform` curves map strength to
+normalized gains (wet 0 → 0.3715 → 0.4444, dry 0.4444 → 0.3715 → 0 at strength 0 / 0.5 / 1) and a
+`Mixer` sums them. The wet gain's stored state at strength 1 is −0.0035 dB, so 0.4444 ≈ unity. Chains:
+
+- Booming: Filter Bell 80 Hz +10 dB "Resonance" 1 → Filter HighPass 40 Hz.
+- Old Hollywood: Equaliser (LowPass 4 kHz, HighPass 750 Hz, Q 1) → Distortion "FoldBackSinArctan"
+  (amount 0.527, wetness 0.404, post gain −7.8 dB) → Compressor (−3.9 dB, 8.2:1, 6 dB knee, 0.25 ms /
+  100 ms, auto makeup) + `noise.wav` looped at −19.1 dB.
+- Live House: StudioReverb "Hall" (pre-delay 25 ms, RT60 low 3.0 s / mid 2.3 s / high 1.1 s, crossover
+  285 Hz, HF damping 3.5 kHz, wet mix 0.5) → LowPass 11 kHz → HighPass 60 Hz.
+
+We read the preset at render time and run it with our own processors (`VoiceFilterGraph`). Measured on
+ВазелиновыйПень (export "Вазелиновый пень.mov"; source = the project's plain `_upload.wav` in
+`Resources/audioAlg`, since the original MP4 is gone; every voice clip is Keep vocal + Enhance voice 75
++ a filter + Normalize loudness, music at 0.31 under it), comparing the export with our chain per clip
+with the music regressed out, ⅓-octave 125 Hz–6.3 kHz, levels relative to the median clip:
+
+| filter (clips) | shape error, no filter → filter | level error, no filter → filter |
+|---|---|---|
+| Booming (11) | 2.3 → 2.0 dB | −1.2 → +0.4 dB |
+| Old Hollywood (4) | 4.9 → 0.8 dB | +3.5 → −0.7 dB |
+| Live House (1) | 5.2 → 5.7 dB | +10.2 → +5.7 dB |
+
+- Filters: RBJ biquads with Q = "Resonance"/"Q"; Old Hollywood's 750 Hz / 4 kHz corners fit Q 1
+  (−11 dB an octave below the high-pass, 0 dB at the corners) better than Butterworth.
+- Booming lifts 100–160 Hz by +4…+9 dB over the speech band; below 100 Hz the music dominates.
+- Old Hollywood's distortion: `sin(2·atan(d·x))` with `d = 5^amount` mixed by wetness; drives 3–30
+  at amount 1 all land within 1 dB in level, more drive adds highs above 5 kHz the export lacks.
+  Auto makeup = the gain reduction of a 0 dBFS signal (+3.4 dB here).
+- Live House: CapCut's tail starts ~12 dB below the speech and decays ~1.3 s (60 dB) from 1 kHz up,
+  ~3 s below — the "Hi RT60" band reaches far below the 3.5 kHz damping frequency. Our FDN puts the
+  high band at 0.4 × damping and the wet level at 0.12. The clip as a whole is ~6 dB down (the dry half).
+- The per-clip `loudnesses` (Normalize loudness, target −23) `avg_loudness` is measured before the
+  filter: it tracks our pre-filter chain within a few dB, and the filters' own level changes survive
+  in the export.
+
 ## Compound clips
 
 `materials.drafts[]` (`type` `combination`) embed a complete nested draft in `draft`. A video segment
