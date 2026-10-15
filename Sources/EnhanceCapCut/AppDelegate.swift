@@ -8,6 +8,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let services = ServiceProvider()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if let running = deferToRunningInstance() {
+            running.activate()
+            NSApp.terminate(nil)
+            return
+        }
         NSApp.mainMenu = makeMenu()
         services.onInvoke = { [weak self] in self?.showExportWindow() }
         NSApp.servicesProvider = services
@@ -100,6 +105,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func showWindowAction() { showExportWindow() }
+
+    /// Keeps a single instance when two copies are installed (e.g. ~/Applications and /Applications):
+    /// both can answer the Services entry and show their own export window. Older copies are asked to
+    /// quit (one that is exporting asks the user first); if an equal or newer one runs, this one exits.
+    private func deferToRunningInstance() -> NSRunningApplication? {
+        guard let id = Bundle.main.bundleIdentifier else { return nil }
+        let own = Self.buildNumber(Bundle.main)
+        var keep: NSRunningApplication?
+        for other in NSRunningApplication.runningApplications(withBundleIdentifier: id) where other != .current {
+            let theirs = other.bundleURL.flatMap(Bundle.init(url:)).map(Self.buildNumber) ?? ""
+            if theirs.compare(own, options: .numeric) == .orderedAscending {
+                other.terminate()  // an exporting instance refuses via applicationShouldTerminate
+            } else {
+                keep = other
+            }
+        }
+        return keep
+    }
+
+    private static func buildNumber(_ bundle: Bundle) -> String {
+        bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
+    }
 }
 
 /// Handles the "Export with EnhanceCapCut" entry of the system Services menu (declared in Info.plist).

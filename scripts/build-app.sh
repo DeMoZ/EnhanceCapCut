@@ -47,15 +47,15 @@ sign "$app/Contents/MacOS/ecc"
 sign "$app"
 echo "Built $root/$app ($version)"
 
+lsregister=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+
 if [[ "$mode" == "--install" ]]; then
   dest=~/Applications
   mkdir -p "$dest"
   rm -rf "$dest/EnhanceCapCut.app"
   cp -R "$app" "$dest/"
   # Register the app and refresh the Services menu.
-  /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$dest/EnhanceCapCut.app"
-  # Only the installed copy should provide the service.
-  /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -u "$root/$app" 2>/dev/null || true
+  "$lsregister" -f "$dest/EnhanceCapCut.app"
   /System/Library/CoreServices/pbs -update
   echo "Installed $dest/EnhanceCapCut.app"
 fi
@@ -87,3 +87,11 @@ if [[ "$mode" == "--pkg" ]]; then
   rm -rf "$pkgroot" "$work"
   echo "Built $root/$pkg ($(du -h "$pkg" | cut -f1))"
 fi
+
+# The build copy must never provide the Services entry: with an installed copy also registered, both
+# get launched and the user sees two export windows (one of them possibly an old version).
+# Unregistering isn't enough (pbs finds the bundle again), so drop the entry from this copy.
+/usr/libexec/PlistBuddy -c "Delete :NSServices" "$app/Contents/Info.plist"
+sign "$app"
+"$lsregister" -f "$root/$app"
+/System/Library/CoreServices/pbs -update
