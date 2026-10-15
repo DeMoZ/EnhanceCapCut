@@ -205,6 +205,7 @@ public struct Materials: Decodable {
     public var vocalSeparations: [VocalSeparationMaterial] = []
     public var realtimeDenoises: [RealtimeDenoiseMaterial] = []
     public var vocalBeautifys: [VocalBeautifyMaterial] = []
+    public var audioEffects: [AudioEffectMaterial] = []
     /// Every material of every category, with just the fields used for reporting.
     public var all: [String: [GenericMaterial]] = [:]
 
@@ -222,6 +223,7 @@ public struct Materials: Decodable {
         vocalSeparations = c.list("vocal_separations")
         realtimeDenoises = c.list("realtime_denoises")
         vocalBeautifys = c.list("vocal_beautifys")
+        audioEffects = c.list("audio_effects")
         for key in c.allKeys {
             let items: [GenericMaterial] = c.list(key.stringValue)
             if !items.isEmpty { all[key.stringValue] = items }
@@ -450,6 +452,41 @@ public struct VocalBeautifyMaterial: Decodable {
         id = c.str("id") ?? ""
         enable = c.bool("enable") ?? false
         ambientSoundLevel = c.num("ambient_sound_level") ?? 75
+    }
+}
+
+/// Per-clip voice filter ("Voice filters" in CapCut: "Booming", "Old Hollywood", "Live House"…).
+/// The effect itself is a processor graph in CapCut's effect cache (see `VoiceFilterGraph`).
+public struct AudioEffectMaterial: Decodable {
+    public var id: String
+    public var name: String
+    /// The cached effect directory (absolute, may be stale).
+    public var path: String
+    /// The effect's id in CapCut's library; also the cache folder name (`Cache/effect/<id>/<hash>`).
+    public var resourceID: String
+    public var categoryName: String
+    /// The "strength" slider, 0...1 (default 1; the only parameter the voice filters expose).
+    public var strength: Double
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.anyKeyed()
+        id = c.str("id") ?? ""
+        name = c.str("name") ?? ""
+        path = c.str("path") ?? ""
+        resourceID = c.str("resource_id") ?? c.str("third_resource_id") ?? c.str("effect_id") ?? ""
+        categoryName = c.str("category_name") ?? ""
+        let params: [AudioAdjustParam] = c.list("audio_adjust_params")
+        strength = params.first { $0.name == "strength" }?.value ?? params.first?.value ?? 1
+    }
+
+    struct AudioAdjustParam: Decodable {
+        var name: String
+        var value: Double?
+        init(from decoder: Decoder) throws {
+            let c = try decoder.anyKeyed()
+            name = c.str("name") ?? ""
+            value = c.num("value") ?? c.num("default_value")
+        }
     }
 }
 

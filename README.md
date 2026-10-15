@@ -10,7 +10,7 @@ AVFoundation, Core Image/Metal and VideoToolbox hardware encoders.
 
 > Status: milestone 1. Cuts, overlays, speed (incl. curves), transforms and keyframes, canvas
 > backgrounds, photos, compound clips, texts and captions, and the audio mix (incl. "Isolate voice" —
-> keep or remove vocal — "Reduce noise" and "Enhance voice") are rendered. CapCut effects,
+> keep or remove vocal — "Reduce noise", "Enhance voice" and voice filters such as "Booming") are rendered. CapCut effects,
 > filters, transitions, stickers and text animations are not yet — the export window lists which of
 > them your project uses. See [docs/PLAN.md](docs/PLAN.md).
 
@@ -80,7 +80,10 @@ Options: `--codec h264|hevc|hevc10|prores422|prores422HQ`, `--quality 0-100`, `-
 `--fps N`, `--aspect project|9:16|1:1|16:9`, `--height 720|1080|1440|2160`, `--lufs -14`,
 `--no-subtitles`, `--from s`, `--duration s`. Without a project argument the open project is used;
 unspecified options fall back to the app's saved settings. `ecc voice` takes `--keep-voice`,
-`--remove-voice`, `--denoise 0.85` and/or `--enhance 75` (the ambient sound level).
+`--remove-voice`, `--denoise 0.85`, `--enhance 75` (the ambient sound level) and/or
+`--filter <id>` with `--strength 1` (a voice filter by its CapCut resource id or cached effect folder).
+Voice filters are read from CapCut's own effect cache, so a filter renders only after CapCut has
+downloaded it (i.e. it has been used or previewed in CapCut on this Mac).
 
 ## Development
 

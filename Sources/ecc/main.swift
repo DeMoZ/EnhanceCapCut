@@ -8,6 +8,7 @@ import Foundation
 //              [--fps N] [--aspect project|9:16|1:1|16:9] [--height N] [--lufs -14] [--no-subtitles]
 //              [--from s] [--duration s]
 //   ecc voice <media> -o out.wav [--keep-voice | --remove-voice] [--denoise 0.85] [--enhance 75]
+//             [--filter <cached effect dir | resource id>] [--strength 1]
 
 func fail(_ message: String) -> Never {
     FileHandle.standardError.write((message + "\n").data(using: .utf8)!)
@@ -64,6 +65,7 @@ case "info":
         if clip.voice.separation == .removeVoice { fx += " [remove voice]" }
         if let d = clip.voice.denoise { fx += String(format: " [denoise %.2f]", d) }
         if let e = clip.voice.enhance { fx += String(format: " [enhance %.0f]", e * 100) }
+        if let f = clip.voice.filter { fx += " [\(f.name)\(f.strength < 1 ? String(format: " %.0f%%", f.strength * 100) : "")]" }
         print("  audio \(seconds(clip.target.start))+\(seconds(clip.target.duration)) vol \(String(format: "%.2f", clip.volume)) \(clip.url.lastPathComponent)\(fx)")
     }
     if !timeline.report.unsupported.isEmpty {
@@ -126,14 +128,22 @@ case "render":
     print(String(format: "Done in %.1fs: %@", Date().timeIntervalSince(started), url.path))
 
 case "voice":
-    // Audition "Isolate voice" / "Reduce noise" / "Enhance voice" on a single media file.
+    // Audition "Isolate voice" / "Reduce noise" / "Enhance voice" / a voice filter on a single media file.
     var effects = VoiceEffects()
     if let i = args.firstIndex(of: "--keep-voice") { effects.separation = .keepVoice; args.remove(at: i) }
     if let i = args.firstIndex(of: "--remove-voice") { effects.separation = .removeVoice; args.remove(at: i) }
     if let v = option("--denoise").flatMap(Double.init) { effects.denoise = v }
     if let v = option("--enhance").flatMap(Double.init) { effects.enhance = v / 100 }
-    guard let out = option("-o"), let input = args.first else { fail("usage: ecc voice <media> -o out.wav [--keep-voice | --remove-voice] [--denoise 0.85] [--enhance 75]") }
-    guard !effects.isEmpty else { fail("pass --keep-voice, --remove-voice, --denoise and/or --enhance") }
+    let strength = option("--strength").flatMap(Double.init) ?? 1
+    if let f = option("--filter") {
+        let path = URL(fileURLWithPath: (f as NSString).expandingTildeInPath)
+        guard let dir = VoiceFilter.locate(path: path, resourceID: f) else { fail("No cached voice filter preset: \(f)") }
+        effects.filter = VoiceFilter(name: dir.deletingLastPathComponent().lastPathComponent, directory: dir, strength: strength)
+    }
+    guard let out = option("-o"), let input = args.first else {
+        fail("usage: ecc voice <media> -o out.wav [--keep-voice | --remove-voice] [--denoise 0.85] [--enhance 75] [--filter dir|id] [--strength 1]")
+    }
+    guard !effects.isEmpty else { fail("pass --keep-voice, --remove-voice, --denoise, --enhance and/or --filter") }
     let started = Date()
     try await VoiceEffectsRenderer.render(URL(fileURLWithPath: (input as NSString).expandingTildeInPath), effects: effects,
                                           to: URL(fileURLWithPath: (out as NSString).expandingTildeInPath))
