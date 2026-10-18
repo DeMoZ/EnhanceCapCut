@@ -21,10 +21,13 @@ enum AudioRenderer {
         let composition = AVMutableComposition()
         let mix = AVMutableAudioMix()
         let gain = max(1, timeline.audioClips.map(\.volume).max() ?? 1)
-        // Each lane is one composition track with its own pitch algorithm: CapCut keeps the pitch of
+        // One composition track per clip, each with its own pitch algorithm: CapCut keeps the pitch of
         // sped-up clips unless the clip's "pitch" toggle is on, which plays them like a tape (varispeed).
-        var lanes: [(track: AVMutableCompositionTrack, params: AVMutableAudioMixInputParameters, end: Int64,
-                     varispeed: Bool)] = []
+        // Clips are deliberately not packed onto shared tracks: AVAssetReaderAudioMixOutput can block
+        // forever in copyNextSampleBuffer on a track that strings together segments of many different
+        // assets (seen with processed .caf copies followed by camera AAC clips).
+        var tracks: [AVMutableCompositionTrack] = []
+        var inputs: [AVMutableAudioMixInputParameters] = []
         // Clips with "Isolate voice" / "Reduce noise" play a processed copy of their source.
         let voice = VoiceProcessor(directory: url.deletingLastPathComponent()
             .appendingPathComponent("voice-\(UUID().uuidString)"))
@@ -37,19 +40,8 @@ enum AudioRenderer {
             guard let source = try? await asset.loadTracks(withMediaType: .audio).first,
                   let sourceRange = try? await source.load(.timeRange) else { continue }
 
-            let varispeed = !clip.preservePitch
-            let laneIndex: Int
-            if let free = lanes.firstIndex(where: { $0.end <= clip.target.start && $0.varispeed == varispeed }) {
-                laneIndex = free
-            } else {
-                guard let track = composition.addMutableTrack(withMediaType: .audio,
-                                                              preferredTrackID: kCMPersistentTrackID_Invalid) else { continue }
-                let params = AVMutableAudioMixInputParameters(track: track)
-                params.audioTimePitchAlgorithm = varispeed ? .varispeed : .spectral
-                lanes.append((track, params, 0, varispeed))
-                laneIndex = lanes.count - 1
-            }
-            let track = lanes[laneIndex].track
+            guard let track = composition.addMutableTrack(withMediaType: .audio,
+                                                          preferredTrackID: kCMPersistentTrackID_Invalid) else { continue }
 
             // Pieces of (source range, timeline range); a speed curve is approximated in 50 ms steps.
             let map = clip.timeMap
@@ -73,15 +65,17 @@ enum AudioRenderer {
                     continue
                 }
             }
-            guard inserted else { continue }
+            guard inserted else {
+                composition.removeTrack(track)
+                continue
+            }
 
-            let params = lanes[laneIndex].params
+            let params = AVMutableAudioMixInputParameters(track: track)
+            params.audioTimePitchAlgorithm = clip.preservePitch ? .spectral : .varispeed
             let v = Float(clip.volume / gain)
             let start = clip.target.start, end = clip.target.end
             let fadeIn = min(clip.fadeIn, clip.target.duration / 2), fadeOut = min(clip.fadeOut, clip.target.duration / 2)
-            // Volume points on one lane form a piecewise-linear envelope: a plain `setVolume(_:at:)`
-            // ramps from the previous clip's volume across this whole clip. Explicit ramps covering
-            // the clip from start to end pin the level (fade in, hold, fade out).
+            // Explicit ramps covering the clip from start to end pin the level (fade in, hold, fade out).
             func ramp(_ from: Float, _ to: Float, _ t0: Int64, _ t1: Int64) {
                 guard t1 > t0 else { return }
                 params.setVolumeRamp(fromStartVolume: from, toEndVolume: to,
@@ -90,14 +84,15 @@ enum AudioRenderer {
             ramp(0, v, start, start + fadeIn)
             ramp(v, v, start + fadeIn, end - fadeOut)
             ramp(v, 0, end - fadeOut, end)
-            lanes[laneIndex].end = end
+            tracks.append(track)
+            inputs.append(params)
         }
-        mix.inputParameters = lanes.map(\.params)
+        mix.inputParameters = inputs
 
-        if !lanes.isEmpty {
+        if !tracks.isEmpty {
             let reader = try AVAssetReader(asset: composition)
             reader.timeRange = CMTimeRange(start: .zero, duration: us(timeline.duration))
-            let output = AVAssetReaderAudioMixOutput(audioTracks: lanes.map(\.track), audioSettings: [
+            let output = AVAssetReaderAudioMixOutput(audioTracks: tracks, audioSettings: [
                 AVFormatIDKey: kAudioFormatLinearPCM,
                 AVSampleRateKey: sampleRate,
                 AVNumberOfChannelsKey: 2,
