@@ -20,8 +20,64 @@ public struct CapCutProject: Identifiable, Hashable {
         isOpen = fm.fileExists(atPath: url.appendingPathComponent(".locked").path)
     }
 
-    public func loadDraft() throws -> Draft {
-        try DraftLoader.load(projectURL: url)
+    /// CapCut 9 projects can hold several timelines (`Timelines/project.json`), each with its own draft in
+    /// `Timelines/<id>/draft_info.json`; the root `draft_info.json` is a copy of the main one. Projects
+    /// without that file have a single timeline: the root draft.
+    public func timelines() -> [ProjectTimeline] {
+        let root = url.appendingPathComponent("Timelines", isDirectory: true)
+        let single = [ProjectTimeline(id: "", name: "Timeline 01", draftURL: draftURL, isMain: true)]
+        guard let data = try? Data(contentsOf: root.appendingPathComponent("project.json")),
+              let list = try? JSONDecoder().decode(TimelineList.self, from: data) else { return single }
+        let fm = FileManager.default
+        let found = list.timelines.compactMap { entry -> ProjectTimeline? in
+            guard !entry.isMarkedDelete else { return nil }
+            let isMain = entry.id == list.mainID
+            var draft = root.appendingPathComponent(entry.id, isDirectory: true).appendingPathComponent("draft_info.json")
+            if !fm.fileExists(atPath: draft.path) {
+                guard isMain else { return nil }
+                draft = draftURL
+            }
+            return ProjectTimeline(id: entry.id, name: entry.name.isEmpty ? entry.id : entry.name, draftURL: draft, isMain: isMain)
+        }
+        return found.isEmpty ? single : found
+    }
+
+    public func loadDraft(timeline: ProjectTimeline? = nil) throws -> Draft {
+        try DraftLoader.load(draftURL: timeline?.draftURL ?? draftURL)
+    }
+}
+
+/// One timeline of a project.
+public struct ProjectTimeline: Identifiable, Hashable {
+    /// The timeline's UUID; empty for projects without `Timelines/project.json`.
+    public var id: String
+    public var name: String
+    public var draftURL: URL
+    public var isMain: Bool
+}
+
+/// `Timelines/project.json`.
+private struct TimelineList: Decodable {
+    struct Entry: Decodable {
+        var id: String
+        var name: String
+        var isMarkedDelete: Bool
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.anyKeyed()
+            id = c.str("id") ?? ""
+            name = c.str("name") ?? ""
+            isMarkedDelete = c.bool("is_marked_delete") ?? false
+        }
+    }
+
+    var mainID: String
+    var timelines: [Entry]
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.anyKeyed()
+        mainID = c.str("main_timeline_id") ?? ""
+        timelines = c.list("timelines", of: Entry.self).filter { !$0.id.isEmpty }
     }
 }
 
@@ -76,7 +132,10 @@ public enum DraftLoader {
     }
 
     public static func load(projectURL: URL) throws -> Draft {
-        let url = projectURL.appendingPathComponent("draft_info.json")
+        try load(draftURL: projectURL.appendingPathComponent("draft_info.json"))
+    }
+
+    public static func load(draftURL url: URL) throws -> Draft {
         do {
             let data = try Data(contentsOf: url)
             return try JSONDecoder().decode(Draft.self, from: data)

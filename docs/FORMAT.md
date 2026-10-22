@@ -11,6 +11,14 @@ describe what the renderer relies on; everything is read leniently because field
   — "AmazingFeature" packages (GLSL shaders, scene, materials, Lua). Never copy these into the repo.
 - Paths inside a draft can start with `##_draftpath_placeholder_<UUID>_##`, meaning the project folder.
 
+## Timelines
+
+A project can hold several timelines. `Timelines/project.json` lists them: `main_timeline_id`,
+`timelines[{id, name, is_marked_delete}]`. Each has its own draft in `Timelines/<id>/draft_info.json`
+(same format; media paths still resolve against the project folder). The root `draft_info.json` is a copy
+of the main timeline. `timeline_layout.json` describes CapCut's dock of open timelines (not used).
+Projects without `project.json` have a single timeline: the root draft.
+
 ## Time
 
 All times are microseconds. A segment has `target_timerange` (timeline) and `source_timerange` (media).
