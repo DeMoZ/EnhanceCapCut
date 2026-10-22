@@ -28,11 +28,17 @@ struct ExportView: View {
         Section("Project") {
             HStack {
                 Picker("CapCut project", selection: $model.selectedProjectURL) {
-                    ForEach(model.projects) { project in
+                    ForEach(model.displayedProjects) { project in
                         Text(project.isOpen ? "\(project.name)  — open in CapCut" : project.name)
                             .tag(Optional(project.url))
                     }
                 }
+                Toggle(isOn: $model.sortProjectsByName) {
+                    Image(systemName: "textformat.abc")
+                }
+                .toggleStyle(.button)
+                .help(model.sortProjectsByName ? "Sorted by name. Click for CapCut's order"
+                    : "In CapCut's order. Click to sort by name")
                 Button {
                     model.refreshProjects(selectOpen: true)
                 } label: {
