@@ -3,8 +3,8 @@ import Foundation
 
 // Command-line front end, used for automation and for verifying renders without the UI.
 //   ecc list
-//   ecc info [project]
-//   ecc render [project] [-o file] [--codec h264|hevc|hevc10|prores|proreshq] [--quality 0-100 | --bitrate Mbps]
+//   ecc info [project] [--timeline name|number]
+//   ecc render [project] [--timeline name|number] [-o file] [--codec h264|hevc|hevc10|prores|proreshq] [--quality 0-100 | --bitrate Mbps]
 //              [--fps N] [--aspect project|9:16|1:1|16:9] [--height N] [--lufs -14] [--no-subtitles]
 //              [--from s] [--duration s]
 //   ecc voice <media> -o out.wav [--keep-voice | --remove-voice] [--denoise 0.85] [--enhance 75]
@@ -34,6 +34,15 @@ func project() -> CapCutProject {
     return open
 }
 
+/// `--timeline` picks one of the project's timelines by name or 1-based number; the main one by default.
+func timeline(_ arg: String?, of project: CapCutProject) -> ProjectTimeline {
+    let all = project.timelines()
+    guard let arg else { return all.first(where: \.isMain) ?? all[0] }
+    if let t = all.first(where: { $0.name.caseInsensitiveCompare(arg) == .orderedSame || $0.id == arg }) { return t }
+    if let n = Int(arg), all.indices.contains(n - 1) { return all[n - 1] }
+    fail("No timeline \(arg) in \(project.name): " + all.map(\.name).joined(separator: ", "))
+}
+
 func seconds(_ us: Int64) -> String { String(format: "%.2fs", Double(us) / 1_000_000) }
 
 switch command {
@@ -43,8 +52,15 @@ case "list":
     }
 
 case "info":
+    let timelineArg = option("--timeline")
     let p = project()
-    let timeline = try TimelineBuilder.build(project: p)
+    let pt = timeline(timelineArg, of: p)
+    let timeline = try TimelineBuilder.build(project: p, timeline: pt)
+    let timelines = p.timelines()
+    if timelines.count > 1 {
+        print("Timelines: " + timelines.map { ($0 == pt ? "*" : "") + $0.name + ($0.isMain ? " (main)" : "") }
+            .joined(separator: ", "))
+    }
     print("Project: \(p.name)  canvas \(Int(timeline.canvasSize.width))x\(Int(timeline.canvasSize.height))  "
         + "\(timeline.fps) fps  duration \(seconds(timeline.duration))")
     print("Visual layers: \(timeline.layers.count), audio clips: \(timeline.audioClips.count)")
@@ -100,12 +116,15 @@ case "render":
     let from = option("--from").flatMap(Double.init)
     let length = option("--duration").flatMap(Double.init)
     let out = option("-o")
+    let timelineArg = option("--timeline")
     let p = project()
-    let timeline = try TimelineBuilder.build(project: p)
+    let pt = timeline(timelineArg, of: p)
+    let timeline = try TimelineBuilder.build(project: p, timeline: pt)
+    let name = pt.isMain ? p.name : "\(p.name) \(pt.name)"
     let size = settings.outputSize(canvas: timeline.canvasSize)
     let fps = settings.fps(project: timeline.fps)
     let url = out.map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath) }
-        ?? URL(fileURLWithPath: settings.outputFolder).appendingPathComponent(settings.fileName(project: p.name, size: size, fps: fps))
+        ?? URL(fileURLWithPath: settings.outputFolder).appendingPathComponent(settings.fileName(project: name, size: size, fps: fps))
     let exporter = Exporter(timeline: timeline, settings: settings, outputURL: url)
     if from != nil || length != nil {
         let start = Int64((from ?? 0) * 1_000_000)
@@ -114,7 +133,7 @@ case "render":
     }
     for item in timeline.report.unsupported { print("not supported: \(item.category): \(item.name) ×\(item.count)") }
     for file in timeline.report.missingFiles { print("missing: \(file)") }
-    print("Rendering \(p.name) → \(url.path) (\(Int(size.width))x\(Int(size.height)) @ \(fps) fps, \(settings.codec.title))")
+    print("Rendering \(name) → \(url.path) (\(Int(size.width))x\(Int(size.height)) @ \(fps) fps, \(settings.codec.title))")
     var lastPrint = Date.distantPast
     let started = Date()
     try await exporter.run { progress in

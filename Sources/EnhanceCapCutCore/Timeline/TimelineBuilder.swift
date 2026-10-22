@@ -2,8 +2,9 @@ import CoreGraphics
 import Foundation
 
 public enum TimelineBuilder {
-    public static func build(project: CapCutProject) throws -> Timeline {
-        build(draft: try project.loadDraft(), projectURL: project.url)
+    /// Builds `timeline` of the project, or the root draft (the main timeline) when it's nil.
+    public static func build(project: CapCutProject, timeline: ProjectTimeline? = nil) throws -> Timeline {
+        build(draft: try project.loadDraft(timeline: timeline), projectURL: project.url)
     }
 
     public static func build(draft: Draft, projectURL: URL) -> Timeline {

@@ -75,6 +75,7 @@ NOTARY_PROFILE=enhancecapcut scripts/build-app.sh --pkg
 
 | Setting | Options |
 | --- | --- |
+| Timeline | Shown when the project has several timelines; the main one is preselected. Other timelines add their name to `{project}` |
 | Aspect ratio | From project, 9:16, 1:1, 16:9 (the canvas is re-laid out like CapCut's ratio switch) |
 | Resolution | From project, 720p, 1080p, 1440p, 4K (short side) |
 | Frame rate | From project, 24, 25, 30, 60 |
@@ -104,13 +105,14 @@ The `ecc` tool (built next to the app, also inside the bundle at `Contents/MacOS
 ecc list                                   # projects, * = open in CapCut
 ecc info ChiangMaiMarkets                   # what will be rendered, unsupported features, missing media
 ecc render 1014 -o ~/Movies/1014.mp4 --codec hevc10 --quality 70
+ecc render KohChangFisherman --timeline 2 # one of several timelines, by number or name
 ecc render 1014 --from 10 --duration 5 --codec prores422 -o /tmp/test.mov
 ecc voice clip.mov -o voice.wav --keep-voice # audition the voice processing on one file
 ```
 
 Options: `--codec h264|hevc|hevc10|prores422|prores422HQ`, `--quality 0-100`, `--bitrate Mbps`,
 `--fps N`, `--aspect project|9:16|1:1|16:9`, `--height 720|1080|1440|2160`, `--lufs -14`,
-`--no-subtitles`, `--from s`, `--duration s`. Without a project argument the open project is used;
+`--no-subtitles`, `--from s`, `--duration s`, `--timeline name|number`. Without a project argument the open project is used;
 unspecified options fall back to the app's saved settings. `ecc voice` takes `--keep-voice`,
 `--remove-voice`, `--denoise 0.85`, `--enhance 75` (the ambient sound level) and/or
 `--filter <id>` with `--strength 1` (a voice filter by its CapCut resource id or cached effect folder).

@@ -18,7 +18,12 @@ final class ExportModel: ObservableObject {
         didSet { UserDefaults.standard.set(sortProjectsByName, forKey: "sortProjectsByName") }
     }
     @Published var selectedProjectURL: URL? {
-        didSet { if oldValue != selectedProjectURL { loadTimeline() } }
+        didSet { if oldValue != selectedProjectURL { reloadTimelines(keepSelection: false) } }
+    }
+    /// Timelines of the selected project (CapCut 9 projects can have several).
+    @Published private(set) var timelines: [ProjectTimeline] = []
+    @Published var selectedTimelineID: String? {
+        didSet { if oldValue != selectedTimelineID { loadTimeline() } }
     }
     @Published private(set) var timeline: Timeline?
     @Published private(set) var loadError: String?
@@ -36,6 +41,7 @@ final class ExportModel: ObservableObject {
     }
 
     var selectedProject: CapCutProject? { projects.first { $0.url == selectedProjectURL } }
+    var selectedTimeline: ProjectTimeline? { timelines.first { $0.id == selectedTimelineID } }
     var isExporting: Bool { if case .exporting = state { return true } else { return false } }
     var ffmpegAvailable: Bool { LoudnessNormalizer.ffmpegPath != nil }
 
@@ -45,7 +51,7 @@ final class ExportModel: ObservableObject {
     var outputURL: URL? {
         guard let project = selectedProject, let size = outputSize, let fps = outputFPS else { return nil }
         return URL(fileURLWithPath: (settings.outputFolder as NSString).expandingTildeInPath, isDirectory: true)
-            .appendingPathComponent(settings.fileName(project: project.name, size: size, fps: fps))
+            .appendingPathComponent(settings.fileName(project: outputName(project), size: size, fps: fps))
     }
 
     func refreshProjects(selectOpen: Bool) {
@@ -59,21 +65,35 @@ final class ExportModel: ObservableObject {
             // Nothing open in CapCut: the most recently edited project (first in CapCut's order).
             selectedProjectURL = projects.first?.url
         }
-        // Reload even when the selection didn't change: the draft may have been edited.
-        if selectedProjectURL == previous { loadTimeline() }
+        // Reload even when the selection didn't change: the draft or its timelines may have been edited.
+        if selectedProjectURL == previous { reloadTimelines(keepSelection: true) }
         if case .finished = state { state = .idle }
         if case .failed = state { state = .idle }
+    }
+
+    /// Re-reads the project's timeline list. A newly selected project starts on its main timeline.
+    private func reloadTimelines(keepSelection: Bool) {
+        timelines = selectedProject?.timelines() ?? []
+        let id = keepSelection && selectedTimeline != nil ? selectedTimelineID
+            : (timelines.first(where: \.isMain) ?? timelines.first)?.id
+        if id == selectedTimelineID { loadTimeline() } else { selectedTimelineID = id }
+    }
+
+    /// The `{project}` token: the project name, plus the timeline name for timelines other than the main one.
+    private func outputName(_ project: CapCutProject) -> String {
+        guard timelines.count > 1, let timeline = selectedTimeline, !timeline.isMain else { return project.name }
+        return "\(project.name) \(timeline.name)"
     }
 
     func loadTimeline() {
         timeline = nil
         loadError = nil
-        guard let project = selectedProject else { return }
+        guard let project = selectedProject, let projectTimeline = selectedTimeline else { return }
         Task.detached(priority: .userInitiated) {
             do {
-                let timeline = try TimelineBuilder.build(project: project)
+                let timeline = try TimelineBuilder.build(project: project, timeline: projectTimeline)
                 await MainActor.run {
-                    guard self.selectedProjectURL == project.url else { return }
+                    guard self.selectedProjectURL == project.url, self.selectedTimelineID == projectTimeline.id else { return }
                     self.timeline = timeline
                     // `--args -autoExport YES` exports right away with the saved settings (for scripting).
                     if UserDefaults.standard.bool(forKey: "autoExport"), !self.autoExported {

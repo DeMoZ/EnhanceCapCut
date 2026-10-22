@@ -33,6 +33,8 @@ struct ExportView: View {
                             .tag(Optional(project.url))
                     }
                 }
+                // The macOS pop-up menu keeps its items' order when ForEach only reorders them; rebuild it.
+                .id(model.sortProjectsByName)
                 Toggle(isOn: $model.sortProjectsByName) {
                     Image(systemName: "textformat.abc")
                 }
@@ -45,6 +47,13 @@ struct ExportView: View {
                     Image(systemName: "arrow.clockwise")
                 }
                 .help("Re-detect the project open in CapCut")
+            }
+            if model.timelines.count > 1 {
+                Picker("Timeline", selection: $model.selectedTimelineID) {
+                    ForEach(model.timelines) { timeline in
+                        Text(timeline.isMain ? "\(timeline.name)  — main" : timeline.name).tag(Optional(timeline.id))
+                    }
+                }
             }
             if let timeline = model.timeline {
                 LabeledContent("Canvas", value: "\(Int(timeline.canvasSize.width))×\(Int(timeline.canvasSize.height)), "

@@ -309,3 +309,42 @@ final class AudioSpeedTests: XCTestCase {
         XCTAssertEqual(frequency(from: 2.5, to: 3.5), 880, accuracy: 30)
     }
 }
+
+final class ProjectTimelinesTests: XCTestCase {
+    private func makeProject() throws -> URL {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        try Data("{}".utf8).write(to: url.appendingPathComponent("draft_info.json"))
+        addTeardownBlock { try? FileManager.default.removeItem(at: url) }
+        return url
+    }
+
+    func testProjectWithoutTimelinesFileHasTheRootDraft() throws {
+        let url = try makeProject()
+        let timelines = CapCutProject(url: url).timelines()
+        XCTAssertEqual(timelines.count, 1)
+        XCTAssertTrue(timelines[0].isMain)
+        XCTAssertEqual(timelines[0].draftURL, url.appendingPathComponent("draft_info.json"))
+    }
+
+    func testTimelinesSkipDeletedAndMissingDrafts() throws {
+        let url = try makeProject()
+        let root = url.appendingPathComponent("Timelines")
+        for id in ["B", "D"] {
+            try FileManager.default.createDirectory(at: root.appendingPathComponent(id), withIntermediateDirectories: true)
+            try Data("{}".utf8).write(to: root.appendingPathComponent(id).appendingPathComponent("draft_info.json"))
+        }
+        let list = """
+        {"main_timeline_id": "A", "timelines": [
+          {"id": "A", "name": "Timeline 01"}, {"id": "B", "name": "Timeline 02"},
+          {"id": "C", "name": "Timeline 03"}, {"id": "D", "name": "Gone", "is_marked_delete": true}]}
+        """
+        try Data(list.utf8).write(to: root.appendingPathComponent("project.json"))
+        let timelines = CapCutProject(url: url).timelines()
+        XCTAssertEqual(timelines.map(\.name), ["Timeline 01", "Timeline 02"])
+        // The main timeline without its own folder falls back to the root draft.
+        XCTAssertEqual(timelines[0].draftURL, url.appendingPathComponent("draft_info.json"))
+        XCTAssertTrue(timelines[0].isMain)
+        XCTAssertFalse(timelines[1].isMain)
+    }
+}
