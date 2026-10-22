@@ -11,7 +11,12 @@ final class ExportModel: ObservableObject {
         case failed(String)
     }
 
+    /// Projects in CapCut's order: most recently modified first.
     @Published var projects: [CapCutProject] = []
+    /// Show the project list by name instead of CapCut's order. Only affects the list, not the default selection.
+    @Published var sortProjectsByName = UserDefaults.standard.bool(forKey: "sortProjectsByName") {
+        didSet { UserDefaults.standard.set(sortProjectsByName, forKey: "sortProjectsByName") }
+    }
     @Published var selectedProjectURL: URL? {
         didSet { if oldValue != selectedProjectURL { loadTimeline() } }
     }
@@ -24,6 +29,11 @@ final class ExportModel: ObservableObject {
 
     private var exporter: Exporter?
     private var autoExported = false
+
+    var displayedProjects: [CapCutProject] {
+        guard sortProjectsByName else { return projects }
+        return projects.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
 
     var selectedProject: CapCutProject? { projects.first { $0.url == selectedProjectURL } }
     var isExporting: Bool { if case .exporting = state { return true } else { return false } }
@@ -46,6 +56,7 @@ final class ExportModel: ObservableObject {
         } else if let previous, projects.contains(where: { $0.url == previous }) {
             selectedProjectURL = previous
         } else {
+            // Nothing open in CapCut: the most recently edited project (first in CapCut's order).
             selectedProjectURL = projects.first?.url
         }
         // Reload even when the selection didn't change: the draft may have been edited.
