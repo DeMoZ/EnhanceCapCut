@@ -13,8 +13,9 @@ jobs:
     steps:
       - uses: compnerd/gha-setup-swift@v0.5.1
         with:
-          swift-version: swift-6.4-release
-          swift-build: 6.4.0-RELEASE
+          # swift.org has no Windows installer for 6.4.0, only for 6.4.1.
+          swift-version: swift-6.4.1-release
+          swift-build: 6.4.1-RELEASE
       - uses: actions/checkout@v7.0.1
       - run: swift build
       - run: swift test
