@@ -25,13 +25,17 @@ usage, docs/PLAN.md for the roadmap, docs/FORMAT.md for what we know about CapCu
 
 ## Code layout and style
 
-- `EnhanceCapCutCore/Draft`: `Decodable` models. Read every field leniently (`AnyKey` container helpers
+- `CapCutDraft`: the portable module (Foundation only, also built on Windows by CI): `Draft`, `Timeline`,
+  `ExportSettings`, voice filter preset parsing. No Apple frameworks here; `CoreGraphics` only behind
+  `#if canImport`. Members the renderer needs but that aren't public API are `package`.
+  `EnhanceCapCutCore` re-exports it.
+- `CapCutDraft/Draft`: `Decodable` models. Read every field leniently (`AnyKey` container helpers
   `opt/num/str/bool/list` in `Lenient.swift`): unknown, missing or mistyped fields must never fail a draft.
-- `EnhanceCapCutCore/Timeline`: draft → `Timeline` (visual layers in paint order, audio clips, report of
+- `CapCutDraft/Timeline`: draft → `Timeline` (visual layers in paint order, audio clips, report of
   unsupported features). New CapCut features start by being listed in `TimelineBuilder.report`.
 - `EnhanceCapCutCore/Render`: decoding (`FrameSource`), compositing (`FrameCompositor`, Core Image),
   text (`TextRasterizer`, Core Text), audio (`AudioRenderer`).
-- `EnhanceCapCutCore/Export`: settings and the `Exporter` pipeline (audio → loudnorm → frames → AVAssetWriter).
+- `EnhanceCapCutCore/Export`: the `Exporter` pipeline (audio → loudnorm → frames → AVAssetWriter).
 - Times are `Int64` microseconds like in the draft; convert to `CMTime` at AVFoundation boundaries.
 - Swift 6 toolchain in Swift 5 language mode; the app target is `@MainActor`, the core is plain classes.
 - Keep calibration constants named and documented where they're defined (see `TextRasterizer`).

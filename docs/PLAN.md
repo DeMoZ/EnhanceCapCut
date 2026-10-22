@@ -96,6 +96,21 @@ Usage counts from the author's 69 projects drive the order of the later mileston
 - Better "Remove vocal" for songs: a music source-separation model (e.g. Demucs as Core ML) that the
   user downloads at runtime; Apple's voice isolation only partly removes sung vocals.
 
+## Windows version
+
+Assumes CapCut for Windows writes the same draft format as the Mac app (not checked yet).
+
+- [x] Stage 0: the draft model, timeline and export settings are a separate Foundation-only module,
+  `CapCutDraft`; GitHub Actions builds and tests it on Windows (`.github/workflows/windows.yml`).
+- [ ] Stage 1: a second renderer for `ecc.exe render`: `ffmpeg.exe` for decoding/encoding over pipes
+  (hardware encoders on Windows), our own CPU compositor (crop, transforms, alpha, masks, HLG → SDR),
+  DirectWrite text, the same mixer/limiter, a portable FFT. Everything except text also runs on macOS, so
+  it can be checked frame by frame against the Core Image renderer.
+- [ ] Stage 2: the window in .NET (WinUI or Avalonia), driving `ecc.exe` with JSON progress.
+- [ ] Stage 3: voice effects. Apple's voice isolation has no Windows counterpart; until an ONNX model is
+  wired in, they are listed as not rendered.
+- [ ] Stage 4: release build in CI (zip or installer with `ffmpeg.exe`; mind GPL vs LGPL ffmpeg builds).
+
 ## Known gaps in milestone 1
 
 - Text: no text effects/animations; vertical typesetting is rendered horizontally; CapCut breaks

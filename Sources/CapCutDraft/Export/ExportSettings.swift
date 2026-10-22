@@ -1,5 +1,8 @@
-import AVFoundation
+#if canImport(CoreGraphics)
+#if canImport(CoreGraphics)
 import CoreGraphics
+#endif
+#endif
 import Foundation
 
 public struct ExportSettings: Codable, Equatable {
@@ -37,15 +40,6 @@ public struct ExportSettings: Codable, Equatable {
         }
         public var isProRes: Bool { self == .prores422 || self == .prores422HQ }
         public var fileExtension: String { isProRes ? "mov" : "mp4" }
-        public var fileType: AVFileType { isProRes ? .mov : .mp4 }
-        var avCodec: AVVideoCodecType {
-            switch self {
-            case .h264: return .h264
-            case .hevc, .hevc10: return .hevc
-            case .prores422: return .proRes422
-            case .prores422HQ: return .proRes422HQ
-            }
-        }
     }
 
     public enum RateControl: String, Codable, CaseIterable, Identifiable {

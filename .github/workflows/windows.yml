@@ -1,0 +1,20 @@
+# Builds and tests the portable part of the package (CapCutDraft) on Windows. On non-Apple platforms
+# Package.swift declares only that module, so `swift build` / `swift test` cover just it.
+name: Windows
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  capcutdraft:
+    runs-on: windows-latest
+    steps:
+      - uses: compnerd/gha-setup-swift@v0.5.1
+        with:
+          swift-version: swift-6.4-release
+          swift-build: 6.4.0-RELEASE
+      - uses: actions/checkout@v7.0.1
+      - run: swift build
+      - run: swift test

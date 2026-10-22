@@ -127,7 +127,8 @@ swift test                  # unit tests
 swift run ecc info 1014     # try the renderer
 ```
 
-Layout: `Sources/EnhanceCapCutCore` (draft model, timeline, renderer, exporter), `Sources/EnhanceCapCut`
+Layout: `Sources/CapCutDraft` (draft model, timeline, export settings; portable, CI builds it on Windows),
+`Sources/EnhanceCapCutCore` (renderer and exporter on Apple frameworks), `Sources/EnhanceCapCut`
 (app, Services provider, SwiftUI window), `Sources/ecc` (CLI), `App/Info.plist` (bundle + `NSServices`),
 `docs/` (roadmap and format notes). See [CLAUDE.md](CLAUDE.md) for conventions.
 

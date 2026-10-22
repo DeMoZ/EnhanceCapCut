@@ -1,4 +1,6 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#endif
 import Foundation
 
 /// A draft resolved into what the renderer needs: visual layers in paint order and audio clips.
@@ -13,7 +15,7 @@ public final class Timeline {
     public let audioClips: [AudioClip]
     public let report: RenderReport
 
-    init(name: String, canvasSize: CGSize, duration: Int64, fps: Double, layers: [VisualLayer],
+    package init(name: String, canvasSize: CGSize, duration: Int64, fps: Double, layers: [VisualLayer],
          audioClips: [AudioClip], report: RenderReport) {
         self.name = name
         self.canvasSize = canvasSize
@@ -93,7 +95,7 @@ public final class VisualLayer {
     public let keyframes: [LayerProperty: KeyframeTrack]
     public let canvas: CanvasMaterial?
 
-    init(id: String, content: VisualContent, trackIndex: Int, renderIndex: Int, isMainTrack: Bool,
+    package init(id: String, content: VisualContent, trackIndex: Int, renderIndex: Int, isMainTrack: Bool,
          target: TimeRange, timeMap: TimeMap, crop: Crop, clip: Clip, uniformScale: Bool,
          keyframes: [LayerProperty: KeyframeTrack], canvas: CanvasMaterial?) {
         self.id = id
@@ -142,6 +144,18 @@ public struct AudioClip {
     public var preservePitch: Bool
     /// "Isolate voice" / "Reduce noise" / "Enhance voice", applied to the source before the mix.
     public var voice = VoiceEffects()
+
+    public init(url: URL, target: TimeRange, timeMap: TimeMap, volume: Double, fadeIn: Int64, fadeOut: Int64,
+                preservePitch: Bool, voice: VoiceEffects = VoiceEffects()) {
+        self.url = url
+        self.target = target
+        self.timeMap = timeMap
+        self.volume = volume
+        self.fadeIn = fadeIn
+        self.fadeOut = fadeOut
+        self.preservePitch = preservePitch
+        self.voice = voice
+    }
 }
 
 /// CapCut's per-clip voice processing.
@@ -225,4 +239,6 @@ public struct RenderReport {
     public var missingFiles: [String] = []
 
     public var isEmpty: Bool { unsupported.isEmpty && missingFiles.isEmpty }
+
+    public init() {}
 }
