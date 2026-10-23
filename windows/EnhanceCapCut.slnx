@@ -2,8 +2,12 @@
   <Folder Name="/src/">
     <Project Path="src/ecc/ecc.csproj" />
     <Project Path="src/EnhanceCapCut.Draft/EnhanceCapCut.Draft.csproj" />
+    <Project Path="src/EnhanceCapCut.Render/EnhanceCapCut.Render.csproj" />
+    <Project Path="src/EnhanceCapCut.Windows/EnhanceCapCut.Windows.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/EnhanceCapCut.Draft.Tests/EnhanceCapCut.Draft.Tests.csproj" />
+    <Project Path="tests/EnhanceCapCut.Render.Tests/EnhanceCapCut.Render.Tests.csproj" />
+    <Project Path="tests/EnhanceCapCut.Windows.Tests/EnhanceCapCut.Windows.Tests.csproj" />
   </Folder>
 </Solution>

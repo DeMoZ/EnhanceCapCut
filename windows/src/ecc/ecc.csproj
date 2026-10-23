@@ -1,14 +1,19 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- net10.0: list/info on any OS (used to compare with the Swift CLI on macOS).
+       net10.0-windows: adds `render` (Media Foundation, Direct2D, DirectWrite). -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net10.0;net10.0-windows</TargetFrameworks>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\EnhanceCapCut.Draft\EnhanceCapCut.Draft.csproj" />
   </ItemGroup>
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-windows'">
+    <ProjectReference Include="..\EnhanceCapCut.Windows\EnhanceCapCut.Windows.csproj" />
+  </ItemGroup>
 
 </Project>
