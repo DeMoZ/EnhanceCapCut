@@ -5,6 +5,9 @@ using EnhanceCapCut.Draft;
 // against the macOS version (`ecc info` prints the same report as the Swift CLI).
 //   ecc list
 //   ecc info [project] [--timeline name|number]
+//   ecc render [project] [--timeline name|number] [-o file] [--codec h264|hevc|hevc10] [--quality 0-100 | --bitrate Mbps]
+//              [--fps N] [--aspect project|9:16|1:1|16:9] [--height N] [--lufs -14] [--no-subtitles]
+//              [--from s] [--duration s]                                            (Windows only)
 
 var rest = new List<string>(args);
 var command = rest.Count == 0 ? "help" : rest[0];
@@ -123,7 +126,90 @@ switch (command)
         break;
     }
 
+    case "render":
+#if WINDOWS
+        Render();
+#else
+        Fail("ecc render runs on Windows (Media Foundation, Direct2D, DirectWrite)");
+#endif
+        break;
+
     default:
-        Console.WriteLine("usage: ecc list | info [project] [--timeline name|number]");
+        Console.WriteLine("usage: ecc list | info [project] [--timeline name|number] | render [project] [options]");
         break;
 }
+
+#if WINDOWS
+void Render()
+{
+    // Start from the window's saved settings so CLI renders match the last export from the app.
+    var settings = EnhanceCapCut.Draft.ExportSettings.Load();
+    if (Option("--codec") is { } codec)
+    {
+        settings.Codec = codec switch
+        {
+            "h264" => EnhanceCapCut.Draft.ExportSettings.VideoCodec.H264,
+            "hevc" => EnhanceCapCut.Draft.ExportSettings.VideoCodec.Hevc,
+            "hevc10" => EnhanceCapCut.Draft.ExportSettings.VideoCodec.Hevc10,
+            _ => throw new ArgumentException($"Unknown codec {codec} (h264, hevc, hevc10)"),
+        };
+    }
+    if (Option("--quality") is { } q) { settings.RateControl = EnhanceCapCut.Draft.ExportSettings.RateControlMode.Quality; settings.Quality = Number(q); }
+    if (Option("--bitrate") is { } b) { settings.RateControl = EnhanceCapCut.Draft.ExportSettings.RateControlMode.Bitrate; settings.BitrateMbps = Number(b); }
+    if (Option("--fps") is { } fps) settings.FrameRate = Number(fps);
+    if (Option("--aspect") is { } aspect)
+    {
+        settings.Aspect = aspect switch
+        {
+            "project" => EnhanceCapCut.Draft.ExportSettings.AspectRatio.Project,
+            "9:16" => EnhanceCapCut.Draft.ExportSettings.AspectRatio.Portrait,
+            "1:1" => EnhanceCapCut.Draft.ExportSettings.AspectRatio.Square,
+            "16:9" => EnhanceCapCut.Draft.ExportSettings.AspectRatio.Landscape,
+            _ => throw new ArgumentException($"Unknown aspect {aspect}"),
+        };
+    }
+    if (Option("--height") is { } height)
+    {
+        var h = (int)Number(height);
+        if (!Enum.IsDefined(typeof(EnhanceCapCut.Draft.ExportSettings.Resolution), h)) Fail("Resolution must be 0, 720, 1080, 1440 or 2160");
+        settings.OutputResolution = (EnhanceCapCut.Draft.ExportSettings.Resolution)h;
+    }
+    if (rest.Remove("--no-subtitles")) settings.BurnInSubtitles = false;
+    if (Option("--lufs") is { } lufs) { settings.NormalizeLoudness = true; settings.TargetLUFS = Number(lufs); }
+    var from = Option("--from") is { } f ? Number(f) : (double?)null;
+    var length = Option("--duration") is { } d ? Number(d) : (double?)null;
+    var output = Option("-o");
+    var timelineArg = Option("--timeline");
+    var p = Project();
+    var pt = TimelineOf(timelineArg, p);
+    var timeline = TimelineBuilder.Build(p, pt);
+    var name = pt.IsMain ? p.Name : $"{p.Name} {pt.Name}";
+    var (width, heightPx) = settings.OutputSize(timeline.CanvasWidth, timeline.CanvasHeight);
+    var rate = settings.Fps(timeline.Fps);
+    var path = output is not null ? Path.GetFullPath(output)
+        : Path.Combine(settings.OutputFolder, settings.FileName(name, width, heightPx, rate));
+    var exporter = new EnhanceCapCut.Windows.Exporter(timeline, settings, path);
+    if (from is not null || length is not null)
+    {
+        var start = (long)((from ?? 0) * 1_000_000);
+        var duration = length is { } l ? (long)(l * 1_000_000) : timeline.Duration - start;
+        exporter.Range = new TimeRange(start, Math.Min(duration, timeline.Duration - start));
+    }
+    foreach (var item in timeline.Report.Unsupported) Console.WriteLine($"not supported: {item.Category}: {item.Name} ×{item.Count}");
+    foreach (var file in timeline.Report.MissingFiles) Console.WriteLine($"missing: {file}");
+    Console.WriteLine($"Rendering {name} → {path} ({width}x{heightPx} @ {rate.ToString(CultureInfo.InvariantCulture)} fps, "
+        + EnhanceCapCut.Draft.ExportSettings.Title(settings.Codec) + ")");
+    var last = DateTime.MinValue;
+    var started = DateTime.Now;
+    exporter.Run(progress =>
+    {
+        if ((DateTime.Now - last).TotalSeconds < 2 && progress.Fraction < 1) return;
+        last = DateTime.Now;
+        Console.WriteLine($"  {progress.PhaseTitle} {progress.Fraction * 100,3:0}%  {progress.FramesDone}/{progress.FramesTotal} frames");
+    });
+    foreach (var warning in exporter.Warnings) Console.WriteLine($"warning: {warning}");
+    Console.WriteLine($"Done in {(DateTime.Now - started).TotalSeconds.ToString("0.0", CultureInfo.InvariantCulture)}s: {path}");
+}
+
+static double Number(string s) => double.Parse(s, CultureInfo.InvariantCulture);
+#endif

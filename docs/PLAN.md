@@ -107,10 +107,23 @@ CapCut for Windows writes the same draft format as the Mac app (not checked yet)
   voice filter preset loader ported to C# (`EnhanceCapCut.Draft`, platform-neutral), with the unit tests.
   `ecc info` prints the same report as the Swift CLI: identical on all 102 timelines of the author's
   69 projects (up to Unicode normalization of file names). CI builds and tests it on Windows.
-- [ ] Stage 2: renderer: Media Foundation source reader / sink writer (H.264, HEVC 8/10-bit through the
-  system's hardware encoders), a Direct3D 11 compositor (crop, transforms, alpha, masks, canvas, HLG → SDR),
-  DirectWrite text calibrated against Windows CapCut exports, the audio mix with the same limiter;
-  `ecc render`.
+- [x] Stage 2 (first version, not yet checked on real projects on Windows): `ecc render`.
+  - Media Foundation source reader (video to RGB32 through its video processor, audio to 48 kHz float) and
+    sink writer (MP4, H.264 / HEVC 8 / HEVC 10-bit through the system's encoders, AAC 192 kbit/s, BT.709 tags).
+  - Direct2D on Direct3D 11 (WARP when there's no GPU): the macOS layout (`Layout`, unit-tested), crop,
+    opacity, canvas colour / blur / image, compound clips, phone-video rotation, photos via WIC with EXIF
+    orientation.
+  - DirectWrite text with the macOS calibration: styles per range, outline from glyph contours, background,
+    shadow.
+  - Audio: our own mix (`AudioMixer`): resampling for the pitch toggle, WSOLA time-stretch otherwise, volume,
+    fades, the same master limiter, EBU R128 normalization (BS.1770 measurement + linear gain + limiter).
+  - CI runs an end-to-end export on windows-latest (synthetic clip → draft → MP4 → pixels and tone checked).
+  - Open: verify on the author's projects on Windows (rotation direction of portrait phone clips, colours,
+    text size against Windows CapCut exports); HDR (HLG/PQ) clips are converted without tone mapping (a
+    warning says so); "quality" maps to a bitrate (`MfVideoWriter.BitsPerPixel`), not a constant-quality
+    mode; CapCut's own fallback fonts aren't read (Windows' font fallback is used); the mix is held in
+    memory (~350 MB per 15 min); no Lanczos pre-shrink for large downscales; masks aren't drawn (also not
+    on the Mac).
 - [ ] Stage 3: the export window in WinUI 3 (same settings as the Mac window), started from a tray icon or
   hotkey; the open project is detected by `.locked` like on the Mac.
 - [ ] Stage 4: voice effects. Apple's voice isolation has no Windows counterpart; candidates are an ONNX
