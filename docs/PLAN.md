@@ -96,6 +96,27 @@ Usage counts from the author's 69 projects drive the order of the later mileston
 - Better "Remove vocal" for songs: a music source-separation model (e.g. Demucs as Core ML) that the
   user downloads at runtime; Apple's voice isolation only partly removes sung vocals.
 
+## Windows version
+
+A separate implementation in `windows/` on Windows' own stack: C# / .NET 10, Media Foundation for decoding
+and encoding, Direct3D 11 / Direct2D for compositing, DirectWrite for text, WinUI 3 for the window. It assumes
+CapCut for Windows writes the same draft format as the Mac app (not checked yet) and keeps its projects in
+`%LOCALAPPDATA%\CapCut\User Data\Projects\com.lveditor.draft` (the root can be passed explicitly).
+
+- [x] Stage 1: the draft model, project/timeline lookup, timeline builder, `TimeMap`, export settings and the
+  voice filter preset loader ported to C# (`EnhanceCapCut.Draft`, platform-neutral), with the unit tests.
+  `ecc info` prints the same report as the Swift CLI: identical on all 102 timelines of the author's
+  69 projects (up to Unicode normalization of file names). CI builds and tests it on Windows.
+- [ ] Stage 2: renderer: Media Foundation source reader / sink writer (H.264, HEVC 8/10-bit through the
+  system's hardware encoders), a Direct3D 11 compositor (crop, transforms, alpha, masks, canvas, HLG → SDR),
+  DirectWrite text calibrated against Windows CapCut exports, the audio mix with the same limiter;
+  `ecc render`.
+- [ ] Stage 3: the export window in WinUI 3 (same settings as the Mac window), started from a tray icon or
+  hotkey; the open project is detected by `.locked` like on the Mac.
+- [ ] Stage 4: voice effects. Apple's voice isolation has no Windows counterpart; candidates are an ONNX
+  model through DirectML. Until then they are listed as not rendered.
+- [ ] Stage 5: release build in CI (self-contained installer).
+
 ## Known gaps in milestone 1
 
 - Text: no text effects/animations; vertical typesetting is rendered horizontally; CapCut breaks
