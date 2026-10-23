@@ -35,6 +35,10 @@ usage, docs/PLAN.md for the roadmap, docs/FORMAT.md for what we know about CapCu
 - Times are `Int64` microseconds like in the draft; convert to `CMTime` at AVFoundation boundaries.
 - Swift 6 toolchain in Swift 5 language mode; the app target is `@MainActor`, the core is plain classes.
 - Keep calibration constants named and documented where they're defined (see `TextRasterizer`).
+- `windows/`: the Windows version in C# (.NET 10; Media Foundation, Direct3D/Direct2D, DirectWrite, WinUI 3 — no
+  Swift there). `EnhanceCapCut.Draft` is a port of the Swift draft/timeline code and must stay in step with it:
+  a change to draft parsing or `TimelineBuilder` on one side gets the same change on the other, and
+  `ecc info` output of both CLIs should stay identical. `dotnet test windows/EnhanceCapCut.slnx` runs on macOS too.
 
 ## Git
 

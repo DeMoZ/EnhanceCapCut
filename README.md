@@ -129,6 +129,6 @@ swift run ecc info 1014     # try the renderer
 
 Layout: `Sources/EnhanceCapCutCore` (draft model, timeline, renderer, exporter), `Sources/EnhanceCapCut`
 (app, Services provider, SwiftUI window), `Sources/ecc` (CLI), `App/Info.plist` (bundle + `NSServices`),
-`docs/` (roadmap and format notes). See [CLAUDE.md](CLAUDE.md) for conventions.
+`docs/` (roadmap and format notes), `windows/` (the Windows version in C#/.NET, see its README). See [CLAUDE.md](CLAUDE.md) for conventions.
 
 No CapCut resources (shaders, Lua, LUTs, fonts) and no user media or project files are part of this repo.

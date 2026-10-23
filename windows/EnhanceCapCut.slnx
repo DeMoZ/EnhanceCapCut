@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ecc/ecc.csproj" />
+    <Project Path="src/EnhanceCapCut.Draft/EnhanceCapCut.Draft.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/EnhanceCapCut.Draft.Tests/EnhanceCapCut.Draft.Tests.csproj" />
+  </Folder>
+</Solution>
