@@ -32,6 +32,9 @@ final class ExportModel: ObservableObject {
     }
     @Published private(set) var state: State = .idle
 
+    /// Opens the subtitles window (set by the app delegate).
+    var openSubtitles: (() -> Void)?
+
     private var exporter: Exporter?
     private var autoExported = false
 

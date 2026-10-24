@@ -65,7 +65,18 @@ struct ExportView: View {
             } else {
                 Text("No CapCut projects found in ~/Movies/CapCut.").foregroundStyle(.secondary)
             }
+            LabeledContent("Subtitles") {
+                Button("Subtitles & Voice-over…") { model.openSubtitles?() }
+                    .disabled(model.selectedProject == nil || !Self.subtitlesAvailable)
+                    .help(Self.subtitlesAvailable ? "Transcribe and translate the speech and add it to the project as captions"
+                        : "Needs macOS 26 or later")
+            }
         }
+    }
+
+    private static var subtitlesAvailable: Bool {
+        if #available(macOS 26, *) { return true }
+        return false
     }
 
     private var videoSection: some View {

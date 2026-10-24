@@ -46,5 +46,7 @@
 			<array/>
 		</dict>
 	</array>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Transcribes the speech in your CapCut project to create subtitles. Runs entirely on this Mac.</string>
 </dict>
 </plist>

@@ -97,6 +97,26 @@ For scripting, the app accepts `open ~/Applications/EnhanceCapCut.app --args -pr
 Changing the aspect ratio re-lays out the canvas the way CapCut's ratio switch does: clips are fitted to the
 new canvas and positions stay relative to it, so texts placed near each other can overlap.
 
+## Subtitles
+
+**Subtitles & Voice-over…** in the export window (or **Window ▸ Subtitles & Voice-over**, ⌘U) transcribes the
+speech of the selected timeline, translates it and adds the result **to the CapCut project itself** as
+caption tracks: open the project in CapCut and they are there, editable like CapCut's own auto-captions.
+Everything runs offline with Apple's on-device speech recognition and Translation (macOS 26 or later); the
+logic is the one of SubDub, the Final Cut Pro version.
+
+1. Close the project in CapCut (back to the home screen). CapCut overwrites a project that is open when it saves.
+2. Pick the spoken language, keep or drop the original-language subtitles, choose languages to translate into.
+3. Each language becomes its own caption track. Pick which one is **shown on screen**; the others are added
+   hidden (show them with the track's eye button in CapCut).
+4. Click **Create**, then open the project in CapCut.
+
+The style and position are copied from captions already in the timeline; otherwise CapCut's default caption
+look is used. Running again replaces the tracks added before (your own captions stay). The project file is
+backed up first to `~/Library/Application Support/EnhanceCapCut/Backups/<project>/<time>/`, and `.srt`
+files can be saved to the export folder too. The first time a language is used, macOS downloads its speech
+or translation model once. Voice-over (dubbing) comes later.
+
 ## Command line
 
 The `ecc` tool (built next to the app, also inside the bundle at `Contents/MacOS/ecc`) uses the same renderer:
@@ -108,6 +128,7 @@ ecc render 1014 -o ~/Movies/1014.mp4 --codec hevc10 --quality 70
 ecc render KohChangFisherman --timeline 2 # one of several timelines, by number or name
 ecc render 1014 --from 10 --duration 5 --codec prores422 -o /tmp/test.mov
 ecc voice clip.mov -o voice.wav --keep-voice # audition the voice processing on one file
+ecc subtitles DurianDick --language ru-RU --translate en,th --show en --srt ~/Movies   # add captions to the project
 ```
 
 Options: `--codec h264|hevc|hevc10|prores422|prores422HQ`, `--quality 0-100`, `--bitrate Mbps`,
@@ -118,6 +139,10 @@ unspecified options fall back to the app's saved settings. `ecc voice` takes `--
 `--filter <id>` with `--strength 1` (a voice filter by its CapCut resource id or cached effect folder).
 Voice filters are read from CapCut's own effect cache, so a filter renders only after CapCut has
 downloaded it (i.e. it has been used or previewed in CapCut on this Mac).
+`ecc subtitles` takes `--language` (spoken, e.g. `ru-RU`), `--translate en,th`, `--no-original`, `--show <code>`
+(the visible track), `--keep-previous` (don't replace earlier tracks), `--srt <folder>` and `--draft out.json`
+(write the changed draft there instead of into the project). Translation languages must already be downloaded
+(the app's window can download them).
 
 ## Development
 

@@ -83,6 +83,29 @@ Thai is scaled so its ascent+descent equals the primary font's (≈0.66×).
 Captions (`type: subtitle`) are burned in only when CapCut's export option is on — the author exports
 both variants — hence our "Burn in captions" toggle.
 
+### Caption tracks (what EnhanceCapCut writes)
+
+CapCut's auto-captions live on `text` tracks with `flag` 1 (plain text tracks have 0). Each caption is a
+segment (`source_timerange` null, `target_timerange` frame-aligned, `render_index` 14000+ and unique,
+`track_render_index` = the track's index in `tracks`, `track_attribute` = the track's `attribute`) whose
+`extra_material_refs` holds one `material_animations` entry (`type` `sticker_animation`, empty `animations`),
+and a `materials.texts` entry with:
+
+- `type` `subtitle`, `language` like `ru-RU`, `group_id` `<language>_<ms timestamp>` shared by one recognition
+  run (CapCut also uses `Auto_<ms>`), `recognize_text` = the plain text;
+- `words`: `start_time` / `end_time` in ms from the segment start and `text`; recognized Russian has real
+  timings with `" "` tokens between words, translations spread the words evenly without spaces;
+- recognized captions: `sub_type` 0, `add_type` 1, `recognize_task_id` and `relevance_segment` (ids of the
+  source clips); translated ones (bilingual captions): `sub_type` 5, `add_type` 0, both empty;
+- `font_size` mirrors `content`'s style `size`; the author's captions are size 8–18, `transform.y` −0.5…−0.85
+  (CapCut's preset: 8, near −0.65), `line_max_width` 0.82, `border_width` 0.08 with `border_color` "".
+
+`config.subtitle_taskinfo` lists CapCut's recognition tasks; generated captions don't need an entry.
+EnhanceCapCut names its tracks `EnhanceCapCut subtitles · <code>` (`is_default_name` false) so a later run can
+replace them, and writes the same bytes to every copy of the timeline's draft (the root `draft_info.json` of
+the main timeline and `template-2.tmp` next to each draft, which CapCut keeps identical); `draft_info.json.bak`
+is CapCut's previous save and is left alone.
+
 ## Colour
 
 Calibrated against the author's CapCut exports (HEVC Main10, BT.709 tagged):
