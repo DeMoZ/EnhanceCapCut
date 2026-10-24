@@ -9,6 +9,9 @@ import Foundation
 //              [--from s] [--duration s]
 //   ecc voice <media> -o out.wav [--keep-voice | --remove-voice] [--denoise 0.85] [--enhance 75]
 //             [--filter <cached effect dir | resource id>] [--strength 1]
+//   ecc subtitles [project] [--timeline name|number] --language ru-RU [--translate en,th] [--no-original] [--show en]
+//                 [--keep-previous] [--srt folder] [--draft out.json]
+//                 (macOS 26+; writes into the project unless --draft is given; translation languages must be downloaded)
 
 func fail(_ message: String) -> Never {
     FileHandle.standardError.write((message + "\n").data(using: .utf8)!)
@@ -168,6 +171,49 @@ case "voice":
                                           to: URL(fileURLWithPath: (out as NSString).expandingTildeInPath))
     print(String(format: "Done in %.1fs: %@", Date().timeIntervalSince(started), out))
 
+case "subtitles":
+    guard #available(macOS 26, *) else { fail("Subtitles need macOS 26 or later") }
+    guard let localeID = option("--language") else { fail("pass the spoken language: --language ru-RU") }
+    let targetCodes = option("--translate")?.split(separator: ",").map(String.init) ?? []
+    let visible = option("--show")
+    let srtFolder = option("--srt")
+    let draftOut = option("--draft")
+    let timelineArg = option("--timeline")
+    let includeOriginal = !args.contains("--no-original")
+    let replace = !args.contains("--keep-previous")
+    args.removeAll { $0 == "--no-original" || $0 == "--keep-previous" }
+    let p = project()
+    let pt = timeline(timelineArg, of: p)
+    let timeline = try TimelineBuilder.build(project: p, timeline: pt)
+    let targets = targetCodes.map { SubtitleLanguage(Locale.Language(identifier: $0)) }
+    let pipeline = SubtitlePipeline(translator: InstalledTranslationProvider())
+    var lastStep = ""
+    let tracks = try await pipeline.run(timeline: timeline, options: .init(
+        sourceLocale: Locale(identifier: localeID), includeOriginal: includeOriginal, targets: targets,
+        visibleLanguage: visible)) { step, _ in
+        if step != lastStep { lastStep = step; print("  \(step)") }
+    }
+    for track in tracks {
+        print("\(track.language.code)\(track.isVisible ? " (shown)" : ""): \(track.cues.count) cues")
+        for cue in track.cues.prefix(3) {
+            print(String(format: "  %.2f–%.2f ", cue.start, cue.end) + cue.text.replacingOccurrences(of: "\n", with: " / "))
+        }
+    }
+    if let srtFolder {
+        let urls = try SubtitlePipeline.writeSRT(tracks, to: URL(fileURLWithPath: (srtFolder as NSString).expandingTildeInPath),
+                                                 baseName: pt.isMain ? p.name : "\(p.name) \(pt.name)")
+        for url in urls { print("Wrote \(url.path)") }
+    }
+    if let draftOut {
+        let data = try DraftSubtitleWriter.apply(tracks, to: Data(contentsOf: pt.draftURL), replacePrevious: replace)
+        try data.write(to: URL(fileURLWithPath: (draftOut as NSString).expandingTildeInPath))
+        print("Wrote \(draftOut)")
+    } else {
+        let result = try DraftSubtitleWriter.write(tracks, project: p, timeline: pt, replacePrevious: replace)
+        for url in result.files { print("Updated \(url.path)") }
+        print("Backup: \(result.backupFolder.path)")
+    }
+
 default:
-    print("usage: ecc list | info [project] | render [project] [options] | voice <media> -o out.wav [options]")
+    print("usage: ecc list | info [project] | render [project] [options] | voice <media> -o out.wav [options] | subtitles [project] --language ru-RU [options]")
 }

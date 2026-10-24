@@ -4,6 +4,9 @@ import SwiftUI
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var window: NSWindow?
+    private var subtitlesWindow: NSWindow?
+    /// A `SubtitlesModel` (macOS 26+), kept for the life of the app so running jobs survive closing the window.
+    private var subtitlesModel: AnyObject?
     private let model = ExportModel()
     private let services = ServiceProvider()
 
@@ -15,6 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         NSApp.mainMenu = makeMenu()
         services.onInvoke = { [weak self] in self?.showExportWindow() }
+        model.openSubtitles = { [weak self] in self?.showSubtitlesWindow() }
         NSApp.servicesProvider = services
         NSUpdateDynamicServices()
         showExportWindow()
@@ -26,6 +30,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        if #available(macOS 26, *), let subtitles = subtitlesModel as? SubtitlesModel, subtitles.isRunning {
+            let alert = NSAlert()
+            alert.messageText = "Subtitles are being created"
+            alert.informativeText = "Quitting cancels them."
+            alert.addButton(withTitle: "Keep Working")
+            alert.addButton(withTitle: "Quit")
+            guard alert.runModal() == .alertSecondButtonReturn else { return .terminateCancel }
+            subtitles.cancel()
+        }
         guard model.isExporting else { return .terminateNow }
         let alert = NSAlert()
         alert.messageText = "An export is in progress"
@@ -64,6 +77,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window?.makeKeyAndOrderFront(nil)
     }
 
+    /// Shows the "Subtitles & Voice-over" window for the project selected in the export window.
+    func showSubtitlesWindow() {
+        guard #available(macOS 26, *) else { return }
+        let subtitles = subtitlesModel as? SubtitlesModel ?? SubtitlesModel(export: model)
+        subtitlesModel = subtitles
+        if subtitlesWindow == nil {
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 720),
+                                  styleMask: [.titled, .closable, .miniaturizable, .resizable],
+                                  backing: .buffered, defer: false)
+            window.title = "Subtitles & Voice-over"
+            window.isReleasedWhenClosed = false
+            window.contentView = NSHostingView(rootView: SubtitlesView(model: subtitles))
+            window.setFrameAutosaveName("SubtitlesWindow")
+            window.center()
+            subtitlesWindow = window
+        }
+        subtitles.refreshProjectState()
+        NSApp.activate(ignoringOtherApps: true)
+        subtitlesWindow?.makeKeyAndOrderFront(nil)
+    }
+
     private func makeMenu() -> NSMenu {
         let main = NSMenu()
         let appItem = NSMenuItem()
@@ -96,6 +130,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let windowItem = NSMenuItem()
         let windowMenu = NSMenu(title: "Window")
         windowMenu.addItem(withTitle: "Export Window", action: #selector(showWindowAction), keyEquivalent: "e").target = self
+        if #available(macOS 26, *) {
+            windowMenu.addItem(withTitle: "Subtitles & Voice-over", action: #selector(showSubtitlesAction), keyEquivalent: "u").target = self
+        }
         windowMenu.addItem(withTitle: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
         windowMenu.addItem(withTitle: "Minimize", action: #selector(NSWindow.miniaturize(_:)), keyEquivalent: "m")
         windowItem.submenu = windowMenu
@@ -105,6 +142,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func showWindowAction() { showExportWindow() }
+    @objc private func showSubtitlesAction() { showSubtitlesWindow() }
 
     /// Keeps a single instance when two copies are installed (e.g. ~/Applications and /Applications):
     /// both can answer the Services entry and show their own export window. Older copies are asked to

@@ -47,6 +47,15 @@ Usage counts from the author's 69 projects drive the order of the later mileston
       "Reduce noise") level error −3.2 → −0.9 dB; ATV/CockScreams voiceovers within 0–1.8 dB.
 - [x] `ecc voice` auditions the processing on a single file.
 
+## Subtitles and voice-over (subtitles done)
+
+- [x] "Subtitles & Voice-over" window, macOS only for now: the timeline's mix → on-device speech recognition
+      (SpeechAnalyzer) → cues → Apple Translation, ported from SubDub (the Final Cut Pro version).
+- [x] Written into the draft as CapCut caption tracks (one per language, one visible), edited in place so the
+      rest of the draft stays byte-for-byte; backup first; refuses while the project is open in CapCut.
+- [ ] Voice-over (dub): translated lines spoken by system voices, added as audio tracks.
+- [ ] Windows version.
+
 ## Milestone 2 — LUT filters
 
 - Read filter packages from CapCut's effect cache (`~/Library/Containers/com.lemon.lvoverseas/Data/Movies/CapCut/User Data/Cache/effect/<id>/<hash>/`)
