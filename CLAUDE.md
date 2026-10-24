@@ -38,7 +38,10 @@ usage, docs/PLAN.md for the roadmap, docs/FORMAT.md for what we know about CapCu
 - `windows/`: the Windows version in C# (.NET 10; Media Foundation, Direct3D/Direct2D, DirectWrite, WinUI 3 — no
   Swift there). `EnhanceCapCut.Draft` is a port of the Swift draft/timeline code and must stay in step with it:
   a change to draft parsing or `TimelineBuilder` on one side gets the same change on the other, and
-  `ecc info` output of both CLIs should stay identical. `dotnet test windows/EnhanceCapCut.slnx` runs on macOS too.
+  `ecc info` output of both CLIs should stay identical. The same goes for subtitles: segmentation and
+  `DraftSubtitleWriter` (Swift `EnhanceCapCutCore/Subtitles`, C# `EnhanceCapCut.Draft`); only the engines differ
+  (Apple speech/Translation on the Mac, Whisper/NLLB in `EnhanceCapCut.Subtitles` on Windows).
+  `dotnet test windows/EnhanceCapCut.slnx` runs on macOS too.
 
 ## Git
 

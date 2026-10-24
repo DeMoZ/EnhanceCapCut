@@ -8,6 +8,10 @@ using EnhanceCapCut.Draft;
 //   ecc render [project] [--timeline name|number] [-o file] [--codec h264|hevc|hevc10] [--quality 0-100 | --bitrate Mbps]
 //              [--fps N] [--aspect project|9:16|1:1|16:9] [--height N] [--lufs -14] [--no-subtitles]
 //              [--from s] [--duration s]                                            (Windows only)
+//   ecc subtitles [project] [--timeline name|number] --language ru-RU [--translate en,th] [--no-original] [--show en]
+//                 [--keep-previous] [--srt folder] [--draft out.json] [--audio mix.wav]
+//                 (writes into the project unless --draft is given; models are downloaded on first use;
+//                  the timeline's audio is mixed on Windows, elsewhere pass --audio)
 
 var rest = new List<string>(args);
 var command = rest.Count == 0 ? "help" : rest[0];
@@ -134,9 +138,93 @@ switch (command)
 #endif
         break;
 
-    default:
-        Console.WriteLine("usage: ecc list | info [project] [--timeline name|number] | render [project] [options]");
+    case "subtitles":
+        await Subtitles();
         break;
+
+    default:
+        Console.WriteLine("usage: ecc list | info [project] [--timeline name|number] | render [project] [options] | subtitles [project] --language ru-RU [options]");
+        break;
+}
+
+async Task Subtitles()
+{
+    var languageArg = Option("--language");
+    if (languageArg is null) Fail("pass the spoken language: --language ru-RU");
+    var source = SubtitleLanguage.Find(languageArg!);
+    if (source is null) Fail($"Unsupported language {languageArg}: " + string.Join(", ", SubtitleLanguage.All.Select(l => l.Code)));
+    var targets = new List<SubtitleLanguage>();
+    foreach (var code in (Option("--translate") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries))
+    {
+        var target = SubtitleLanguage.Find(code);
+        if (target is null) Fail($"Unsupported language {code}");
+        targets.Add(target!);
+    }
+    var visible = Option("--show") is { } show ? SubtitleLanguage.Find(show)?.Code ?? show : null;
+    var srtFolder = Option("--srt");
+    var draftOut = Option("--draft");
+    var audioPath = Option("--audio");
+    var timelineArg = Option("--timeline");
+    var includeOriginal = !rest.Remove("--no-original");
+    var replace = !rest.Remove("--keep-previous");
+    var p = Project();
+    var pt = TimelineOf(timelineArg, p);
+
+    float[] audio;
+    if (audioPath is not null)
+    {
+        audio = EnhanceCapCut.Subtitles.AudioInput.ReadWav(audioPath);
+    }
+    else
+    {
+#if WINDOWS
+        Console.WriteLine("  Mixing timeline audio…");
+        var timeline = TimelineBuilder.Build(p, pt);
+        var warnings = new List<string>();
+        var mix = EnhanceCapCut.Render.AudioMixer.Mix(timeline, new EnhanceCapCut.Windows.MfAudioDecoder(), warnings);
+        foreach (var warning in warnings) Console.WriteLine($"warning: {warning}");
+        audio = EnhanceCapCut.Subtitles.AudioInput.ToMono16k(mix, 2, EnhanceCapCut.Render.AudioMixer.SampleRate);
+#else
+        Fail("Mixing the timeline needs Windows (Media Foundation); pass the mix with --audio file.wav");
+        return;
+#endif
+    }
+
+    var lastStep = "";
+    var lastPercent = -10;
+    var tracks = await EnhanceCapCut.Subtitles.SubtitlePipeline.RunAsync(audio,
+        new(source!, includeOriginal, targets, visible), (step, fraction) =>
+        {
+            var percent = (int)(fraction * 100);
+            if (step == lastStep && percent < lastPercent + 10) return;
+            if (step != lastStep) lastPercent = -10;
+            lastStep = step;
+            lastPercent = percent;
+            Console.WriteLine($"  {step} {percent}%");
+        });
+    foreach (var track in tracks)
+    {
+        Console.WriteLine($"{track.Language.Code}{(track.IsVisible ? " (shown)" : "")}: {track.Cues.Count} cues");
+        foreach (var cue in track.Cues.Take(3))
+            Console.WriteLine($"  {F2(cue.Start)}–{F2(cue.End)} " + cue.Text.Replace("\n", " / "));
+    }
+    if (srtFolder is not null)
+    {
+        foreach (var path in EnhanceCapCut.Subtitles.SubtitlePipeline.WriteSrt(tracks, Path.GetFullPath(srtFolder),
+                     pt.IsMain ? p.Name : $"{p.Name} {pt.Name}"))
+            Console.WriteLine($"Wrote {path}");
+    }
+    if (draftOut is not null)
+    {
+        File.WriteAllBytes(draftOut, DraftSubtitleWriter.Apply(tracks, File.ReadAllBytes(pt.DraftPath), replace));
+        Console.WriteLine($"Wrote {draftOut}");
+    }
+    else
+    {
+        var result = DraftSubtitleWriter.Write(tracks, p, pt, replace);
+        foreach (var file in result.Files) Console.WriteLine($"Updated {file}");
+        Console.WriteLine($"Backup: {result.BackupFolder}");
+    }
 }
 
 #if WINDOWS
