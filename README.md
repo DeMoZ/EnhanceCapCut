@@ -103,26 +103,39 @@ For scripting, the app accepts `open ~/Applications/EnhanceCapCut.app --args -pr
 Changing the aspect ratio re-lays out the canvas the way CapCut's ratio switch does: clips are fitted to the
 new canvas and positions stay relative to it, so texts placed near each other can overlap.
 
-## Subtitles
+## Subtitles and voice-over
 
 **Subtitles & Voice-over…** in the export window (or **Window ▸ Subtitles & Voice-over**, ⌘U) transcribes the
 speech of the selected timeline, translates it and adds the result **to the CapCut project itself** as
-caption tracks: open the project in CapCut and they are there, editable like CapCut's own auto-captions.
+caption tracks and/or voice-over audio tracks: open the project in CapCut and they are there, editable like
+CapCut's own auto-captions and voiceovers.
 Everything runs offline with Apple's on-device speech recognition and Translation (macOS 26 or later); the
 logic is the one of SubDub, the Final Cut Pro version.
 
 1. Close the project in CapCut (back to the home screen). CapCut overwrites a project that is open when it saves.
-2. Pick the spoken language, keep or drop the original-language subtitles, choose languages to translate into.
+2. Choose **Subtitles**, **Voice-over** or both. Pick the spoken language, keep or drop the original-language
+   subtitles, choose languages to translate into.
 3. Each language becomes its own caption track. Pick which one is **shown on screen**; the others are added
    hidden (show them with the track's eye button in CapCut).
-4. Click **Create**, then open the project in CapCut.
+4. For voice-over: pick a female or male voice for each translation (▶ previews it), which language is
+   **heard** (the other voice-over tracks are added muted: unmute them with the track's speaker button), and
+   what happens to the **original audio** while the voice speaks: keep, lower by 15 dB, or mute.
+5. Click **Create**, then open the project in CapCut.
 
 The style and position are copied from captions already in the timeline; otherwise CapCut's default caption
 look is used. Running again replaces the tracks added before (your own captions stay). The project file is
 backed up first to `~/Library/Application Support/EnhanceCapCut/Backups/<project>/<time>/`, and `.srt`
 files can be saved to the export folder too. The first time a language is used, macOS downloads its speech
-or translation model once. Voice-over (dubbing) comes later. On Windows the same is available from the command
-line for now (`ecc subtitles`, with Whisper and NLLB; see [windows/README.md](windows/README.md#subtitles)).
+or translation model once. On Windows subtitles are available from the command line for now (`ecc subtitles`,
+with Whisper and NLLB; see [windows/README.md](windows/README.md#subtitles)); voice-over is Mac only.
+
+Voice-over: each translated line is spoken by an on-device Apple voice and sped up just enough (at most 1.35×)
+to fit before the next line. The audio is saved inside the project folder (`EnhanceCapCut/voiceover <time>/`),
+each line becomes its own clip, so lines can be moved or trimmed in CapCut. The original sound is lowered with
+volume keyframes on its clips, adjustable in CapCut. Apple's default voices are compact; for better quality
+download *Enhanced* or *Premium* voices in System Settings ▸ Accessibility ▸ Read & Speak (the window's **Open**
+button). **Siri voices** are offered too when Xcode is installed: macOS lets only Apple-signed programs use them,
+so the app speaks them through Xcode's Swift interpreter (`Tools/SiriVoice/siri-voice.swift`).
 
 ## Command line
 
@@ -136,6 +149,8 @@ ecc render KohChangFisherman --timeline 2 # one of several timelines, by number 
 ecc render 1014 --from 10 --duration 5 --codec prores422 -o /tmp/test.mov
 ecc voice clip.mov -o voice.wav --keep-voice # audition the voice processing on one file
 ecc subtitles DurianDick --language ru-RU --translate en,th --show en --srt ~/Movies   # add captions to the project
+ecc subtitles DurianDick --language ru-RU --voice en,th --hear en --no-captions        # voice-over only
+ecc voices th                              # installed voices for a language, with their ids
 ```
 
 Options: `--codec h264|hevc|hevc10|prores422|prores422HQ`, `--quality 0-100`, `--bitrate Mbps`,
@@ -148,8 +163,10 @@ Voice filters are read from CapCut's own effect cache, so a filter renders only 
 downloaded it (i.e. it has been used or previewed in CapCut on this Mac).
 `ecc subtitles` takes `--language` (spoken, e.g. `ru-RU`), `--translate en,th`, `--no-original`, `--show <code>`
 (the visible track), `--keep-previous` (don't replace earlier tracks), `--srt <folder>` and `--draft out.json`
-(write the changed draft there instead of into the project). Translation languages must already be downloaded
-(the app's window can download them).
+(write the changed draft there instead of into the project), `--no-captions`, `--voice en,th` (voice-over
+languages; `th=<voice id>` picks a voice from `ecc voices`, Siri voices as `siri:<id>`), `--hear <code>` (the
+audible voice-over track) and `--original keep|lower|mute` (default `lower`). Translation languages must already
+be downloaded (the app's window can download them).
 
 ## Development
 

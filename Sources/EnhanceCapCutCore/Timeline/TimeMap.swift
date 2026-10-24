@@ -140,6 +140,23 @@ public struct KeyframeTrack: Equatable {
         return values[i - 1] + (values[i] - values[i - 1]) * f
     }
 
+    /// The same curve with every value multiplied by `factor`.
+    public func scaled(by factor: Double) -> KeyframeTrack {
+        KeyframeTrack(times: times, values: values.map { $0 * factor })
+    }
+
+    /// The curve as seen from a clip that starts `offset` later (or earlier, when negative).
+    public func shifted(by offset: Int64) -> KeyframeTrack {
+        KeyframeTrack(times: times.map { $0 - offset }, values: values)
+    }
+
+    /// `curve(u)` sampled every `step` over `0...length`, plus `length` itself.
+    public static func sampled(length: Int64, step: Int64, _ curve: (Int64) -> Double) -> KeyframeTrack {
+        var times = Array(stride(from: Int64(0), to: length, by: Int(max(step, 1))))
+        times.append(length)
+        return KeyframeTrack(times: times, values: times.map(curve))
+    }
+
     public init?(group: KeyframeGroup) {
         let frames = group.keyframes.filter { !$0.values.isEmpty }.sorted { $0.timeOffset < $1.timeOffset }
         guard !frames.isEmpty else { return nil }

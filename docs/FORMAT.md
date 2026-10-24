@@ -106,6 +106,28 @@ replace them, and writes the same bytes to every copy of the timeline's draft (t
 the main timeline and `template-2.tmp` next to each draft, which CapCut keeps identical); `draft_info.json.bak`
 is CapCut's previous save and is left alone.
 
+### Voice-over tracks (what EnhanceCapCut writes)
+
+A voice-over language is an `audio` track (`flag` 0, `attribute` 0 audible / 1 muted) named
+`EnhanceCapCut voice-over · <code>`, with one segment per spoken line, laid out like CapCut's own voiceover
+clips: `materials.audios[]` entry of `type` `record` (one per segment, all pointing at the language's single
+WAV that is aligned to the timeline, `duration` = the file's length), `source_timerange` = `target_timerange`
+(the line's place in the file and on the timeline), `clip` and `uniform_scale` null, `render_index` 0, and
+`extra_material_refs` to fresh `speeds`, `placeholder_infos`, `beats`, `sound_channel_mappings` and
+`vocal_separations` entries (CapCut's voiceovers also carry `audio_fades` / `vocal_beautifys`, not needed).
+The WAVs (48 kHz mono 16-bit) go to `<project>/EnhanceCapCut/voiceover <time>/<code>.wav`, written with the
+draft's `##_draftpath_placeholder_…##` prefix when the draft has one, so they move with the project.
+
+"Lower" / "Mute" original audio: a `KFTypeVolume` group in `common_keyframes` of every other audible
+`video`/`audio` segment that overlaps the speech, in the same shape as CapCut's other keyframes
+(`keyframe_list[{id, curveType "Line", time_offset, left/right_control, values, string_value, graphID}]`),
+with `time_offset` relative to the segment start in timeline time and `values` = linear volume
+(`segment.volume` × 0.178 for −15 dB, or 0, while the voice speaks; ramps 0.25 s down, 0.4 s up). The format
+of CapCut's own volume keyframes was not observed in the author's projects: this is our assumption, to be
+checked in CapCut. Segments that already have volume keyframes are skipped. Our group ids start with
+`ECC0D0CC-` so a later run can remove them. The renderer reads volume keyframes as a multiplier of
+`segment.volume` over the clip (`AudioClip.volumeEnvelope`), including on compound clips.
+
 ## Colour
 
 Calibrated against the author's CapCut exports (HEVC Main10, BT.709 tagged):

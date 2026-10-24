@@ -137,10 +137,11 @@ private struct Builder {
                         clips.append(AudioClip(url: audioURL, target: segment.targetTimerange, timeMap: timeMap,
                                                volume: segment.volume * gain, fadeIn: fade?.fadeIn ?? 0,
                                                fadeOut: fade?.fadeOut ?? 0, preservePitch: !segment.isToneModify,
-                                               voice: voice))
+                                               volumeEnvelope: volumeEnvelope(segment), voice: voice))
                     }
                     if !muted, !compoundAudio.isEmpty {
-                        clips += nestAudio(compoundAudio, in: segment, timeMap: timeMap, volume: segment.volume * gain, voice: voice)
+                        clips += nestAudio(compoundAudio, in: segment, timeMap: timeMap, volume: segment.volume * gain,
+                                           envelope: volumeEnvelope(segment), voice: voice)
                     }
 
                 case "audio":
@@ -151,7 +152,7 @@ private struct Builder {
                        let timeline = nestedTimeline(combo, depth: depth) {
                         // Audio detached from a compound clip.
                         clips += nestAudio(timeline.audioClips, in: segment, timeMap: timeMap, volume: segment.volume * gain,
-                                           voice: voice)
+                                           envelope: volumeEnvelope(segment), voice: voice)
                         continue
                     }
                     guard let audio = audios[segment.materialId] else { continue }
@@ -163,7 +164,7 @@ private struct Builder {
                     clips.append(AudioClip(url: url, target: segment.targetTimerange, timeMap: timeMap,
                                            volume: segment.volume * gain, fadeIn: fade?.fadeIn ?? 0,
                                            fadeOut: fade?.fadeOut ?? 0, preservePitch: !segment.isToneModify,
-                                           voice: voice))
+                                           volumeEnvelope: volumeEnvelope(segment), voice: voice))
 
                 case "text":
                     guard !track.isHidden, segment.visible, let text = texts[segment.materialId],
@@ -249,10 +250,18 @@ private struct Builder {
         return result
     }
 
+    /// `KFTypeVolume` keyframes hold the segment's volume over time; as a multiplier of `segment.volume`.
+    func volumeEnvelope(_ segment: Segment) -> KeyframeTrack? {
+        guard segment.volume > 0, let group = segment.keyframes.first(where: { $0.propertyType == LayerProperty.volume.rawValue }),
+              let track = KeyframeTrack(group: group) else { return nil }
+        return track.scaled(by: 1 / segment.volume)
+    }
+
     /// Re-times a compound clip's audio into the parent timeline, following the parent's speed and curve.
-    /// `voice` (the compound segment's own voice effects) overrides the nested clips' settings.
+    /// `envelope` (the compound segment's volume keyframes) and `voice` (its voice effects) apply on top
+    /// of the nested clips' own settings.
     func nestAudio(_ nested: [AudioClip], in segment: Segment, timeMap: TimeMap, volume: Double,
-                   voice: VoiceEffects = VoiceEffects()) -> [AudioClip] {
+                   envelope: KeyframeTrack? = nil, voice: VoiceEffects = VoiceEffects()) -> [AudioClip] {
         let windowStart = timeMap.sourceStart, windowEnd = timeMap.sourceStart + timeMap.sourceDuration
         var result: [AudioClip] = []
         for clip in nested {
@@ -272,6 +281,15 @@ private struct Builder {
                 }
             }
             copy.volume *= volume
+            if let inner = clip.volumeEnvelope {
+                // The nested curve follows the parent's speed: sample both every 50 ms.
+                copy.volumeEnvelope = .sampled(length: o1 - o0, step: 50_000) { u in
+                    let nestedTime = timeMap.sourceTime(atOffset: o0 + u)
+                    return inner.value(at: nestedTime - clip.target.start) * (envelope?.value(at: o0 + u) ?? 1)
+                }
+            } else {
+                copy.volumeEnvelope = envelope?.shifted(by: o0)
+            }
             if voice.separation != .none { copy.voice.separation = voice.separation }
             if let denoise = voice.denoise { copy.voice.denoise = denoise }
             if let enhance = voice.enhance { copy.voice.enhance = enhance }
@@ -313,7 +331,7 @@ private struct Builder {
         var names: Set<String> = []
         for group in segment.keyframes where !group.keyframes.isEmpty {
             let type = group.propertyType
-            if let property = LayerProperty(rawValue: type), property != .volume { continue }
+            if LayerProperty(rawValue: type) != nil { continue }
             if type.hasPrefix("KFTypeCommonMask") || type.hasPrefix("KFTypeMask") {
                 names.insert("mask animation")
             } else {

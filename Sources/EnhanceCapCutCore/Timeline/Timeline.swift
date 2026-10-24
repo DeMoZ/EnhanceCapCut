@@ -140,6 +140,8 @@ public struct AudioClip {
     public var fadeIn: Int64
     public var fadeOut: Int64
     public var preservePitch: Bool
+    /// Volume keyframes as a multiplier of `volume`, offsets from the clip start (nil = constant).
+    public var volumeEnvelope: KeyframeTrack? = nil
     /// "Isolate voice" / "Reduce noise" / "Enhance voice", applied to the source before the mix.
     public var voice = VoiceEffects()
 }

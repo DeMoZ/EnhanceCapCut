@@ -203,7 +203,7 @@ public class DraftParsingTests
             var found = timeline.Report.Unsupported.Select(i => $"{i.Category}: {i.Name}").ToHashSet();
             HashSet<string> expected =
             [
-                "Keyframes: mask animation", "Keyframes: Saturation", "Keyframes: Volume", "Playback: loop",
+                "Keyframes: mask animation", "Keyframes: Saturation", "Playback: loop",
                 "Stabilization: level 3", "Remove background: cutout mode 1", "Beauty / makeup: retouch",
                 "AI processing: QualityEnhance", "AI processing: super_resolution",
                 "Text: curved text (rendered straight)", "Text: multiple outlines (first one rendered)",

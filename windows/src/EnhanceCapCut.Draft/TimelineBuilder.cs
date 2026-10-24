@@ -160,10 +160,12 @@ public static class TimelineBuilder
                             if (!muted && audioPath is not null)
                             {
                                 clips.Add(new AudioClip(audioPath, segment.TargetTimerange, timeMap, segment.Volume * gain,
-                                    fade?.FadeIn ?? 0, fade?.FadeOut ?? 0, !segment.IsToneModify) { Voice = voice });
+                                    fade?.FadeIn ?? 0, fade?.FadeOut ?? 0, !segment.IsToneModify)
+                                    { Voice = voice, VolumeEnvelope = VolumeEnvelope(segment) });
                             }
                             if (!muted && compoundAudio.Count > 0)
-                                clips.AddRange(NestAudio(compoundAudio, segment, timeMap, segment.Volume * gain, voice));
+                                clips.AddRange(NestAudio(compoundAudio, segment, timeMap, segment.Volume * gain,
+                                    VolumeEnvelope(segment), voice));
                             break;
                         }
                         case "audio":
@@ -175,7 +177,8 @@ public static class TimelineBuilder
                                 && NestedTimeline(combo, depth) is { } nested)
                             {
                                 // Audio detached from a compound clip.
-                                clips.AddRange(NestAudio(nested.AudioClips, segment, timeMap, segment.Volume * gain, voice));
+                                clips.AddRange(NestAudio(nested.AudioClips, segment, timeMap, segment.Volume * gain,
+                                    VolumeEnvelope(segment), voice));
                                 continue;
                             }
                             if (audios.GetValueOrDefault(segment.MaterialId) is not { } audio) continue;
@@ -185,7 +188,8 @@ public static class TimelineBuilder
                                 continue;
                             }
                             clips.Add(new AudioClip(file, segment.TargetTimerange, timeMap, segment.Volume * gain,
-                                fade?.FadeIn ?? 0, fade?.FadeOut ?? 0, !segment.IsToneModify) { Voice = voice });
+                                fade?.FadeIn ?? 0, fade?.FadeOut ?? 0, !segment.IsToneModify)
+                                { Voice = voice, VolumeEnvelope = VolumeEnvelope(segment) });
                             break;
                         }
                         case "text":
@@ -274,12 +278,21 @@ public static class TimelineBuilder
             return result;
         }
 
+        /// <summary><c>KFTypeVolume</c> keyframes hold the segment's volume over time; as a multiplier of <c>segment.volume</c>.</summary>
+        static KeyframeTrack? VolumeEnvelope(Segment segment)
+        {
+            if (segment.Volume <= 0) return null;
+            var group = segment.Keyframes.FirstOrDefault(g => g.PropertyType == "KFTypeVolume");
+            return group is null ? null : KeyframeTrack.From(group)?.Scaled(1 / segment.Volume);
+        }
+
         /// <summary>
         /// Re-times a compound clip's audio into the parent timeline, following the parent's speed and curve.
-        /// <paramref name="voice"/> (the compound segment's own voice effects) overrides the nested clips' settings.
+        /// <paramref name="envelope"/> (the compound segment's volume keyframes) and <paramref name="voice"/> (its voice
+        /// effects) apply on top of the nested clips' own settings.
         /// </summary>
         static List<AudioClip> NestAudio(IReadOnlyList<AudioClip> nested, Segment segment, TimeMap timeMap, double volume,
-            VoiceEffects voice)
+            KeyframeTrack? envelope, VoiceEffects voice)
         {
             long windowStart = timeMap.SourceStart, windowEnd = timeMap.SourceStart + timeMap.SourceDuration;
             var result = new List<AudioClip>();
@@ -307,8 +320,20 @@ public static class TimelineBuilder
                 if (voice.Denoise is { } denoise) v = v with { Denoise = denoise };
                 if (voice.Enhance is { } enhance) v = v with { Enhance = enhance };
                 if (voice.Filter is { } filter) v = v with { Filter = filter };
+                KeyframeTrack? volumeEnvelope;
+                if (clip.VolumeEnvelope is { } inner)
+                {
+                    // The nested curve follows the parent's speed: sample both every 50 ms.
+                    volumeEnvelope = KeyframeTrack.Sampled(o1 - o0, 50_000, u =>
+                        inner.Value(timeMap.SourceTime(o0 + u) - clip.Target.Start) * (envelope?.Value(o0 + u) ?? 1));
+                }
+                else
+                {
+                    volumeEnvelope = envelope?.Shifted(o0);
+                }
                 result.Add(clip with
                 {
+                    VolumeEnvelope = volumeEnvelope,
                     Target = new TimeRange(segment.TargetTimerange.Start + o0, o1 - o0),
                     TimeMap = map,
                     Volume = clip.Volume * volume,
@@ -364,7 +389,7 @@ public static class TimelineBuilder
             foreach (var group in segment.Keyframes.Where(g => g.Keyframes.Count > 0))
             {
                 var type = group.PropertyType;
-                if (LayerProperties.FromType(type) is { } property && property != LayerProperty.Volume) continue;
+                if (LayerProperties.FromType(type) is not null) continue;
                 if (type.StartsWith("KFTypeCommonMask", StringComparison.Ordinal) || type.StartsWith("KFTypeMask", StringComparison.Ordinal))
                     names.Add("mask animation");
                 else

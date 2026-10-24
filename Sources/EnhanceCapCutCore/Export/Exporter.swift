@@ -247,6 +247,7 @@ public final class Exporter: @unchecked Sendable {
             var copy = clip
             copy.target = TimeRange(start: start - range.start, duration: end - start)
             copy.timeMap = clip.timeMap.slice(from: start - clip.target.start, to: end - clip.target.start)
+            copy.volumeEnvelope = clip.volumeEnvelope?.shifted(by: start - clip.target.start)
             if start != clip.target.start { copy.fadeIn = 0 }
             if end != clip.target.end { copy.fadeOut = 0 }
             clips.append(copy)

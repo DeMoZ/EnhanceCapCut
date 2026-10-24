@@ -43,6 +43,8 @@ mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp "$bin/EnhanceCapCut" "$app/Contents/MacOS/EnhanceCapCut"
 cp "$bin/ecc" "$app/Contents/MacOS/ecc"
 cp App/Info.plist "$app/Contents/Info.plist"
+# Siri voice helper, run by the app through Xcode's Swift interpreter.
+cp Tools/SiriVoice/siri-voice.swift "$app/Contents/Resources/"
 sign "$app/Contents/MacOS/ecc"
 sign "$app"
 echo "Built $root/$app ($version)"

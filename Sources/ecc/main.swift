@@ -10,8 +10,11 @@ import Foundation
 //   ecc voice <media> -o out.wav [--keep-voice | --remove-voice] [--denoise 0.85] [--enhance 75]
 //             [--filter <cached effect dir | resource id>] [--strength 1]
 //   ecc subtitles [project] [--timeline name|number] --language ru-RU [--translate en,th] [--no-original] [--show en]
-//                 [--keep-previous] [--srt folder] [--draft out.json]
-//                 (macOS 26+; writes into the project unless --draft is given; translation languages must be downloaded)
+//                 [--keep-previous] [--srt folder] [--draft out.json] [--no-captions]
+//                 [--voice en,th | en=<voice id>,th] [--hear th] [--original keep|lower|mute]
+//                 (macOS 26+; writes into the project unless --draft is given; translation languages must be downloaded;
+//                 --voice speaks these translations with system voices, `ecc voices <language>` lists them)
+//   ecc voices <language>
 
 func fail(_ message: String) -> Never {
     FileHandle.standardError.write((message + "\n").data(using: .utf8)!)
@@ -179,19 +182,45 @@ case "subtitles":
     let srtFolder = option("--srt")
     let draftOut = option("--draft")
     let timelineArg = option("--timeline")
+    // "en,th" or "en=<voice id>,th": voice-over languages, each with the best installed voice unless one is given.
+    var voices: [String: String] = [:]
+    for item in option("--voice")?.split(separator: ",") ?? [] {
+        let parts = item.split(separator: "=", maxSplits: 1).map(String.init)
+        voices[parts[0]] = parts.count > 1 ? parts[1] : ""
+    }
+    let hear = option("--hear")
+    let originalArg = option("--original") ?? "lower"
+    guard let original = OriginalAudio.allCases.first(where: { $0.rawValue.lowercased() == originalArg.lowercased() }) else {
+        fail("--original takes keep, lower or mute")
+    }
     let includeOriginal = !args.contains("--no-original")
     let replace = !args.contains("--keep-previous")
-    args.removeAll { $0 == "--no-original" || $0 == "--keep-previous" }
+    let captions = !args.contains("--no-captions")
+    args.removeAll { $0 == "--no-original" || $0 == "--keep-previous" || $0 == "--no-captions" }
     let p = project()
     let pt = timeline(timelineArg, of: p)
-    let timeline = try TimelineBuilder.build(project: p, timeline: pt)
-    let targets = targetCodes.map { SubtitleLanguage(Locale.Language(identifier: $0)) }
+    let timeline = try SubtitlePipeline.speechTimeline(project: p, timeline: pt)
+    let targets = (targetCodes + voices.keys.filter { !targetCodes.contains($0) }.sorted())
+        .map { SubtitleLanguage(Locale.Language(identifier: $0)) }
     let pipeline = SubtitlePipeline(translator: InstalledTranslationProvider())
+    var options = SubtitlePipeline.Options(sourceLocale: Locale(identifier: localeID), includeOriginal: includeOriginal,
+                                           targets: captions ? targets : targets.filter { voices[$0.code] != nil },
+                                           visibleLanguage: visible)
+    options.captions = captions
+    options.voices = voices
+    options.audibleVoice = hear
+    // A dry run (--draft) keeps the voice-over audio next to the draft it writes.
+    options.voiceOverFolder = draftOut.map {
+        URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath).deletingLastPathComponent()
+            .appendingPathComponent("voiceover", isDirectory: true)
+    } ?? SubtitlePipeline.voiceOverFolder(in: p)
     var lastStep = ""
-    let tracks = try await pipeline.run(timeline: timeline, options: .init(
-        sourceLocale: Locale(identifier: localeID), includeOriginal: includeOriginal, targets: targets,
-        visibleLanguage: visible)) { step, _ in
+    let output = try await pipeline.run(timeline: timeline, options: options) { step, _ in
         if step != lastStep { lastStep = step; print("  \(step)") }
+    }
+    let tracks = output.captions
+    for track in output.voiceOver {
+        print("voice-over \(track.language.code)\(track.isAudible ? " (audible)" : ""): \(track.lines.count) lines → \(track.url.path)")
     }
     for track in tracks {
         print("\(track.language.code)\(track.isVisible ? " (shown)" : ""): \(track.cues.count) cues")
@@ -205,15 +234,31 @@ case "subtitles":
         for url in urls { print("Wrote \(url.path)") }
     }
     if let draftOut {
-        let data = try DraftSubtitleWriter.apply(tracks, to: Data(contentsOf: pt.draftURL), replacePrevious: replace)
+        let data = try SubtitlePipeline.apply(output, to: Data(contentsOf: pt.draftURL), original: original,
+                                              replacePrevious: replace, projectURL: p.url)
         try data.write(to: URL(fileURLWithPath: (draftOut as NSString).expandingTildeInPath))
         print("Wrote \(draftOut)")
     } else {
-        let result = try DraftSubtitleWriter.write(tracks, project: p, timeline: pt, replacePrevious: replace)
+        let count = tracks.reduce(0) { $0 + $1.cues.count }
+        let result = try DraftSubtitleWriter.write(project: p, timeline: pt, cueCount: count) {
+            try SubtitlePipeline.apply(output, to: $0, original: original, replacePrevious: replace, projectURL: p.url)
+        }
         for url in result.files { print("Updated \(url.path)") }
         print("Backup: \(result.backupFolder.path)")
     }
 
+case "voices":
+    guard let code = args.first else { fail("usage: ecc voices <language code>") }
+    for voice in Dubber.voices(for: code) {
+        print("\(voice.label)  [\(voice.gender?.rawValue ?? "-")]  \(voice.id)")
+    }
+    if SiriVoices.isAvailable {
+        let wanted = Locale.Language(identifier: code).languageCode
+        for voice in await SiriVoices.list() where Locale.Language(identifier: voice.language).languageCode == wanted {
+            print("\(voice.label)  [\(voice.gender?.rawValue ?? "-")]  \(voice.id)")
+        }
+    }
+
 default:
-    print("usage: ecc list | info [project] | render [project] [options] | voice <media> -o out.wav [options] | subtitles [project] --language ru-RU [options]")
+    print("usage: ecc list | info [project] | render [project] [options] | voice <media> -o out.wav [options] | subtitles [project] --language ru-RU [options] | voices <language>")
 }

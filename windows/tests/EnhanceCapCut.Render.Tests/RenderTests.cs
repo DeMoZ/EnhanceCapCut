@@ -76,6 +76,21 @@ public class AudioTests
     }
 
     [Fact]
+    public void VolumeKeyframesShapeTheClip()
+    {
+        // Full level for 1 s, a 0.1 s ramp down to a quarter, back up at 2 s (like voice-over ducking).
+        var clip = new AudioClip("a", new TimeRange(0, 3_000_000), new TimeMap(0, 3_000_000, 3_000_000), 1, 0, 0, true)
+        {
+            VolumeEnvelope = new KeyframeTrack([900_000, 1_000_000, 2_000_000, 2_100_000], [1, 0.25, 0.25, 1]),
+        };
+        var mix = AudioMixer.Mix(With(clip), new FakeDecoder(Signal.Sine(440, 3)), []);
+        var full = 0.5 / Math.Sqrt(2);
+        Assert.InRange(Signal.Rms(mix, 9_600, 38_400), full - 0.01, full + 0.01);
+        Assert.InRange(Signal.Rms(mix, 57_600, 86_400), full / 4 - 0.01, full / 4 + 0.01);
+        Assert.InRange(Signal.Rms(mix, 105_600, 134_400), full - 0.01, full + 0.01);
+    }
+
+    [Fact]
     public void PitchToggleResamplesAndOtherwiseKeepsThePitch()
     {
         // 2 s of source played in 1 s.

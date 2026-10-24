@@ -75,15 +75,21 @@ enum AudioRenderer {
             let v = Float(clip.volume / gain)
             let start = clip.target.start, end = clip.target.end
             let fadeIn = min(clip.fadeIn, clip.target.duration / 2), fadeOut = min(clip.fadeOut, clip.target.duration / 2)
-            // Explicit ramps covering the clip from start to end pin the level (fade in, hold, fade out).
-            func ramp(_ from: Float, _ to: Float, _ t0: Int64, _ t1: Int64) {
-                guard t1 > t0 else { return }
-                params.setVolumeRamp(fromStartVolume: from, toEndVolume: to,
+            // Explicit ramps covering the clip from start to end pin the level (fade in, hold, fade out),
+            // with a break at every volume keyframe.
+            func level(_ t: Int64) -> Float {
+                var g = v * Float(clip.volumeEnvelope?.value(at: t - start) ?? 1)
+                if t < start + fadeIn { g *= Float(t - start) / Float(fadeIn) }
+                if t > end - fadeOut { g *= Float(end - t) / Float(fadeOut) }
+                return g
+            }
+            var breaks = [start, start + fadeIn, end - fadeOut, end]
+            breaks += (clip.volumeEnvelope?.times ?? []).map { start + $0 }.filter { $0 > start && $0 < end }
+            breaks = Array(Set(breaks)).sorted()
+            for (t0, t1) in zip(breaks, breaks.dropFirst()) where t1 > t0 {
+                params.setVolumeRamp(fromStartVolume: level(t0), toEndVolume: level(t1),
                                      timeRange: CMTimeRange(start: us(t0), end: us(t1)))
             }
-            ramp(0, v, start, start + fadeIn)
-            ramp(v, v, start + fadeIn, end - fadeOut)
-            ramp(v, 0, end - fadeOut, end)
             tracks.append(track)
             inputs.append(params)
         }
