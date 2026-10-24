@@ -54,7 +54,8 @@ Usage counts from the author's 69 projects drive the order of the later mileston
 - [x] Written into the draft as CapCut caption tracks (one per language, one visible), edited in place so the
       rest of the draft stays byte-for-byte; backup first; refuses while the project is open in CapCut.
 - [ ] Voice-over (dub): translated lines spoken by system voices, added as audio tracks.
-- [ ] Windows version.
+- [x] Windows: `ecc subtitles` with Whisper (whisper.cpp) and NLLB-200 (ONNX Runtime), models downloaded on first
+      use; same segmentation and draft writing as the Mac (ported). The window comes with the WinUI app.
 
 ## Milestone 2 — LUT filters
 

@@ -3,6 +3,7 @@
     <Project Path="src/ecc/ecc.csproj" />
     <Project Path="src/EnhanceCapCut.Draft/EnhanceCapCut.Draft.csproj" />
     <Project Path="src/EnhanceCapCut.Render/EnhanceCapCut.Render.csproj" />
+    <Project Path="src/EnhanceCapCut.Subtitles/EnhanceCapCut.Subtitles.csproj" />
     <Project Path="src/EnhanceCapCut.Windows/EnhanceCapCut.Windows.csproj" />
   </Folder>
   <Folder Name="/tests/">

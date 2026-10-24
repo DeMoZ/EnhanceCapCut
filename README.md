@@ -115,7 +115,8 @@ The style and position are copied from captions already in the timeline; otherwi
 look is used. Running again replaces the tracks added before (your own captions stay). The project file is
 backed up first to `~/Library/Application Support/EnhanceCapCut/Backups/<project>/<time>/`, and `.srt`
 files can be saved to the export folder too. The first time a language is used, macOS downloads its speech
-or translation model once. Voice-over (dubbing) comes later.
+or translation model once. Voice-over (dubbing) comes later. On Windows the same is available from the command
+line for now (`ecc subtitles`, with Whisper and NLLB; see [windows/README.md](windows/README.md#subtitles)).
 
 ## Command line
 

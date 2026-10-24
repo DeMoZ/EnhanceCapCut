@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- net10.0: list/info on any OS (used to compare with the Swift CLI on macOS).
-       net10.0-windows: adds `render` (Media Foundation, Direct2D, DirectWrite). -->
+  <!-- net10.0: list/info on any OS (used to compare with the Swift CLI on macOS), subtitles from a WAV mix.
+       net10.0-windows: adds `render` (Media Foundation, Direct2D, DirectWrite) and subtitles from the timeline. -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net10.0;net10.0-windows</TargetFrameworks>
@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EnhanceCapCut.Draft\EnhanceCapCut.Draft.csproj" />
+    <ProjectReference Include="..\EnhanceCapCut.Subtitles\EnhanceCapCut.Subtitles.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-windows'">
