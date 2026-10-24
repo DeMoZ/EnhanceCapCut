@@ -45,12 +45,18 @@ scripts/build-app.sh --pkg
 ```
 
 Builds a universal (Apple Silicon + Intel) app and `build/EnhanceCapCut-<version>.pkg`, which installs
-into `/Applications` and refreshes the Services menu. Bump `CFBundleShortVersionString` and
-`CFBundleVersion` in `App/Info.plist` first, then attach the `.pkg` to a GitHub release:
+into `/Applications` and refreshes the Services menu.
+
+Releases are built by GitHub Actions (`.github/workflows/release.yml`) for both platforms: bump
+`CFBundleShortVersionString` and `CFBundleVersion` in `App/Info.plist` (the version of the Windows build too),
+put the release notes in `docs/releases/v<version>.md`, merge, then push a tag:
 
 ```sh
-gh release create v0.1.0 build/EnhanceCapCut-0.1.0.pkg --title "EnhanceCapCut 0.1.0" --notes-file notes.md
+git tag v0.3.0 origin/main && git push origin v0.3.0
 ```
+
+The workflow builds the macOS `.pkg` and the Windows `EnhanceCapCut-<version>-windows-x64.zip` (self-contained
+`ecc.exe`) and publishes the release with both. CI builds are unsigned.
 
 Signed and notarized installer (requires an Apple Developer ID):
 

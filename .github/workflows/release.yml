@@ -1,0 +1,73 @@
+# Builds both versions and publishes a GitHub release when a version tag is pushed:
+#   git tag v0.3.0 && git push origin v0.3.0
+# The tag must match CFBundleShortVersionString in App/Info.plist (the version of both platforms).
+# Release notes come from docs/releases/<tag>.md, or are generated from the merged PRs.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  macos:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Check the version
+        run: |
+          version=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" App/Info.plist)
+          [[ "v$version" == "$GITHUB_REF_NAME" ]] || { echo "::error::Tag $GITHUB_REF_NAME doesn't match App/Info.plist ($version)"; exit 1; }
+      - name: Build the installer
+        run: scripts/build-app.sh --pkg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: build/EnhanceCapCut-*.pkg
+          if-no-files-found: error
+
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-dotnet@v6.0.0
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet test windows/EnhanceCapCut.slnx -c Release
+      - name: Build ecc.exe
+        run: |
+          version=${GITHUB_REF_NAME#v}
+          out=build/EnhanceCapCut-$version-windows-x64
+          dotnet publish windows/src/ecc -f net10.0-windows -r win-x64 --self-contained -c Release -o "$out"
+          # Whisper.net ships native libraries for every platform: keep Windows x64 (CPU and Vulkan).
+          find "$out/runtimes" -mindepth 1 -maxdepth 1 ! -name win-x64 ! -name vulkan -exec rm -rf {} +
+          find "$out/runtimes/vulkan" -mindepth 1 -maxdepth 1 ! -name win-x64 -exec rm -rf {} +
+          rm -f "$out"/*.pdb "$out"/*.lib "$out"/*.metal
+          cd build && 7z a -tzip "EnhanceCapCut-$version-windows-x64.zip" "EnhanceCapCut-$version-windows-x64" > /dev/null
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: build/EnhanceCapCut-*-windows-x64.zip
+          if-no-files-found: error
+
+  release:
+    needs: [macos, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes=docs/releases/$GITHUB_REF_NAME.md
+          if [[ -f "$notes" ]]; then args=(--notes-file "$notes"); else args=(--generate-notes); fi
+          gh release create "$GITHUB_REF_NAME" dist/* --title "EnhanceCapCut ${GITHUB_REF_NAME#v}" "${args[@]}"
