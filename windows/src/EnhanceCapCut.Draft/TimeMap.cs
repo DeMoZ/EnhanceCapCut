@@ -152,6 +152,21 @@ public sealed class KeyframeTrack(IReadOnlyList<long> times, IReadOnlyList<doubl
         return Values[i - 1] + (Values[i] - Values[i - 1]) * f;
     }
 
+    /// <summary>The same curve with every value multiplied by <paramref name="factor"/>.</summary>
+    public KeyframeTrack Scaled(double factor) => new(Times, Values.Select(v => v * factor).ToList());
+
+    /// <summary>The curve as seen from a clip that starts <paramref name="offset"/> later (or earlier, when negative).</summary>
+    public KeyframeTrack Shifted(long offset) => new(Times.Select(t => t - offset).ToList(), Values);
+
+    /// <summary><paramref name="curve"/> sampled every <paramref name="step"/> over 0…<paramref name="length"/>, plus the length itself.</summary>
+    public static KeyframeTrack Sampled(long length, long step, Func<long, double> curve)
+    {
+        var times = new List<long>();
+        for (long t = 0; t < length; t += Math.Max(step, 1)) times.Add(t);
+        times.Add(length);
+        return new KeyframeTrack(times, times.Select(curve).ToList());
+    }
+
     public static KeyframeTrack? From(KeyframeGroup group)
     {
         var frames = group.Keyframes.Where(k => k.Values.Count > 0).OrderBy(k => k.TimeOffset).ToList();

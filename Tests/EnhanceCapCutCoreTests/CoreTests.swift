@@ -179,7 +179,7 @@ final class DraftParsingTests: XCTestCase {
         let timeline = TimelineBuilder.build(draft: draft, projectURL: URL(fileURLWithPath: "/tmp"))
         let found = Set(timeline.report.unsupported.map { "\($0.category): \($0.name)" })
         let expected: Set<String> = [
-            "Keyframes: mask animation", "Keyframes: Saturation", "Keyframes: Volume", "Playback: loop",
+            "Keyframes: mask animation", "Keyframes: Saturation", "Playback: loop",
             "Stabilization: level 3", "Remove background: cutout mode 1", "Beauty / makeup: retouch",
             "AI processing: QualityEnhance", "AI processing: super_resolution",
             "Text: curved text (rendered straight)", "Text: multiple outlines (first one rendered)",

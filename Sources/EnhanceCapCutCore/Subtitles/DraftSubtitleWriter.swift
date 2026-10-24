@@ -82,10 +82,18 @@ public enum DraftSubtitleWriter {
     /// rewritten; their previous contents go to `backupRoot` first.
     public static func write(_ tracks: [SubtitleTrack], project: CapCutProject, timeline: ProjectTimeline,
                              replacePrevious: Bool) throws -> Result {
+        try write(project: project, timeline: timeline, cueCount: tracks.reduce(0) { $0 + $1.cues.count }) {
+            try apply(tracks, to: $0, replacePrevious: replacePrevious)
+        }
+    }
+
+    /// Rewrites the timeline's draft (and its copies, see above) with `transform`, after a backup.
+    public static func write(project: CapCutProject, timeline: ProjectTimeline, cueCount: Int,
+                             transform: (Data) throws -> Data) throws -> Result {
         if isOpenInCapCut(project) { throw DraftSubtitleError.projectOpen(project.name) }
         let fm = FileManager.default
         let original = try Data(contentsOf: timeline.draftURL)
-        let updated = try apply(tracks, to: original, replacePrevious: replacePrevious)
+        let updated = try transform(original)
 
         // Copies of this draft: identical files next to it and, for the main timeline, the root draft.
         var candidates = [timeline.draftURL, timeline.draftURL.deletingLastPathComponent().appendingPathComponent("template-2.tmp")]
@@ -108,7 +116,7 @@ public enum DraftSubtitleWriter {
             try fm.copyItem(at: url, to: dest)
         }
         for url in files { try updated.write(to: url, options: .atomic) }
-        return Result(files: files, backupFolder: backup, cueCount: tracks.reduce(0) { $0 + $1.cues.count })
+        return Result(files: files, backupFolder: backup, cueCount: cueCount)
     }
 
     /// Returns the draft with `tracks` appended as caption tracks. With `replacePrevious`, tracks from

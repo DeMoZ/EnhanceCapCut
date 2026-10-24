@@ -47,6 +47,7 @@ public static class AudioMixer
             {
                 Target = new TimeRange(start - range.Start, end - start),
                 TimeMap = clip.TimeMap.Slice(start - clip.Target.Start, end - clip.Target.Start),
+                VolumeEnvelope = clip.VolumeEnvelope?.Shifted(start - clip.Target.Start),
                 FadeIn = start != clip.Target.Start ? 0 : clip.FadeIn,
                 FadeOut = end != clip.Target.End ? 0 : clip.FadeOut,
             });
@@ -97,12 +98,13 @@ public static class AudioMixer
         if (speedChanges && clip.PreservePitch) TimeStretch.Render(audio.Samples, SourceFrame, rendered);
         else Resample(audio.Samples, SourceFrame, rendered);
 
-        // Volume with linear fade ramps (each at most half the clip, like the macOS mix).
+        // Volume with linear fade ramps (each at most half the clip, like the macOS mix) and volume keyframes.
         var fadeIn = Frames(Math.Min(clip.FadeIn, clip.Target.Duration / 2));
         var fadeOut = Frames(Math.Min(clip.FadeOut, clip.Target.Duration / 2));
         for (long j = 0; j < count; j++)
         {
             var g = clip.Volume;
+            if (clip.VolumeEnvelope is { } envelope) g *= envelope.Value((long)Math.Round(j * 1_000_000.0 / SampleRate));
             if (j < fadeIn) g *= (double)j / fadeIn;
             if (j >= count - fadeOut) g *= (double)(count - j) / fadeOut;
             var o = (start + j) * 2;

@@ -2,7 +2,7 @@ import EnhanceCapCutCore
 import SwiftUI
 
 /// The "Subtitles & Voice-over" window: transcribes the timeline, translates it and adds the result
-/// to the CapCut project as caption tracks.
+/// to the CapCut project as caption tracks and as voice-over audio tracks spoken by system voices.
 @available(macOS 26, *)
 struct SubtitlesView: View {
     @ObservedObject var model: SubtitlesModel
@@ -19,6 +19,7 @@ struct SubtitlesView: View {
                 projectSection
                 createSection
                 languagesSection
+                if !model.dubLanguages.isEmpty { voiceSection }
                 downloadSection
                 optionsSection
             }
@@ -65,7 +66,7 @@ struct SubtitlesView: View {
             }
             if model.projectIsOpen {
                 Label("This project is open in CapCut. Close it (back to CapCut's home screen) before creating "
-                    + "subtitles, and open it again afterwards — otherwise CapCut overwrites them when it saves.",
+                    + "subtitles or voice-over, and open it again afterwards — otherwise CapCut overwrites them when it saves.",
                       systemImage: "exclamationmark.triangle.fill")
                     .font(.callout).foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
@@ -80,10 +81,8 @@ struct SubtitlesView: View {
     private var createSection: some View {
         Section {
             HStack(spacing: 8) {
-                OutputToggle(title: "Subtitles", systemImage: "captions.bubble", isOn: .constant(true))
-                OutputToggle(title: "Voice-over", systemImage: "waveform", isOn: .constant(false))
-                    .disabled(true)
-                    .help("Coming soon")
+                OutputToggle(title: "Subtitles", systemImage: "captions.bubble", isOn: $model.makeCaptions)
+                OutputToggle(title: "Voice-over", systemImage: "waveform", isOn: $model.makeDub)
             }
             Picker("Spoken language", selection: $model.sourceLocaleID) {
                 ForEach(model.sourceLocales, id: \.self) { locale in
@@ -93,15 +92,17 @@ struct SubtitlesView: View {
         } header: {
             Text("Create")
         } footer: {
-            Text("Speech recognition and translation run on this Mac (Apple's on-device models). "
-                + "Voice-over is coming later.")
+            Text("Speech recognition, translation and voices run on this Mac (Apple's on-device models). "
+                + "Voice-over speaks every translation.")
                 .font(.caption).foregroundStyle(.secondary)
         }
     }
 
     private var languagesSection: some View {
         Section("Languages") {
-            Toggle("Original subtitles (\(model.sourceLanguage.displayName))", isOn: $model.includeOriginal)
+            if model.makeCaptions {
+                Toggle("Original subtitles (\(model.sourceLanguage.displayName))", isOn: $model.includeOriginal)
+            }
             VStack(alignment: .leading, spacing: 6) {
                 Text("Translate to:").font(.callout).foregroundStyle(.secondary)
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 6)], alignment: .leading, spacing: 6) {
@@ -119,6 +120,94 @@ struct SubtitlesView: View {
                 }
                 .help("Each language becomes its own caption track. The others are added hidden: "
                     + "show them with the track's eye button in CapCut.")
+            }
+        }
+    }
+
+    private var voiceSection: some View {
+        Section {
+            Picker("Voice", selection: $model.voiceGender) {
+                ForEach(VoiceGender.allCases) { Text($0.rawValue).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            ForEach(model.dubLanguages) { lang in
+                voiceRow(lang)
+            }
+            if model.dubLanguages.count > 1 {
+                Picker("Heard", selection: Binding(get: { model.effectiveAudibleVoice ?? "" },
+                                                   set: { model.audibleVoice = $0 })) {
+                    ForEach(model.dubLanguages) { Text($0.displayName).tag($0.code) }
+                }
+                .help("Each language becomes its own audio track. The others are added muted: "
+                    + "unmute them with the track's speaker button in CapCut.")
+            }
+            Picker("Original audio", selection: $model.originalAudio) {
+                ForEach(OriginalAudio.allCases) { Text($0.rawValue).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .help("While the voice-over speaks: leave the project's own sound as it is, lower it by 15 dB, or silence it. "
+                + "Done with volume keyframes on the clips, which you can adjust in CapCut.")
+        } header: {
+            HStack {
+                Text("Voice-over")
+                if model.siriLoading {
+                    ProgressView().controlSize(.mini)
+                    Text("Loading Siri voices…").font(.caption).foregroundStyle(.secondary)
+                }
+            }
+        } footer: {
+            HStack(spacing: 4) {
+                Text(model.siriPossible ? "Better voices: Enhanced, Premium and Siri voices in Read & Speak settings."
+                    : "Better voices: Enhanced and Premium in Read & Speak settings. Siri voices appear here when Xcode is installed.")
+                    .font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button("Open") { SubtitlesModel.openVoiceSettings() }.buttonStyle(.link).font(.caption)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func voiceRow(_ lang: SubtitleLanguage) -> some View {
+        let voices = model.pickerVoices(for: lang)
+        HStack(spacing: 6) {
+            if voices.isEmpty {
+                LabeledContent(lang.displayName) {
+                    Text("No voice installed").foregroundStyle(.orange)
+                }
+                Button("Get Voices…") { model.getVoices(for: lang) }.controlSize(.small)
+            } else {
+                Picker(lang.displayName, selection: Binding(get: { model.voiceID(for: lang) },
+                                                            set: { model.setVoice($0, for: lang) })) {
+                    ForEach(voices) { v in
+                        // When the chosen gender isn't available, say which gender this voice is.
+                        Text(model.lacksGender(lang) ? "\(v.label) · \(v.gender?.rawValue.lowercased() ?? "voice")" : v.label)
+                            .tag(v.id)
+                    }
+                }
+                if model.previewing == lang.code {
+                    ProgressView().controlSize(.small).help("Preparing Siri preview…")
+                } else {
+                    Button { model.preview(lang) } label: { Image(systemName: "speaker.wave.2.fill") }
+                        .buttonStyle(.borderless)
+                        .help("Preview voice")
+                }
+            }
+        }
+        if model.lacksGender(lang) {
+            let other = voices.first.flatMap(\.gender)?.rawValue.lowercased() ?? "another"
+            VStack(alignment: .leading, spacing: 2) {
+                Text("No \(model.voiceGender.rawValue.lowercased()) \(lang.displayName) voice is installed — the \(other) voice will speak.")
+                    .font(.caption).foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+                if model.voiceHelpLanguage == lang.code {
+                    Text("Check System Settings ▸ Accessibility ▸ Read & Speak: set System speech language to \(lang.displayName) "
+                        + "and look in the System voice menu for a \(model.voiceGender.rawValue.lowercased()) name. Many languages have none.")
+                        .font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Button("Look for more voices…") { model.getVoices(for: lang) }
+                        .buttonStyle(.link).font(.caption)
+                }
             }
         }
     }
@@ -159,9 +248,12 @@ struct SubtitlesView: View {
 
     private var optionsSection: some View {
         Section {
-            Toggle("Replace subtitles added here before", isOn: $model.replacePrevious)
-                .help("Removes the caption tracks an earlier run added to this timeline. Your own captions stay.")
-            Toggle("Also save .srt files to the export folder", isOn: $model.saveSRT)
+            Toggle("Replace what was added here before", isOn: $model.replacePrevious)
+                .help("Removes the caption and voice-over tracks an earlier run added to this timeline (only the kinds "
+                    + "created now), and its volume changes. Your own tracks stay.")
+            if model.makeCaptions {
+                Toggle("Also save .srt files to the export folder", isOn: $model.saveSRT)
+            }
         } header: {
             Text("Options")
         } footer: {
@@ -184,16 +276,15 @@ struct SubtitlesView: View {
                     Button("Cancel") { model.cancel() }
                 }
             }
-        case let .done(result, project, languages, srt):
+        case let .done(result, summary, srt):
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                    Text("Added \(result.cueCount) captions (\(languages.joined(separator: ", "))) to \(project)")
-                        .lineLimit(2)
+                    Text(summary).lineLimit(2)
                     Spacer()
                     createButton
                 }
-                Text("Open the project in CapCut to see them.").font(.caption).foregroundStyle(.secondary)
+                Text("Open the project in CapCut to see the result.").font(.caption).foregroundStyle(.secondary)
                 HStack {
                     Button("Show Backup") { model.reveal(result.backupFolder) }
                     if let first = srt.first { Button("Show .srt Files") { model.reveal(first) } }
@@ -222,8 +313,12 @@ struct SubtitlesView: View {
     }
 
     private var createTitle: String {
-        let codes = model.outputLanguages.map(\.code)
-        return codes.isEmpty ? "Choose a Language" : "Create Subtitles (\(codes.joined(separator: ", ")))"
+        if !model.makeCaptions && !model.makeDub { return "Choose Subtitles or Voice-over" }
+        let what = [model.makeCaptions ? "Subtitles" : nil, model.makeDub ? "Voice-over" : nil].compactMap { $0 }
+        let codes = (model.outputLanguages + model.dubLanguages).map(\.code)
+            .reduce(into: [String]()) { if !$0.contains($1) { $0.append($1) } }
+        if codes.isEmpty || (model.makeDub && model.dubLanguages.isEmpty && !model.makeCaptions) { return "Choose a Language" }
+        return "Create \(what.joined(separator: " & ")) (\(codes.joined(separator: ", ")))"
     }
 
     static func localeName(_ locale: Locale) -> String {

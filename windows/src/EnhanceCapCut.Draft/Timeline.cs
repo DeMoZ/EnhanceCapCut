@@ -101,6 +101,8 @@ public sealed record AudioClip(string Path, TimeRange Target, TimeMap TimeMap, d
 {
     /// <summary>"Isolate voice" / "Reduce noise" / "Enhance voice", applied to the source before the mix.</summary>
     public VoiceEffects Voice { get; init; } = new();
+    /// <summary>Volume keyframes as a multiplier of <see cref="Volume"/>, offsets from the clip start (null = constant).</summary>
+    public KeyframeTrack? VolumeEnvelope { get; init; }
 }
 
 /// <summary>CapCut's per-clip voice processing.</summary>
