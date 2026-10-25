@@ -78,13 +78,25 @@ static class Text
         VerticalAlignment = VerticalAlignment.Center,
     };
 
-    /// <summary>Icon and text side by side, like SwiftUI's <c>Label</c>.</summary>
-    public static StackPanel Label(string glyph, TextBlock text, Brush? iconColor = null)
+    /// <summary>Icon and text side by side, like SwiftUI's <c>Label</c>; the text wraps or trims in the width left.</summary>
+    public static Grid Label(string glyph, TextBlock text, Brush? iconColor = null)
     {
         var icon = Theme.Icon(glyph, 14, iconColor ?? text.Foreground);
         icon.VerticalAlignment = VerticalAlignment.Top;
         icon.Margin = new Thickness(0, 3, 0, 0);
-        return new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { icon, text } };
+        return IconAndText(icon, text, 6);
+    }
+
+    /// <summary>An icon column and a text column that takes the rest of the width.</summary>
+    public static Grid IconAndText(FrameworkElement icon, FrameworkElement text, double spacing)
+    {
+        var grid = new Grid { ColumnSpacing = spacing };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        Grid.SetColumn(text, 1);
+        grid.Children.Add(icon);
+        grid.Children.Add(text);
+        return grid;
     }
 }
 
@@ -327,7 +339,8 @@ sealed class Picker<T> : ComboBox
 /// <summary>A switch with no text of its own (SwiftUI's <c>Toggle</c> in a grouped form: the label is the row's).</summary>
 sealed class Switch : UserControl
 {
-    readonly ToggleSwitch toggle = new() { OnContent = "", OffContent = "", MinWidth = 0 };
+    // The template keeps a gap for the On/Off text after the knob: pulled back so the knob lines up with the other controls.
+    readonly ToggleSwitch toggle = new() { OnContent = "", OffContent = "", MinWidth = 0, Margin = new Thickness(0, 0, -12, 0) };
     bool updating;
     public event Action<bool>? Switched;
 
@@ -410,8 +423,15 @@ sealed class Chip : UserControl
         Content = box;
         var texts = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
         texts.Children.Add(Text.Line(title, 13));
-        if (subtitle is not null) texts.Children.Add(new TextBlock { Text = subtitle, FontSize = 10, Foreground = Theme.Secondary, TextTrimming = TextTrimming.CharacterEllipsis });
-        box.Child = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { icon, texts } };
+        if (subtitle is not null)
+        {
+            texts.Children.Add(new TextBlock
+            {
+                Text = subtitle, FontSize = 10, Foreground = Theme.Secondary, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap,
+            });
+        }
+        icon.VerticalAlignment = VerticalAlignment.Center;
+        box.Child = Text.IconAndText(icon, texts, 6);
         ToolTipService.SetToolTip(this, tooltip);
         Tapped += (_, _) => { if (Segmented<int>.IsEnabledInTree(this)) toggle(); };
         PointerEntered += (_, _) => Opacity = 0.85;
