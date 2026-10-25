@@ -9,9 +9,12 @@ using EnhanceCapCut.Draft;
 //              [--fps N] [--aspect project|9:16|1:1|16:9] [--height N] [--lufs -14] [--no-subtitles]
 //              [--from s] [--duration s]                                            (Windows only)
 //   ecc subtitles [project] [--timeline name|number] --language ru-RU [--translate en,th] [--no-original] [--show en]
-//                 [--keep-previous] [--srt folder] [--draft out.json] [--audio mix.wav]
+//                 [--keep-previous] [--srt folder] [--draft out.json] [--audio mix.wav] [--no-captions]
+//                 [--voice en,th | en=<voice id>,th] [--hear th] [--original keep|lower|mute]
 //                 (writes into the project unless --draft is given; models are downloaded on first use;
-//                  the timeline's audio is mixed on Windows, elsewhere pass --audio)
+//                  the timeline's audio is mixed on Windows, elsewhere pass --audio;
+//                  --voice speaks these translations with Windows voices (Windows only), `ecc voices <language>` lists them)
+//   ecc voices <language>                                                           (Windows only)
 
 var rest = new List<string>(args);
 var command = rest.Count == 0 ? "help" : rest[0];
@@ -142,8 +145,18 @@ switch (command)
         await Subtitles();
         break;
 
+    case "voices":
+#if WINDOWS
+        if (rest.Count == 0) Fail("usage: ecc voices <language code>");
+        foreach (var voice in new EnhanceCapCut.Windows.WindowsVoices().Voices(SubtitleLanguage.Find(rest[0])?.Code ?? rest[0]))
+            Console.WriteLine($"{voice.Label}  [{voice.Gender?.ToString() ?? "-"}]  {voice.Id}");
+#else
+        Fail("ecc voices runs on Windows (Windows.Media.SpeechSynthesis)");
+#endif
+        break;
+
     default:
-        Console.WriteLine("usage: ecc list | info [project] [--timeline name|number] | render [project] [options] | subtitles [project] --language ru-RU [options]");
+        Console.WriteLine("usage: ecc list | info [project] [--timeline name|number] | render [project] [options] | subtitles [project] --language ru-RU [options] | voices <language>");
         break;
 }
 
@@ -153,13 +166,18 @@ async Task Subtitles()
     if (languageArg is null) Fail("pass the spoken language: --language ru-RU");
     var source = SubtitleLanguage.Find(languageArg!);
     if (source is null) Fail($"Unsupported language {languageArg}: " + string.Join(", ", SubtitleLanguage.All.Select(l => l.Code)));
-    var targets = new List<SubtitleLanguage>();
-    foreach (var code in (Option("--translate") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries))
+    SubtitleLanguage Language(string code) => SubtitleLanguage.Find(code) ?? throw new ArgumentException($"Unsupported language {code}");
+    var targets = (Option("--translate") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries).Select(Language).ToList();
+    // "en,th" or "en=<voice id>,th": voice-over languages, each with the best installed voice unless one is given.
+    var voices = new Dictionary<string, string>();
+    foreach (var item in (Option("--voice") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries))
     {
-        var target = SubtitleLanguage.Find(code);
-        if (target is null) Fail($"Unsupported language {code}");
-        targets.Add(target!);
+        var parts = item.Split('=', 2);
+        voices[Language(parts[0]).Code] = parts.Length > 1 ? parts[1] : "";
     }
+    var hear = Option("--hear") is { } h ? Language(h).Code : null;
+    var originalArg = Option("--original") ?? "lower";
+    if (!Enum.TryParse<OriginalAudio>(originalArg, ignoreCase: true, out var original)) Fail("--original takes keep, lower or mute");
     var visible = Option("--show") is { } show ? SubtitleLanguage.Find(show)?.Code ?? show : null;
     var srtFolder = Option("--srt");
     var draftOut = Option("--draft");
@@ -167,9 +185,12 @@ async Task Subtitles()
     var timelineArg = Option("--timeline");
     var includeOriginal = !rest.Remove("--no-original");
     var replace = !rest.Remove("--keep-previous");
+    var captions = !rest.Remove("--no-captions");
     var p = Project();
     var pt = TimelineOf(timelineArg, p);
+    targets.AddRange(voices.Keys.Where(c => targets.All(t => t.Code != c)).Order(StringComparer.Ordinal).Select(Language));
 
+    EnhanceCapCut.Subtitles.IVoiceEngine? engine = null;
     float[] audio;
     if (audioPath is not null)
     {
@@ -179,7 +200,8 @@ async Task Subtitles()
     {
 #if WINDOWS
         Console.WriteLine("  Mixing timeline audio…");
-        var timeline = TimelineBuilder.Build(p, pt);
+        // Earlier voice-over must not be heard by speech recognition.
+        var timeline = EnhanceCapCut.Subtitles.SubtitlePipeline.SpeechTimeline(p, pt);
         var warnings = new List<string>();
         var mix = EnhanceCapCut.Render.AudioMixer.Mix(timeline, new EnhanceCapCut.Windows.MfAudioDecoder(), warnings);
         foreach (var warning in warnings) Console.WriteLine($"warning: {warning}");
@@ -189,11 +211,26 @@ async Task Subtitles()
         return;
 #endif
     }
+#if WINDOWS
+    if (voices.Count > 0) engine = new EnhanceCapCut.Windows.WindowsVoices();
+#else
+    if (voices.Count > 0) Fail("Voice-over needs Windows (Windows.Media.SpeechSynthesis)");
+#endif
 
+    var options = new EnhanceCapCut.Subtitles.SubtitlePipeline.Options(source!, includeOriginal,
+        captions ? targets : targets.Where(t => voices.ContainsKey(t.Code)).ToList(), visible)
+    {
+        Captions = captions,
+        Voices = voices,
+        AudibleVoice = hear,
+        // A dry run (--draft) keeps the voice-over audio next to the draft it writes.
+        VoiceOverFolder = draftOut is not null
+            ? Path.Combine(Path.GetDirectoryName(Path.GetFullPath(draftOut))!, "voiceover")
+            : EnhanceCapCut.Subtitles.SubtitlePipeline.VoiceOverFolder(p),
+    };
     var lastStep = "";
     var lastPercent = -10;
-    var tracks = await EnhanceCapCut.Subtitles.SubtitlePipeline.RunAsync(audio,
-        new(source!, includeOriginal, targets, visible), (step, fraction) =>
+    var output = await EnhanceCapCut.Subtitles.SubtitlePipeline.RunAsync(audio, options, (step, fraction) =>
         {
             var percent = (int)(fraction * 100);
             if (step == lastStep && percent < lastPercent + 10) return;
@@ -201,7 +238,10 @@ async Task Subtitles()
             lastStep = step;
             lastPercent = percent;
             Console.WriteLine($"  {step} {percent}%");
-        });
+        }, engine);
+    var tracks = output.Captions;
+    foreach (var track in output.VoiceOver)
+        Console.WriteLine($"voice-over {track.Language.Code}{(track.IsAudible ? " (audible)" : "")}: {track.Lines.Count} lines → {track.Path}");
     foreach (var track in tracks)
     {
         Console.WriteLine($"{track.Language.Code}{(track.IsVisible ? " (shown)" : "")}: {track.Cues.Count} cues");
@@ -214,14 +254,15 @@ async Task Subtitles()
                      pt.IsMain ? p.Name : $"{p.Name} {pt.Name}"))
             Console.WriteLine($"Wrote {path}");
     }
+    byte[] Apply(byte[] draft) => EnhanceCapCut.Subtitles.SubtitlePipeline.Apply(output, draft, original, replace, p.Folder);
     if (draftOut is not null)
     {
-        File.WriteAllBytes(draftOut, DraftSubtitleWriter.Apply(tracks, File.ReadAllBytes(pt.DraftPath), replace));
+        File.WriteAllBytes(draftOut, Apply(File.ReadAllBytes(pt.DraftPath)));
         Console.WriteLine($"Wrote {draftOut}");
     }
     else
     {
-        var result = DraftSubtitleWriter.Write(tracks, p, pt, replace);
+        var result = DraftSubtitleWriter.Write(p, pt, tracks.Sum(t => t.Cues.Count), Apply);
         foreach (var file in result.Files) Console.WriteLine($"Updated {file}");
         Console.WriteLine($"Backup: {result.BackupFolder}");
     }

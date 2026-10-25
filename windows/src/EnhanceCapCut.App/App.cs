@@ -1,0 +1,176 @@
+using System.Runtime.InteropServices;
+using Microsoft.UI.Dispatching;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Markup;
+using Microsoft.UI.Xaml.XamlTypeInfo;
+using Microsoft.Windows.AppLifecycle;
+
+namespace EnhanceCapCut.App;
+
+/// <summary>
+/// The app: one instance, the export window on every launch (a second launch brings it back and re-detects the project
+/// open in CapCut, like the macOS Services entry), the subtitles window on demand, and the same questions as the macOS
+/// version before quitting during an export or a subtitles run.
+///
+/// Command line (for testing and scripting, like the macOS <c>--args -project … -autoExport YES</c>):
+/// <c>EnhanceCapCut.exe [--project &lt;name&gt;] [--auto-export] [--subtitles]</c> (the last one opens the subtitles window too).
+/// </summary>
+sealed partial class App : Application, IXamlMetadataProvider
+{
+    readonly XamlControlsXamlMetaDataProvider metadata = new();
+    readonly string[] args;
+    ExportModel? model;
+    ExportWindow? exportWindow;
+    SubtitlesModel? subtitles;
+    SubtitlesWindow? subtitlesWindow;
+    bool quitting;
+
+    App(string[] args) => this.args = args;
+
+    [STAThread]
+    static int Main(string[] args)
+    {
+        WinRT.ComWrappersSupport.InitializeComWrappers();
+        if (RedirectToRunningInstance()) return 0;
+        Start(callback =>
+        {
+            SynchronizationContext.SetSynchronizationContext(new DispatcherQueueSynchronizationContext(DispatcherQueue.GetForCurrentThread()));
+            _ = new App(args);
+        });
+        return 0;
+    }
+
+    protected override void OnLaunched(LaunchActivatedEventArgs e)
+    {
+        Resources.MergedDictionaries.Add(new XamlControlsResources());
+        var ui = DispatcherQueue.GetForCurrentThread();
+        model = new ExportModel(ui) { AutoExport = args.Contains("--auto-export") };
+        model.OpenSubtitles = ShowSubtitlesWindow;
+        model.Finished = () => { if (exportWindow is not null) Platform.Flash(exportWindow); };
+        AppInstance.GetCurrent().Activated += (_, _) => ui.TryEnqueue(ShowExportWindow);
+        ShowExportWindow();
+        if (args.Contains("--subtitles")) ShowSubtitlesWindow();
+    }
+
+    /// <summary>Shows the export window and re-detects the project open in CapCut.</summary>
+    void ShowExportWindow()
+    {
+        if (model is null) return;
+        if (!model.IsExporting)
+        {
+            model.RefreshProjects(selectOpen: true);
+            var i = Array.IndexOf(args, "--project");
+            if (i >= 0 && i + 1 < args.Length && model.Projects.FirstOrDefault(p => p.Name == args[i + 1]) is { } project)
+                model.SelectedProjectFolder = project.Folder;
+        }
+        if (exportWindow is null)
+        {
+            exportWindow = new ExportWindow(model);
+            HandleClose(exportWindow);
+        }
+        Bring(exportWindow);
+    }
+
+    /// <summary>Shows the "Subtitles &amp; Voice-over" window for the project selected in the export window.</summary>
+    void ShowSubtitlesWindow()
+    {
+        if (model is null) return;
+        if (subtitles is null)
+        {
+            subtitles = new SubtitlesModel(model, DispatcherQueue.GetForCurrentThread());
+            subtitles.Finished = () => { if (subtitlesWindow is not null) Platform.Flash(subtitlesWindow); };
+        }
+        if (subtitlesWindow is null)
+        {
+            subtitlesWindow = new SubtitlesWindow(subtitles);
+            HandleClose(subtitlesWindow);
+        }
+        subtitles.RefreshProjectState();
+        Bring(subtitlesWindow);
+    }
+
+    static void Bring(Window window)
+    {
+        window.AppWindow.Show();
+        window.Activate();
+        SetForegroundWindow(Platform.Handle(window));
+    }
+
+    /// <summary>
+    /// Closing a window hides it, so a running export or subtitles job (and the subtitles window's choices) survive;
+    /// closing the last visible window quits, after asking when something is still running.
+    /// </summary>
+    void HandleClose(Window window) => window.AppWindow.Closing += async (sender, e) =>
+    {
+        if (quitting) return;
+        e.Cancel = true;
+        var others = new Window?[] { exportWindow, subtitlesWindow }.Where(w => w is not null && w != window && w.AppWindow.IsVisible);
+        if (others.Any())
+        {
+            sender.Hide();
+            return;
+        }
+        if (await ConfirmQuit(window)) Quit();
+    };
+
+    async Task<bool> ConfirmQuit(Window window)
+    {
+        if (subtitles?.IsRunning == true)
+        {
+            if (!await Platform.Ask(window, "Subtitles are being created", "Quitting cancels them.", "Quit", "Keep Working", primaryIsDefault: false))
+                return false;
+            subtitles.Cancel();
+        }
+        if (model?.IsExporting == true)
+        {
+            if (!await Platform.Ask(window, "An export is in progress", "Quitting cancels it.", "Quit", "Keep Exporting", primaryIsDefault: false))
+                return false;
+            model.Cancel();
+        }
+        return true;
+    }
+
+    void Quit()
+    {
+        quitting = true;
+        subtitlesWindow?.Close();
+        exportWindow?.Close();
+        Exit();
+    }
+
+    /// <summary>
+    /// A second launch hands its activation to the running instance (which shows its export window) and exits. The
+    /// redirect is awaited with a COM-aware wait so the STA thread keeps pumping, as the Windows App SDK docs describe.
+    /// </summary>
+    static bool RedirectToRunningInstance()
+    {
+        var key = AppInstance.FindOrRegisterForKey("EnhanceCapCut");
+        if (key.IsCurrent) return false;
+        var activation = AppInstance.GetCurrent().GetActivatedEventArgs();
+        AllowSetForegroundWindow(key.ProcessId);
+        using var done = new EventWaitHandle(false, EventResetMode.ManualReset);
+        Task.Run(async () =>
+        {
+            try { await key.RedirectActivationToAsync(activation); }
+            finally { done.Set(); }
+        });
+        CoWaitForMultipleObjects(0, 0xFFFFFFFF, 1, [done.SafeWaitHandle.DangerousGetHandle()], out _);
+        return true;
+    }
+
+    public IXamlType GetXamlType(Type type) => metadata.GetXamlType(type);
+    public IXamlType GetXamlType(string fullName) => metadata.GetXamlType(fullName);
+    public XmlnsDefinition[] GetXmlnsDefinitions() => metadata.GetXmlnsDefinitions();
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool SetForegroundWindow(IntPtr window);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool AllowSetForegroundWindow(uint processId);
+
+    [LibraryImport("ole32.dll")]
+    private static partial int CoWaitForMultipleObjects(uint flags, uint timeout, uint count, IntPtr[] handles, out uint index);
+}
