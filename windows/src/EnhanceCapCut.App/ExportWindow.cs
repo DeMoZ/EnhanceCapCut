@@ -311,13 +311,17 @@ sealed class ExportWindow : Window
         }
     }
 
+    Panel? buttonHost;
+
     /// <summary>Puts <paramref name="view"/> in the footer, with the Export button (there's one, for its Enter key) in <paramref name="buttons"/>.</summary>
     void Show(UIElement view, Panel? buttons)
     {
-        if (buttons is not null && exportButton.Parent != buttons)
+        // Parent isn't set before the window is shown: the button's place is tracked here.
+        if (buttons is not null && buttonHost != buttons)
         {
-            (exportButton.Parent as Panel)?.Children.Remove(exportButton);
+            buttonHost?.Children.Remove(exportButton);
             buttons.Children.Add(exportButton);
+            buttonHost = buttons;
         }
         if (footer.Content != view) footer.Content = view;
     }

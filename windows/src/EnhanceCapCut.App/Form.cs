@@ -202,6 +202,7 @@ sealed class FormSection : StackPanel
     /// <summary>Removes every row (for sections whose rows come from data).</summary>
     public void Clear()
     {
+        foreach (var row in rows) row.Release();
         rows.Clear();
         card.Children.Clear();
     }
@@ -229,10 +230,12 @@ sealed class FormRow : Grid
         Fill = Theme.Resource("DividerStrokeColorDefaultBrush"),
     };
 
+    readonly ContentPresenter holder;
+
     public FormRow(UIElement content)
     {
         MinHeight = 44;
-        var holder = new ContentPresenter
+        holder = new ContentPresenter
         {
             Content = content, Padding = new Thickness(12, 6, 12, 6), VerticalAlignment = VerticalAlignment.Center,
             HorizontalContentAlignment = HorizontalAlignment.Stretch,
@@ -247,8 +250,6 @@ sealed class FormRow : Grid
     /// <summary>Label on the left, <paramref name="control"/> on the right (or filling the rest with <paramref name="stretch"/>).</summary>
     public static FormRow Labeled(string label, UIElement control, bool stretch = false)
     {
-        // Sections rebuilt from data put the same controls into new rows.
-        if (control is FrameworkElement { Parent: Panel parent }) parent.Children.Remove(control);
         var text = Text.Body(label);
         text.Margin = new Thickness(0, 0, 16, 0);
         var grid = new Grid { ColumnSpacing = 0 };
@@ -269,6 +270,13 @@ sealed class FormRow : Grid
     {
         get => Visibility == Visibility.Visible;
         set => Visibility = value ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    /// <summary>Lets go of the row's controls, so a section rebuilt from data can put the same controls into new rows.</summary>
+    public void Release()
+    {
+        if (holder.Content is Grid { } grid && Label is not null) grid.Children.Clear();
+        holder.Content = null;
     }
 
     public void ShowSeparator(bool show) => separator.Visibility = show ? Visibility.Visible : Visibility.Collapsed;

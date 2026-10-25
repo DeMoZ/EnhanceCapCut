@@ -400,12 +400,16 @@ sealed class SubtitlesWindow : Window
         }
     }
 
+    Panel? buttonHost;
+
     void Show(UIElement view, Panel? buttons)
     {
-        if (buttons is not null && createButton.Parent != buttons)
+        // Parent isn't set before the window is shown: the button's place is tracked here.
+        if (buttons is not null && buttonHost != buttons)
         {
-            (createButton.Parent as Panel)?.Children.Remove(createButton);
+            buttonHost?.Children.Remove(createButton);
             buttons.Children.Add(createButton);
+            buttonHost = buttons;
         }
         if (footer.Content != view) footer.Content = view;
     }
