@@ -75,10 +75,40 @@ public static class SpeechRecognizer
                     words.Add(new TimedWord(segment.Text.Trim(), offset + segment.Start.TotalSeconds, segmentEnd));
             }
         }
+        words = WithoutAnnotations(words);
         if (Environment.GetEnvironmentVariable("ECC_DEBUG_WORDS") is { Length: > 0 })
             foreach (var w in words) Console.Error.WriteLine($"{w.Start:0.00}-{w.End:0.00} {w.Text}");
         progress?.Invoke(1);
         if (words.Count == 0) throw new InvalidOperationException("No speech recognized. Check the spoken language and audio level.");
         return words;
+    }
+
+    /// <summary>
+    /// Without Whisper's sound annotations ("*смех*", "[музыка]", "(аплодисменты)", "♪"): over street noise or music
+    /// it writes them where nobody speaks.
+    /// </summary>
+    public static List<TimedWord> WithoutAnnotations(List<TimedWord> words)
+    {
+        var pairs = new Dictionary<char, char> { ['*'] = '*', ['['] = ']', ['('] = ')', ['♪'] = '♪' };
+        var result = new List<TimedWord>();
+        char? closer = null;
+        foreach (var word in words)
+        {
+            var text = word.Text.Trim('.', ',', '!', '?', '…', ':', ';');
+            if (closer is { } open)
+            {
+                if (text.Length > 0 && text[^1] == open) closer = null;
+                continue;
+            }
+            if (text.Length > 0 && pairs.TryGetValue(text[0], out var c))
+            {
+                // A lone "♪" or "*" is a whole annotation; otherwise it runs to the word with the closer.
+                var closed = text.Length == 1 ? text[0] == c : text[^1] == c;
+                if (!closed) closer = c;
+                continue;
+            }
+            result.Add(word);
+        }
+        return result;
     }
 }

@@ -9,10 +9,12 @@ import Foundation
 //              [--from s] [--duration s]
 //   ecc voice <media> -o out.wav [--keep-voice | --remove-voice] [--denoise 0.85] [--enhance 75]
 //             [--filter <cached effect dir | resource id>] [--strength 1]
-//   ecc subtitles [project] [--timeline name|number] --language ru-RU [--translate en,th] [--no-original] [--show en]
+//   ecc subtitles [project] [--timeline name|number] --language ru-RU [--engine apple|whisper] [--translate en,th]
+//                 [--no-original] [--show en]
 //                 [--keep-previous] [--srt folder] [--draft out.json] [--no-captions]
 //                 [--voice en,th | en=<voice id>,th] [--hear th] [--original keep|lower|mute]
 //                 (macOS 26+; writes into the project unless --draft is given; translation languages must be downloaded;
+//                 --engine whisper downloads its model on first use (574 MB);
 //                 --voice speaks these translations with system voices, `ecc voices <language>` lists them)
 //   ecc voices <language>
 
@@ -189,6 +191,8 @@ case "subtitles":
         voices[parts[0]] = parts.count > 1 ? parts[1] : ""
     }
     let hear = option("--hear")
+    let engineArg = option("--engine") ?? "apple"
+    guard let engine = SpeechEngine(rawValue: engineArg.lowercased()) else { fail("--engine takes apple or whisper") }
     let originalArg = option("--original") ?? "lower"
     guard let original = OriginalAudio.allCases.first(where: { $0.rawValue.lowercased() == originalArg.lowercased() }) else {
         fail("--original takes keep, lower or mute")
@@ -207,6 +211,7 @@ case "subtitles":
                                            targets: captions ? targets : targets.filter { voices[$0.code] != nil },
                                            visibleLanguage: visible)
     options.captions = captions
+    options.engine = engine
     options.voices = voices
     options.audibleVoice = hear
     // A dry run (--draft) keeps the voice-over audio next to the draft it writes.

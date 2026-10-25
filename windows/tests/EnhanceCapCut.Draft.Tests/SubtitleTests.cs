@@ -148,4 +148,12 @@ public class SpeechChunkerTests
         Assert.All(pieces.Zip(pieces.Skip(1)), p => Assert.Equal(p.First.End, p.Second.Start));
         Assert.All(pieces, p => Assert.InRange(p.End - p.Start, 1, 16_000 * Subtitles.SpeechChunker.MaxPiece + 1));
     }
+
+    [Fact]
+    public void WhisperAnnotationsAreDropped()
+    {
+        var words = new[] { "*смех*", "Привет,", "[звук", "мотора]", "мир", "♪", "(аплодисменты).", "пока" }
+            .Select((t, i) => new TimedWord(t, i, i + 0.5)).ToList();
+        Assert.Equal(["Привет,", "мир", "пока"], Subtitles.SpeechRecognizer.WithoutAnnotations(words).Select(w => w.Text));
+    }
 }

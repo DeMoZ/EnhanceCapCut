@@ -1,5 +1,13 @@
 import Foundation
 
+/// The speech recogniser for the source language.
+public enum SpeechEngine: String, CaseIterable, Sendable {
+    /// Apple's on-device SpeechTranscriber / DictationTranscriber: nothing to download.
+    case apple
+    /// Whisper large-v3-turbo (`WhisperTranscriber`), as in the Windows version: a one-time model download.
+    case whisper
+}
+
 /// Timeline → audio mix → speech recognition → cues → translations → voice-over. The result goes into
 /// the draft with `DraftSubtitleWriter` / `DraftVoiceOverWriter` and into `.srt` files. Ported from
 /// SubDub, the Final Cut Pro version.
@@ -7,6 +15,7 @@ import Foundation
 public final class SubtitlePipeline {
     public struct Options {
         public var sourceLocale: Locale
+        public var engine: SpeechEngine = .apple
         public var includeOriginal: Bool
         public var targets: [SubtitleLanguage]
         /// The language whose track stays visible; the others are added hidden. Nil = the first track.
@@ -50,6 +59,10 @@ public final class SubtitlePipeline {
         try FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: work) }
 
+        if options.engine == .whisper, !ModelStore.isDownloaded(ModelStore.whisper) {
+            try await ModelStore.ensure(ModelStore.whisper) { p in report("Downloading models (one time)…", 0.15 * p) }
+        }
+
         // 1. Audio: the timeline's mix, as the viewer hears it.
         report("Mixing timeline audio…", 0)
         let audioURL = work.appendingPathComponent("mix.caf")
@@ -65,10 +78,18 @@ public final class SubtitlePipeline {
         // Progress: speech up to `speechEnd`, translations up to `translateEnd`, then the voice-over.
         let speechEnd = dubbing.isEmpty ? 0.75 : 0.6, translateEnd = dubbing.isEmpty ? 1 : 0.7
         var step = "Transcribing…"
-        let words = try await Transcriber.transcribe(
-            fileURL: audioURL, locale: options.sourceLocale, duration: duration,
-            status: { s in step = s; report(s, 0.15) },
-            progress: { p in report(step, 0.15 + (speechEnd - 0.15) * p) })
+        let words: [TimedWord]
+        switch options.engine {
+        case .apple:
+            words = try await Transcriber.transcribe(
+                fileURL: audioURL, locale: options.sourceLocale, duration: duration,
+                status: { s in step = s; report(s, 0.15) },
+                progress: { p in report(step, 0.15 + (speechEnd - 0.15) * p) })
+        case .whisper:
+            words = try await WhisperTranscriber.transcribe(fileURL: audioURL, locale: options.sourceLocale) { p in
+                report(step, 0.15 + (speechEnd - 0.15) * p)
+            }
+        }
         try checkCancelled()
 
         let cues = Segmenter.cues(from: words, language: sourceLanguage.code)

@@ -34,6 +34,10 @@ final class SubtitlesModel: ObservableObject {
             Task { await refreshDownloads() }
         }
     }
+    /// The speech recogniser; Whisper needs a one-time model download.
+    @Published var engine: SpeechEngine {
+        didSet { UserDefaults.standard.set(engine.rawValue, forKey: "subtitles.engine") }
+    }
     @Published var includeOriginal: Bool {
         didSet { UserDefaults.standard.set(includeOriginal, forKey: "subtitles.includeOriginal") }
     }
@@ -87,6 +91,10 @@ final class SubtitlesModel: ObservableObject {
     @Published var notDownloaded: [SubtitleLanguage] = []
     @Published var downloadingLanguage: String?
     @Published var downloadError: String?
+    /// 0…1 while the Whisper model downloads.
+    @Published var modelProgress: Double?
+    @Published var modelError: String?
+    private var modelTask: Task<Void, Never>?
     /// The selected project is open in CapCut, so the draft can't be written now.
     @Published private(set) var projectIsOpen = false
 
@@ -99,6 +107,7 @@ final class SubtitlesModel: ObservableObject {
         self.export = export
         let d = UserDefaults.standard
         sourceLocaleID = d.string(forKey: "subtitles.sourceLocale") ?? "ru-RU"
+        engine = SpeechEngine(rawValue: d.string(forKey: "subtitles.engine") ?? "") ?? .apple
         selectedTargets = Set(d.stringArray(forKey: "subtitles.targets") ?? ["en"])
         includeOriginal = d.object(forKey: "subtitles.includeOriginal") as? Bool ?? true
         visibleLanguage = d.string(forKey: "subtitles.visible") ?? ""
@@ -157,9 +166,39 @@ final class SubtitlesModel: ObservableObject {
     }
 
     var canStart: Bool {
-        export.timeline != nil && !isRunning && downloadingLanguage == nil
+        export.timeline != nil && !isRunning && downloadingLanguage == nil && modelProgress == nil
             && !(outputLanguages.isEmpty && dubLanguages.isEmpty)
     }
+
+    /// Whisper is chosen but its model isn't downloaded yet.
+    var whisperMissing: Bool { engine == .whisper && !ModelStore.isDownloaded(ModelStore.whisper) }
+
+    /// "Whisper speech recognition (574 MB)", as in the Windows version.
+    var whisperModelText: String {
+        "Whisper speech recognition (\(ModelStore.whisper.approximateBytes / 1_000_000) MB)"
+    }
+
+    func downloadModel() {
+        modelError = nil
+        modelProgress = 0
+        modelTask = Task {
+            do {
+                try await ModelStore.ensure(ModelStore.whisper) { p in
+                    Task { @MainActor in
+                        if self.modelProgress != nil { self.modelProgress = p }
+                    }
+                }
+            } catch is CancellationError {
+            } catch let error as URLError where error.code == .cancelled {
+            } catch {
+                modelError = error.localizedDescription
+            }
+            modelProgress = nil
+            modelTask = nil
+        }
+    }
+
+    func cancelModelDownload() { modelTask?.cancel() }
 
     /// Re-checks whether the selected project is open in CapCut.
     func refreshProjectState() {
@@ -354,6 +393,7 @@ final class SubtitlesModel: ObservableObject {
                                                includeOriginal: includeOriginal, targets: effectiveTargets,
                                                visibleLanguage: effectiveVisibleLanguage)
         options.captions = makeCaptions
+        options.engine = engine
         options.voices = Dictionary(uniqueKeysWithValues: dubLanguages.map { ($0.code, voiceID(for: $0)) })
         options.audibleVoice = effectiveAudibleVoice
         options.voiceOverFolder = SubtitlePipeline.voiceOverFolder(in: project)

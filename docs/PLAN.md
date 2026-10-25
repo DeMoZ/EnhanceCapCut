@@ -62,6 +62,10 @@ Usage counts from the author's 69 projects drive the order of the later mileston
       `Dubber`; in the app's Subtitles & Voice-over window and `ecc subtitles --voice`.
 - [x] Windows: `ecc subtitles` with Whisper (whisper.cpp) and NLLB-200 (ONNX Runtime), models downloaded on first
       use; same segmentation and draft writing as the Mac (ported), and the same window in the app.
+- [x] Speech recognition measured against CapCut's own captions (four Russian vlogs): Apple dictation in 3–8 s
+      pieces cut at pauses (fed whole it dropped half the words), Whisper in pieces under its 30 s window (Whisper.net
+      stopped after the first one with DTW). Whisper is also on the Mac now, as a choice in the window
+      (`WhisperTranscriber`, whisper.cpp xcframework): word error 11–25% vs Apple's 12–31%, same word timing.
 
 ## Milestone 2 — LUT filters
 

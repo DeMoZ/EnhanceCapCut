@@ -17,11 +17,13 @@ public struct TimedWord {
 public enum TranscriberError: LocalizedError {
     case unsupportedLocale(String)
     case nothingRecognised
+    case modelFailed(String)
 
     public var errorDescription: String? {
         switch self {
         case .unsupportedLocale(let l): return "macOS can't transcribe \(l) speech."
         case .nothingRecognised: return "No speech recognized. Check the spoken language and audio level."
+        case .modelFailed(let path): return "Whisper couldn't run the model at \(path). Delete it to download it again."
         }
     }
 }

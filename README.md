@@ -109,8 +109,10 @@ new canvas and positions stay relative to it, so texts placed near each other ca
 speech of the selected timeline, translates it and adds the result **to the CapCut project itself** as
 caption tracks and/or voice-over audio tracks: open the project in CapCut and they are there, editable like
 CapCut's own auto-captions and voiceovers.
-Everything runs offline with Apple's on-device speech recognition and Translation (macOS 26 or later); the
-logic is the one of SubDub, the Final Cut Pro version.
+Everything runs offline with Apple Translation (macOS 26 or later); the logic is the one of SubDub, the Final
+Cut Pro version. **Speech recognition** is either Apple's, built into macOS, or Whisper large-v3-turbo (the same as
+on Windows): Whisper catches more words in noisy dialogue, and its model is downloaded once (574 MB, into
+`~/Library/Application Support/EnhanceCapCut/Models`). The CLI takes `--engine apple|whisper`.
 
 1. Close the project in CapCut (back to the home screen). CapCut overwrites a project that is open when it saves.
 2. Choose **Subtitles**, **Voice-over** or both. Pick the spoken language, keep or drop the original-language

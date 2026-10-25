@@ -1,17 +1,28 @@
 import AVFoundation
 
-/// Cuts a long recording into short pieces at its quietest moments, for recognisers made for short utterances
-/// (DictationTranscriber). Calibrated on a noisy street-market vlog (KohChangSquid): fed whole, dictation kept
-/// about half of the words; in 3–8 s pieces it kept nearly all, while longer pieces lost words again.
+/// Cuts a long recording into pieces at its quietest moments, for recognisers that do badly on long input.
 ///
-/// Phone footage often has wide stereo (left and right barely alike), and the average of such channels smears the
-/// voice: on the same vlog one channel alone gave whole phrases that the average lost. So unless the channels are
-/// nearly the same, each piece is written once per channel and the caller keeps the better recognition.
+/// Dictation (DictationTranscriber) is made for short utterances. Calibrated on a noisy street-market vlog
+/// (KohChangSquid): fed whole, dictation kept about half of the words; in 3–8 s pieces it kept nearly all, while
+/// longer pieces lost words again. Phone footage often has wide stereo (left and right barely alike), and the average
+/// of such channels smears the voice: on the same vlog one channel alone gave whole phrases that the average lost.
+/// So unless the channels are nearly the same, each dictation piece is written once per channel and the caller keeps
+/// the better recognition.
+///
+/// Whisper gets pieces within its 30 s window, like the Windows version (whose Whisper.net stops after the first
+/// window when DTW timestamps are on).
 public enum SpeechChunker {
-    /// A piece is at least this long (seconds), unless the recording is shorter…
-    static let minPiece = 3.0
-    /// …and at most this long: the cut goes at the quietest moment between `minPiece` and `maxPiece`.
-    static let maxPiece = 8.0
+    public struct Lengths {
+        /// A piece is at least this long (seconds), unless the recording is shorter…
+        public var min: Double
+        /// …and at most this long: the cut goes at the quietest moment between `min` and `max`.
+        public var max: Double
+
+        public static let dictation = Lengths(min: 3, max: 8)
+        /// The same as `SpeechChunker.MinPiece` / `MaxPiece` in the Windows version.
+        public static let whisper = Lengths(min: 15, max: 28)
+    }
+
     /// Loudness is measured in frames of this length…
     static let frameDuration = 0.02
     /// …and averaged over ± this much, so a cut lands in a pause rather than between two syllables.
@@ -26,7 +37,7 @@ public enum SpeechChunker {
         public var end: Double
     }
 
-    /// Writes the pieces of `url` into `folder` (mono files at the source's sample rate) and returns them in order.
+    /// Writes the dictation pieces of `url` into `folder` (mono files at the source's sample rate) and returns them in order.
     public static func split(_ url: URL, into folder: URL) throws -> [Piece] {
         let file = try AVAudioFile(forReading: url)
         let rate = file.processingFormat.sampleRate
@@ -34,30 +45,36 @@ public enum SpeechChunker {
         guard let first = channels.first else { return [] }
         let samples = channels.count == 1 ? first : (0..<first.count).map { i in channels.reduce(0) { $0 + $1[i] } / Float(channels.count) }
         let sources = isWideStereo(channels) ? Array(channels.prefix(2)) : [samples]
-        let frame = max(1, Int(rate * frameDuration))
-        let energy = stride(from: 0, to: samples.count, by: frame).map { i -> Float in
-            let chunk = samples[i..<min(i + frame, samples.count)]
-            return chunk.reduce(0) { $0 + $1 * $1 } / Float(chunk.count)
-        }
-        let bounds = [0] + cuts(energy: energy, frameDuration: Double(frame) / rate) + [Double(samples.count) / rate]
 
         let format = AVAudioFormat(standardFormatWithSampleRate: rate, channels: 1)!
         var pieces: [Piece] = []
-        for (n, (start, end)) in zip(bounds, bounds.dropFirst()).enumerated() {
-            let from = Int(start * rate), to = min(samples.count, Int(end * rate))
-            guard to > from, let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(to - from)) else { continue }
-            buffer.frameLength = AVAudioFrameCount(to - from)
+        for (n, range) in ranges(samples, sampleRate: rate, lengths: .dictation).enumerated() {
+            guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(range.count)) else { continue }
+            buffer.frameLength = AVAudioFrameCount(range.count)
             var urls: [URL] = []
             for (c, source) in sources.enumerated() {
-                source[from..<to].withUnsafeBufferPointer { buffer.floatChannelData![0].update(from: $0.baseAddress!, count: to - from) }
+                source[range].withUnsafeBufferPointer { buffer.floatChannelData![0].update(from: $0.baseAddress!, count: range.count) }
                 let pieceURL = folder.appendingPathComponent(String(format: "piece-%04d-%d.caf", n, c))
                 let out = try AVAudioFile(forWriting: pieceURL, settings: format.settings)
                 try out.write(from: buffer)
                 urls.append(pieceURL)
             }
-            pieces.append(Piece(urls: urls, start: start, end: end))
+            pieces.append(Piece(urls: urls, start: Double(range.lowerBound) / rate, end: Double(range.upperBound) / rate))
         }
         return pieces
+    }
+
+    /// Sample ranges of the pieces of `samples`, in order and covering all of it.
+    public static func ranges(_ samples: [Float], sampleRate: Double, lengths: Lengths) -> [Range<Int>] {
+        let frame = max(1, Int(sampleRate * frameDuration))
+        let energy = stride(from: 0, to: samples.count, by: frame).map { i -> Float in
+            let chunk = samples[i..<min(i + frame, samples.count)]
+            return chunk.reduce(0) { $0 + $1 * $1 } / Float(chunk.count)
+        }
+        let cuts = cuts(energy: energy, frameDuration: Double(frame) / sampleRate, lengths: lengths)
+            .map { min(samples.count, Int(($0 * sampleRate).rounded())) }
+        let bounds = [0] + cuts + [samples.count]
+        return zip(bounds, bounds.dropFirst()).compactMap { $0 < $1 ? $0..<$1 : nil }
     }
 
     /// Whether the first two channels differ enough that each should be recognised on its own.
@@ -72,7 +89,7 @@ public enum SpeechChunker {
     }
 
     /// Cut times (seconds) for a recording with the given per-frame energy.
-    static func cuts(energy: [Float], frameDuration: Double) -> [Double] {
+    static func cuts(energy: [Float], frameDuration: Double, lengths: Lengths = .dictation) -> [Double] {
         let radius = max(0, Int(smoothing / frameDuration))
         // Moving average through a prefix sum.
         var prefix = [Double](repeating: 0, count: energy.count + 1)
@@ -82,7 +99,7 @@ public enum SpeechChunker {
             return (prefix[hi] - prefix[lo]) / Double(hi - lo)
         }
 
-        let minFrames = Int(minPiece / frameDuration), maxFrames = Int(maxPiece / frameDuration)
+        let minFrames = Int(lengths.min / frameDuration), maxFrames = Int(lengths.max / frameDuration)
         var cuts: [Double] = []
         var position = 0
         while energy.count - position > maxFrames {
@@ -100,7 +117,7 @@ public enum SpeechChunker {
     }
 
     /// The samples of each channel of `file`.
-    private static func channelSamples(_ file: AVAudioFile) throws -> [[Float]] {
+    static func channelSamples(_ file: AVAudioFile) throws -> [[Float]] {
         let length = AVAudioFrameCount(file.length)
         guard length > 0, let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: length) else { return [] }
         try file.read(into: buffer)
