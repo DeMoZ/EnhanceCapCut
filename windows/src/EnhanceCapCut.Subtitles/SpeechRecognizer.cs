@@ -13,6 +13,12 @@ public static class SpeechRecognizer
     /// <summary>A word ends this long after its last token's aligned time, unless the next word starts sooner.</summary>
     const double WordTail = 0.3;
 
+    /// <summary>
+    /// DTW places a token this long after the word is heard: measured against CapCut's own word times on four vlogs
+    /// (median +0.11…0.14 s), where Apple dictation's times were within ±0.07 s.
+    /// </summary>
+    const double DtwLag = 0.12;
+
     /// <param name="samples">16 kHz mono (<see cref="AudioInput"/>).</param>
     /// <param name="progress">0…1 through the audio.</param>
     public static async Task<List<TimedWord>> TranscribeAsync(float[] samples, SubtitleLanguage language,
@@ -20,45 +26,54 @@ public static class SpeechRecognizer
     {
         using var factory = WhisperFactory.FromPath(ModelStore.PathOf(ModelStore.Whisper),
             new WhisperFactoryOptions { UseDtwTimeStamps = true, HeadsPreset = WhisperAlignmentHeadsPreset.LargeV3Turbo });
+        // Progress through the whole recording: the handler reports within the current piece.
+        double pieceFrom = 0, pieceShare = 1;
         await using var processor = factory.CreateBuilder()
             .WithLanguage(language.Whisper)
             .WithTokenTimestamps()
             .WithThreads(Math.Max(1, Environment.ProcessorCount - 1))
-            .WithProgressHandler(p => progress?.Invoke(p / 100.0))
+            .WithProgressHandler(p => progress?.Invoke(pieceFrom + pieceShare * p / 100.0))
             .Build();
 
         var words = new List<TimedWord>();
-        await foreach (var segment in processor.ProcessAsync(samples, cancel))
+        // Pieces within Whisper's 30 s window (see SpeechChunker); times are shifted back to the recording's.
+        foreach (var (pieceStart, pieceEnd) in SpeechChunker.Pieces(samples, AudioInput.SampleRate))
         {
-            // Words from tokens: a token that starts with a space starts a word; others (word pieces, punctuation)
-            // continue it. Times are the tokens' DTW positions (centiseconds), Whisper's own as a fallback.
-            var segmentWords = new List<(string Text, double Start, double Last)>();
-            foreach (var token in segment.Tokens ?? [])
+            var offset = (double)pieceStart / AudioInput.SampleRate;
+            pieceFrom = (double)pieceStart / samples.Length;
+            pieceShare = (double)(pieceEnd - pieceStart) / samples.Length;
+            await foreach (var segment in processor.ProcessAsync(samples[pieceStart..pieceEnd], cancel))
             {
-                var text = token.Text ?? "";
-                // Special tokens: [_BEG_], [_TT_123], <|endoftext|>, …
-                if (text.Length == 0 || text.StartsWith("[_", StringComparison.Ordinal) || text.StartsWith("<|", StringComparison.Ordinal)) continue;
-                var time = (token.DtwTimestamp >= 0 ? token.DtwTimestamp : token.Start) / 100.0;
-                if (segmentWords.Count > 0 && !char.IsWhiteSpace(text[0]))
+                // Words from tokens: a token that starts with a space starts a word; others (word pieces, punctuation)
+                // continue it. Times are the tokens' DTW positions (centiseconds), Whisper's own as a fallback.
+                var segmentWords = new List<(string Text, double Start, double Last)>();
+                foreach (var token in segment.Tokens ?? [])
                 {
-                    var last = segmentWords[^1];
-                    segmentWords[^1] = (last.Text + text, last.Start, Math.Max(last.Last, time));
+                    var text = token.Text ?? "";
+                    // Special tokens: [_BEG_], [_TT_123], <|endoftext|>, …
+                    if (text.Length == 0 || text.StartsWith("[_", StringComparison.Ordinal) || text.StartsWith("<|", StringComparison.Ordinal)) continue;
+                    var time = offset + (token.DtwTimestamp >= 0 ? Math.Max(0, token.DtwTimestamp / 100.0 - DtwLag) : token.Start / 100.0);
+                    if (segmentWords.Count > 0 && !char.IsWhiteSpace(text[0]))
+                    {
+                        var last = segmentWords[^1];
+                        segmentWords[^1] = (last.Text + text, last.Start, Math.Max(last.Last, time));
+                    }
+                    else if (text.Trim().Length > 0)
+                    {
+                        segmentWords.Add((text.Trim(), time, time));
+                    }
                 }
-                else if (text.Trim().Length > 0)
+                var segmentEnd = offset + segment.End.TotalSeconds;
+                for (var i = 0; i < segmentWords.Count; i++)
                 {
-                    segmentWords.Add((text.Trim(), time, time));
+                    var (text, start, last) = segmentWords[i];
+                    var next = i + 1 < segmentWords.Count ? segmentWords[i + 1].Start : segmentEnd;
+                    words.Add(new TimedWord(text, start, Math.Max(start, Math.Min(last + WordTail, Math.Max(next, last)))));
                 }
+                // No usable tokens: the whole segment, split later with interpolated times.
+                if (segmentWords.Count == 0 && segment.Text.Trim().Length > 0)
+                    words.Add(new TimedWord(segment.Text.Trim(), offset + segment.Start.TotalSeconds, segmentEnd));
             }
-            var segmentEnd = segment.End.TotalSeconds;
-            for (var i = 0; i < segmentWords.Count; i++)
-            {
-                var (text, start, last) = segmentWords[i];
-                var next = i + 1 < segmentWords.Count ? segmentWords[i + 1].Start : segmentEnd;
-                words.Add(new TimedWord(text, start, Math.Max(start, Math.Min(last + WordTail, Math.Max(next, last)))));
-            }
-            // No usable tokens: the whole segment, split later with interpolated times.
-            if (segmentWords.Count == 0 && segment.Text.Trim().Length > 0)
-                words.Add(new TimedWord(segment.Text.Trim(), segment.Start.TotalSeconds, segmentEnd));
         }
         if (Environment.GetEnvironmentVariable("ECC_DEBUG_WORDS") is { Length: > 0 })
             foreach (var w in words) Console.Error.WriteLine($"{w.Start:0.00}-{w.End:0.00} {w.Text}");

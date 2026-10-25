@@ -120,3 +120,32 @@ public class SubtitleWriterTests
         Assert.True(Math.Abs(lines[0].Length - lines[1].Length) < 12);
     }
 }
+
+public class SpeechChunkerTests
+{
+    [Fact]
+    public void CutsInThePausesWithinWhispersWindow()
+    {
+        // 80 s of speech at 50 frames/s with silent half-second pauses at 20 s and 45 s.
+        var energy = Enumerable.Range(0, 4000).Select(i => i is >= 1000 and < 1025 or >= 2250 and < 2275 ? 0.001f : 1f).ToArray();
+        var cuts = Subtitles.SpeechChunker.Cuts(energy, 0.02);
+        Assert.Equal(3, cuts.Count);
+        Assert.Equal(20.25, cuts[0], 0.3);
+        Assert.Equal(45.25, cuts[1], 0.3);
+        // No pause left: the piece is cut at the longest allowed length.
+        Assert.Equal(cuts[1] + Subtitles.SpeechChunker.MaxPiece, cuts[2], 0.05);
+        Assert.Empty(Subtitles.SpeechChunker.Cuts(energy[..1400], 0.02));
+    }
+
+    [Fact]
+    public void PiecesCoverTheWholeRecording()
+    {
+        var samples = new float[16_000 * 65];
+        for (var i = 0; i < samples.Length; i++) samples[i] = (float)Math.Sin(i * 0.05) * (i / 16_000 % 20 == 0 ? 0.01f : 1f);
+        var pieces = Subtitles.SpeechChunker.Pieces(samples, 16_000);
+        Assert.Equal(0, pieces[0].Start);
+        Assert.Equal(samples.Length, pieces[^1].End);
+        Assert.All(pieces.Zip(pieces.Skip(1)), p => Assert.Equal(p.First.End, p.Second.Start));
+        Assert.All(pieces, p => Assert.InRange(p.End - p.Start, 1, 16_000 * Subtitles.SpeechChunker.MaxPiece + 1));
+    }
+}
