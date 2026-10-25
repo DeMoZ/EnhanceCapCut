@@ -78,7 +78,7 @@ public enum DraftSubtitleWriter {
     }
 
     /// Writes `tracks` into the timeline's draft. The timeline's draft and every other copy of it
-    /// that CapCut keeps (the root `draft_info.json` of the main timeline, `template-2.tmp`) are
+    /// that CapCut keeps (the root draft of the main timeline, `template-2.tmp`) are
     /// rewritten; their previous contents go to `backupRoot` first.
     public static func write(_ tracks: [SubtitleTrack], project: CapCutProject, timeline: ProjectTimeline,
                              replacePrevious: Bool) throws -> Result {

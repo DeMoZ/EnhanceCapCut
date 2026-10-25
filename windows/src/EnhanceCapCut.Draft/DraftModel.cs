@@ -2,7 +2,8 @@ using System.Text.Json;
 
 namespace EnhanceCapCut.Draft;
 
-// Typed view of CapCut's `draft_info.json` (draft version 360000 / new_version 187.0.0), ported from the
+// Typed view of CapCut's draft (`draft_info.json` on the Mac, `draft_content.json` on Windows; draft version
+// 360000 / new_version 187.0.0 and later), ported from the
 // macOS version's DraftModel.swift. Only the fields the renderer and the export report need are modelled;
 // everything else is ignored. All times are in microseconds, as in the draft.
 

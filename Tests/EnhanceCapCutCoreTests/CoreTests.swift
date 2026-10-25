@@ -348,3 +348,68 @@ final class ProjectTimelinesTests: XCTestCase {
         XCTAssertFalse(timelines[1].isMain)
     }
 }
+
+/// CapCut for macOS names a draft `draft_info.json`, CapCut for Windows `draft_content.json`.
+final class DraftFileNameTests: XCTestCase {
+    private func makeRoot() throws -> URL {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: url) }
+        return url
+    }
+
+    private func makeProject(_ name: String, in root: URL, draftFile: String) throws -> URL {
+        let url = root.appendingPathComponent(name, isDirectory: true)
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        try Data("{}".utf8).write(to: url.appendingPathComponent(draftFile))
+        return url
+    }
+
+    func testProjectsAreListedWhateverTheDraftIsCalled() throws {
+        for draftFile in ["draft_info.json", "draft_content.json"] {
+            let root = try makeRoot()
+            _ = try makeProject("Some Project", in: root, draftFile: draftFile)
+            _ = try makeProject(".recycle_bin", in: root, draftFile: draftFile)
+            try FileManager.default.createDirectory(at: root.appendingPathComponent("No Draft"), withIntermediateDirectories: true)
+            let projects = ProjectLocator.allProjects(root: root)
+            XCTAssertEqual(projects.map(\.name), ["Some Project"])
+            XCTAssertEqual(projects.first?.draftURL.lastPathComponent, draftFile)
+        }
+    }
+
+    func testResolveTakesANameAFolderOrADraftFile() throws {
+        let root = try makeRoot()
+        let url = try makeProject("Some Project", in: root, draftFile: "draft_content.json")
+        XCTAssertEqual(ProjectLocator.resolve("Some Project", root: root)?.name, "Some Project")
+        XCTAssertEqual(ProjectLocator.resolve(url.path, root: root)?.name, "Some Project")
+        let draft = url.appendingPathComponent("draft_content.json").path
+        XCTAssertEqual(ProjectLocator.resolve(draft, root: root)?.name, "Some Project")
+        XCTAssertNil(ProjectLocator.resolve("Missing Project", root: root))
+    }
+
+    func testOpenProjectIsTheOneWithALockFile() throws {
+        let root = try makeRoot()
+        _ = try makeProject("Closed", in: root, draftFile: "draft_content.json")
+        let open = try makeProject("Open", in: root, draftFile: "draft_content.json")
+        try Data().write(to: open.appendingPathComponent(".locked"))
+        XCTAssertEqual(ProjectLocator.openProject(root: root)?.name, "Open")
+    }
+
+    func testTimelinesUseTheSameDraftName() throws {
+        let root = try makeRoot()
+        let url = try makeProject("Some Project", in: root, draftFile: "draft_content.json")
+        let timelinesRoot = url.appendingPathComponent("Timelines")
+        let second = timelinesRoot.appendingPathComponent("B")
+        try FileManager.default.createDirectory(at: second, withIntermediateDirectories: true)
+        try Data("{}".utf8).write(to: second.appendingPathComponent("draft_content.json"))
+        let list = """
+        {"main_timeline_id": "A", "timelines": [{"id": "A", "name": "Timeline 01"}, {"id": "B", "name": "Timeline 02"}]}
+        """
+        try Data(list.utf8).write(to: timelinesRoot.appendingPathComponent("project.json"))
+        let timelines = CapCutProject(url: url).timelines()
+        XCTAssertEqual(timelines.map(\.name), ["Timeline 01", "Timeline 02"])
+        // The main timeline without its own folder falls back to the root draft.
+        XCTAssertEqual(timelines[0].draftURL.path, url.appendingPathComponent("draft_content.json").path)
+        XCTAssertEqual(timelines[1].draftURL.path, second.appendingPathComponent("draft_content.json").path)
+    }
+}

@@ -13,6 +13,7 @@ DerivedData/
 /renders/
 /samples/
 draft_info.json
+draft_content.json
 
 # .NET (Windows version)
 bin/

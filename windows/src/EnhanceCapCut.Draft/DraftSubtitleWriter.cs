@@ -55,7 +55,7 @@ public static class DraftSubtitleWriter
 
     /// <summary>
     /// Writes <paramref name="tracks"/> into the timeline's draft. The timeline's draft and every other copy of it that
-    /// CapCut keeps (the root <c>draft_info.json</c> of the main timeline, <c>template-2.tmp</c>) are rewritten; their
+    /// CapCut keeps (the root draft of the main timeline, <c>template-2.tmp</c>) are rewritten; their
     /// previous contents go to <see cref="BackupRoot"/> first.
     /// </summary>
     public static Result Write(IReadOnlyList<SubtitleTrack> tracks, CapCutProject project, ProjectTimeline timeline, bool replacePrevious) =>

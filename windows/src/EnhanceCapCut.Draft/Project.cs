@@ -12,7 +12,7 @@ public sealed class CapCutProject
     /// <summary>CapCut keeps a <c>.locked</c> file in the folder of every project that is open in the editor.</summary>
     public bool IsOpen { get; }
 
-    public string DraftPath => System.IO.Path.Combine(Folder, "draft_info.json");
+    public string DraftPath => DraftFile.Find(Folder);
 
     public CapCutProject(string folder)
     {
@@ -24,7 +24,7 @@ public sealed class CapCutProject
 
     /// <summary>
     /// CapCut 9 projects can hold several timelines (<c>Timelines/project.json</c>), each with its own draft in
-    /// <c>Timelines/&lt;id&gt;/draft_info.json</c>; the root <c>draft_info.json</c> is a copy of the main one. Projects
+    /// <c>Timelines/&lt;id&gt;/</c> (see <see cref="DraftFile"/>); the root draft is a copy of the main one. Projects
     /// without that file have a single timeline: the root draft.
     /// </summary>
     public List<ProjectTimeline> Timelines()
@@ -51,7 +51,7 @@ public sealed class CapCutProject
             var id = e.Str("id") ?? "";
             if (id.Length == 0 || (e.Bool("is_marked_delete") ?? false)) continue;
             var isMain = id == mainID;
-            var draft = System.IO.Path.Combine(root, id, "draft_info.json");
+            var draft = DraftFile.Find(System.IO.Path.Combine(root, id));
             if (!File.Exists(draft))
             {
                 if (!isMain) continue;
@@ -70,11 +70,36 @@ public sealed class CapCutProject
 /// <param name="Id">The timeline's UUID; empty for projects without <c>Timelines/project.json</c>.</param>
 public sealed record ProjectTimeline(string Id, string Name, string DraftPath, bool IsMain);
 
+/// <summary>
+/// The file a CapCut draft is stored in: <c>draft_info.json</c> in CapCut for macOS, <c>draft_content.json</c> in
+/// CapCut for Windows (seen with new_version 189.0.0). Both are plain JSON of the same format, in the same places:
+/// the project folder and <c>Timelines/&lt;id&gt;/</c>.
+/// </summary>
+public static class DraftFile
+{
+    public static readonly string[] Names = ["draft_info.json", "draft_content.json"];
+
+    static string DefaultName => OperatingSystem.IsWindows() ? "draft_content.json" : "draft_info.json";
+
+    public static bool IsName(string fileName) => Names.Contains(fileName);
+
+    /// <summary>
+    /// The draft in <paramref name="folder"/>. When there is none, the path of the platform's own file name, so that
+    /// callers have something to report.
+    /// </summary>
+    public static string Find(string folder) =>
+        Names.Select(n => System.IO.Path.Combine(folder, n)).FirstOrDefault(File.Exists)
+        ?? System.IO.Path.Combine(folder, DefaultName);
+
+    public static bool Exists(string folder) => File.Exists(Find(folder));
+}
+
 public static class ProjectLocator
 {
     /// <summary>
-    /// CapCut's default drafts folder. Assumed to mirror the Mac layout (<c>User Data/Projects/com.lveditor.draft</c>)
-    /// under <c>%LOCALAPPDATA%\CapCut</c> on Windows; CapCut lets the user move it, so callers can pass another root.
+    /// CapCut's default drafts folder: <c>User Data/Projects/com.lveditor.draft</c>, under <c>%LOCALAPPDATA%\CapCut</c>
+    /// on Windows (as on the Mac, apart from the draft's file name, see <see cref="DraftFile"/>). CapCut lets the user
+    /// move it, so callers can pass another root.
     /// </summary>
     public static string DefaultProjectsRoot => OperatingSystem.IsWindows()
         ? System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -88,7 +113,7 @@ public static class ProjectLocator
         root ??= DefaultProjectsRoot;
         if (!Directory.Exists(root)) return [];
         return Directory.EnumerateDirectories(root)
-            .Where(d => !System.IO.Path.GetFileName(d).StartsWith('.') && File.Exists(System.IO.Path.Combine(d, "draft_info.json")))
+            .Where(d => !System.IO.Path.GetFileName(d).StartsWith('.') && DraftFile.Exists(d))
             .Select(d => new CapCutProject(d))
             .OrderByDescending(p => p.Modified)
             .ToList();
@@ -106,10 +131,10 @@ public static class ProjectLocator
         var path = nameOrPath.StartsWith('~')
             ? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + nameOrPath[1..]
             : nameOrPath;
-        if (System.IO.Path.GetFileName(path) == "draft_info.json") path = System.IO.Path.GetDirectoryName(path) ?? path;
-        if (File.Exists(System.IO.Path.Combine(path, "draft_info.json"))) return new CapCutProject(System.IO.Path.GetFullPath(path));
+        if (DraftFile.IsName(System.IO.Path.GetFileName(path))) path = System.IO.Path.GetDirectoryName(path) ?? path;
+        if (DraftFile.Exists(path)) return new CapCutProject(System.IO.Path.GetFullPath(path));
         var named = System.IO.Path.Combine(root ?? DefaultProjectsRoot, nameOrPath);
-        return File.Exists(System.IO.Path.Combine(named, "draft_info.json")) ? new CapCutProject(named) : null;
+        return DraftFile.Exists(named) ? new CapCutProject(named) : null;
     }
 }
 
