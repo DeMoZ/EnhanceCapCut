@@ -102,5 +102,7 @@ version of the renderer (`ecc render`), checked by CI's end-to-end test but not 
 subtitles and voice-over (`ecc subtitles`, checked on macOS with a WAV mix apart from the Windows voices), and the
 app's two windows. Voice effects aren't applied on Windows yet (the export warns).
 
-CapCut for Windows is assumed to write the same draft format as the Mac app and to keep projects in
-`%LOCALAPPDATA%\CapCut\User Data\Projects\com.lveditor.draft`.
+CapCut for Windows writes the same draft format as the Mac app (seen with new_version 189.0.0), in a file called
+`draft_content.json` instead of `draft_info.json`, and keeps projects in
+`%LOCALAPPDATA%\CapCut\User Data\Projects\com.lveditor.draft`. A project open in CapCut has a `.locked` file there too.
+`ecc list` and the export window find projects by either file name.

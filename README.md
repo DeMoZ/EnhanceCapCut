@@ -5,7 +5,8 @@ Export the CapCut project you're editing with **your own export settings**, with
 EnhanceCapCut is a small macOS app that appears in the system **Services** menu. While editing in
 CapCut, choose **CapCut → Services → Export with EnhanceCapCut** (or press your hotkey): a window opens
 with the currently open project, you pick the parameters, press **Export**, and the finished video lands
-in your folder. Rendering is done by EnhanceCapCut itself from the project file (`draft_info.json`) using
+in your folder. Rendering is done by EnhanceCapCut itself from the project file (`draft_info.json`, or
+`draft_content.json` in CapCut for Windows) using
 AVFoundation, Core Image/Metal and VideoToolbox hardware encoders.
 
 > Status: milestone 1. Cuts, overlays, speed (incl. curves), transforms and keyframes, canvas

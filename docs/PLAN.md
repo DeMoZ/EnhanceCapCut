@@ -115,8 +115,9 @@ Usage counts from the author's 69 projects drive the order of the later mileston
 ## Windows version
 
 A separate implementation in `windows/` on Windows' own stack: C# / .NET 10, Media Foundation for decoding
-and encoding, Direct3D 11 / Direct2D for compositing, DirectWrite for text, WinUI 3 for the window. It assumes
-CapCut for Windows writes the same draft format as the Mac app (not checked yet) and keeps its projects in
+and encoding, Direct3D 11 / Direct2D for compositing, DirectWrite for text, WinUI 3 for the window. CapCut for
+Windows writes the same draft format as the Mac app (checked on new_version 189.0.0), in `draft_content.json`
+instead of `draft_info.json`, and keeps its projects in
 `%LOCALAPPDATA%\CapCut\User Data\Projects\com.lveditor.draft` (the root can be passed explicitly).
 
 - [x] Stage 1: the draft model, project/timeline lookup, timeline builder, `TimeMap`, export settings and the

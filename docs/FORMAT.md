@@ -1,12 +1,17 @@
 # CapCut draft format notes
 
-Observed on CapCut for macOS 9.5 (`draft_info.json` version 360000, new_version 187.0.0). These notes
-describe what the renderer relies on; everything is read leniently because fields change between versions.
+Observed on CapCut for macOS 9.5 (`draft_info.json` version 360000, new_version 187.0.0) and CapCut for
+Windows (`draft_content.json` version 360000, new_version 189.0.0). These notes describe what the renderer
+relies on; everything is read leniently because fields change between versions.
 
 ## Locations
 
-- Projects: `~/Movies/CapCut/User Data/Projects/com.lveditor.draft/<name>/draft_info.json` (plain JSON).
-- A project that is open in CapCut has a `.locked` file in its folder (stale ones can survive a crash).
+- Projects on the Mac: `~/Movies/CapCut/User Data/Projects/com.lveditor.draft/<name>/draft_info.json` (plain JSON).
+- Projects on Windows: `%LOCALAPPDATA%\CapCut\User Data\Projects\com.lveditor.draft\<name>\draft_content.json`
+  (plain JSON, the same format under another name). Everywhere below, "the draft" is whichever of the two files
+  the folder has (`DraftFile`).
+- A project that is open in CapCut has a `.locked` file in its folder (stale ones can survive a crash), on both
+  systems.
 - Effect cache: `~/Library/Containers/com.lemon.lvoverseas/Data/Movies/CapCut/User Data/Cache/effect/<id>/<hash>/`
   — "AmazingFeature" packages (GLSL shaders, scene, materials, Lua). Never copy these into the repo.
 - Paths inside a draft can start with `##_draftpath_placeholder_<UUID>_##`, meaning the project folder.
@@ -14,8 +19,8 @@ describe what the renderer relies on; everything is read leniently because field
 ## Timelines
 
 A project can hold several timelines. `Timelines/project.json` lists them: `main_timeline_id`,
-`timelines[{id, name, is_marked_delete}]`. Each has its own draft in `Timelines/<id>/draft_info.json`
-(same format; media paths still resolve against the project folder). The root `draft_info.json` is a copy
+`timelines[{id, name, is_marked_delete}]`. Each has its own draft in `Timelines/<id>/`
+(same format; media paths still resolve against the project folder). The root draft is a copy
 of the main timeline. `timeline_layout.json` describes CapCut's dock of open timelines (not used).
 Projects without `project.json` have a single timeline: the root draft.
 
@@ -102,9 +107,9 @@ and a `materials.texts` entry with:
 
 `config.subtitle_taskinfo` lists CapCut's recognition tasks; generated captions don't need an entry.
 EnhanceCapCut names its tracks `EnhanceCapCut subtitles · <code>` (`is_default_name` false) so a later run can
-replace them, and writes the same bytes to every copy of the timeline's draft (the root `draft_info.json` of
-the main timeline and `template-2.tmp` next to each draft, which CapCut keeps identical); `draft_info.json.bak`
-is CapCut's previous save and is left alone.
+replace them, and writes the same bytes to every copy of the timeline's draft (the root draft of
+the main timeline and `template-2.tmp` next to each draft, which CapCut keeps identical); the draft's `.bak`
+(`draft_info.json.bak`, `draft_content.json.bak`) is CapCut's previous save and is left alone.
 
 ### Voice-over tracks (what EnhanceCapCut writes)
 

@@ -336,3 +336,70 @@ public class ProjectTimelinesTests : IDisposable
         Assert.False(timelines[1].IsMain);
     }
 }
+
+// CapCut for macOS names a draft draft_info.json, CapCut for Windows draft_content.json.
+public class DraftFileNameTests : IDisposable
+{
+    readonly string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+
+    public DraftFileNameTests() => Directory.CreateDirectory(root);
+
+    public void Dispose() => Directory.Delete(root, true);
+
+    string Project(string name, string draftFile)
+    {
+        var folder = Path.Combine(root, name);
+        Directory.CreateDirectory(folder);
+        File.WriteAllText(Path.Combine(folder, draftFile), "{}");
+        return folder;
+    }
+
+    [Theory]
+    [InlineData("draft_info.json")]
+    [InlineData("draft_content.json")]
+    public void ProjectsAreListedWhateverTheDraftIsCalled(string draftFile)
+    {
+        var folder = Project("Some Project", draftFile);
+        Project(".recycle_bin", draftFile);
+        Directory.CreateDirectory(Path.Combine(root, "No Draft"));
+        var projects = ProjectLocator.AllProjects(root);
+        Assert.Equal(folder, Assert.Single(projects).Folder);
+        Assert.Equal(Path.Combine(folder, draftFile), projects[0].DraftPath);
+    }
+
+    [Fact]
+    public void ResolveTakesANameAFolderOrADraftFile()
+    {
+        var folder = Project("Some Project", "draft_content.json");
+        Assert.Equal(folder, ProjectLocator.Resolve("Some Project", root)?.Folder);
+        Assert.Equal(folder, ProjectLocator.Resolve(folder, root)?.Folder);
+        Assert.Equal(folder, ProjectLocator.Resolve(Path.Combine(folder, "draft_content.json"), root)?.Folder);
+        Assert.Null(ProjectLocator.Resolve("Missing Project", root));
+    }
+
+    [Fact]
+    public void OpenProjectIsTheOneWithALockFile()
+    {
+        Project("Closed", "draft_content.json");
+        var open = Project("Open", "draft_content.json");
+        File.WriteAllText(Path.Combine(open, ".locked"), "");
+        Assert.Equal(open, ProjectLocator.OpenProject(root)?.Folder);
+    }
+
+    [Fact]
+    public void TimelinesUseTheSameDraftName()
+    {
+        var folder = Project("Some Project", "draft_content.json");
+        var timelines = Path.Combine(folder, "Timelines");
+        Directory.CreateDirectory(Path.Combine(timelines, "B"));
+        File.WriteAllText(Path.Combine(timelines, "B", "draft_content.json"), "{}");
+        File.WriteAllText(Path.Combine(timelines, "project.json"), """
+        {"main_timeline_id": "A", "timelines": [{"id": "A", "name": "Timeline 01"}, {"id": "B", "name": "Timeline 02"}]}
+        """);
+        var found = new CapCutProject(folder).Timelines();
+        Assert.Equal(["Timeline 01", "Timeline 02"], found.Select(t => t.Name));
+        // The main timeline without its own folder falls back to the root draft.
+        Assert.Equal(Path.Combine(folder, "draft_content.json"), found[0].DraftPath);
+        Assert.Equal(Path.Combine(timelines, "B", "draft_content.json"), found[1].DraftPath);
+    }
+}
