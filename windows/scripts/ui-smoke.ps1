@@ -23,7 +23,7 @@ $clip = (Join-Path $demo 'missing.mp4').Replace('\', '/')
 "@ | Set-Content -Encoding utf8 (Join-Path $demo 'draft_info.json')
 New-Item -ItemType Directory -Force -Path $Out | Out-Null
 
-Add-Type -AssemblyName System.Drawing
+Add-Type -AssemblyName System.Drawing, System.Windows.Forms
 Add-Type @'
 using System;
 using System.Runtime.InteropServices;
@@ -35,6 +35,12 @@ public static class Win {
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowText(IntPtr hwnd, System.Text.StringBuilder text, int max);
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hwnd);
     [DllImport("dwmapi.dll")] public static extern int DwmGetWindowAttribute(IntPtr hwnd, int attribute, out RECT rect, int size);
+    [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
+    public static RECT Bounds(IntPtr hwnd) {
+        RECT r;
+        if (DwmGetWindowAttribute(hwnd, 9, out r, Marshal.SizeOf(typeof(RECT))) != 0 || r.Right <= r.Left) GetWindowRect(hwnd, out r);
+        return r;
+    }
     [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
 }
 '@
@@ -52,9 +58,15 @@ function Find-Window([int]$processId, [string]$title) {
 function Save-Window([IntPtr]$hwnd, [string]$path) {
     [void][Win]::SetForegroundWindow($hwnd)
     Start-Sleep -Milliseconds 800
-    $r = New-Object Win+RECT
-    [void][Win]::DwmGetWindowAttribute($hwnd, 9, [ref]$r, 16)  # DWMWA_EXTENDED_FRAME_BOUNDS
-    $bitmap = New-Object System.Drawing.Bitmap ($r.Right - $r.Left), ($r.Bottom - $r.Top)
+    $r = [Win]::Bounds($hwnd)  # DWMWA_EXTENDED_FRAME_BOUNDS, else the window rect
+    $width = $r.Right - $r.Left; $height = $r.Bottom - $r.Top
+    Write-Host "Window at $($r.Left),$($r.Top) size ${width}x$height"
+    if ($width -le 0 -or $height -le 0) {
+        # No usable bounds: the whole screen.
+        $screen = [System.Windows.Forms.SystemInformation]::VirtualScreen
+        $r.Left = $screen.Left; $r.Top = $screen.Top; $width = $screen.Width; $height = $screen.Height
+    }
+    $bitmap = New-Object System.Drawing.Bitmap -ArgumentList $width, $height
     $g = [System.Drawing.Graphics]::FromImage($bitmap)
     $g.CopyFromScreen($r.Left, $r.Top, 0, 0, $bitmap.Size)
     $bitmap.Save($path, [System.Drawing.Imaging.ImageFormat]::Png)
