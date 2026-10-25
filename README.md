@@ -56,7 +56,7 @@ git tag v0.3.0 origin/main && git push origin v0.3.0
 ```
 
 The workflow builds the macOS `.pkg` and the Windows `EnhanceCapCut-<version>-windows-x64.zip` (self-contained
-`ecc.exe`) and publishes the release with both. CI builds are unsigned.
+`EnhanceCapCut.exe` and `ecc.exe`) and publishes the release with both. CI builds are unsigned.
 
 Signed and notarized installer (requires an Apple Developer ID):
 
@@ -126,8 +126,8 @@ The style and position are copied from captions already in the timeline; otherwi
 look is used. Running again replaces the tracks added before (your own captions stay). The project file is
 backed up first to `~/Library/Application Support/EnhanceCapCut/Backups/<project>/<time>/`, and `.srt`
 files can be saved to the export folder too. The first time a language is used, macOS downloads its speech
-or translation model once. On Windows subtitles are available from the command line for now (`ecc subtitles`,
-with Whisper and NLLB; see [windows/README.md](windows/README.md#subtitles)); voice-over is Mac only.
+or translation model once. On Windows the same window uses Whisper, NLLB and Windows voices (see
+[windows/README.md](windows/README.md#the-app)).
 
 Voice-over: each translated line is spoken by an on-device Apple voice and sped up just enough (at most 1.35×)
 to fit before the next line. The audio is saved inside the project folder (`EnhanceCapCut/voiceover <time>/`),

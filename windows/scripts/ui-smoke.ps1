@@ -66,7 +66,13 @@ $windows = @{ 'export' = 'Export with EnhanceCapCut'; 'subtitles' = 'Subtitles &
 foreach ($name in $windows.Keys) {
     $hwnd = [IntPtr]::Zero
     for ($i = 0; $i -lt 60 -and $hwnd -eq [IntPtr]::Zero; $i++) {
-        if ($process.HasExited) { throw "EnhanceCapCut exited with code $($process.ExitCode)" }
+        if ($process.HasExited) {
+            $log = Join-Path $env:LOCALAPPDATA 'EnhanceCapCut\crash.log'
+            if (Test-Path $log) { Get-Content $log | Write-Host }
+            Get-WinEvent -FilterHashtable @{ LogName = 'Application'; Level = 2 } -MaxEvents 5 -ErrorAction SilentlyContinue |
+                ForEach-Object { Write-Host $_.Message }
+            throw "EnhanceCapCut exited with code $($process.ExitCode)"
+        }
         Start-Sleep -Milliseconds 500
         $hwnd = Find-Window $process.Id $windows[$name]
     }

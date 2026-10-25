@@ -58,9 +58,10 @@ Usage counts from the author's 69 projects drive the order of the later mileston
       per language (a clip per line, one audible); the original sound lowered or muted while the voice speaks
       with `KFTypeVolume` keyframes, which the renderer now plays on both platforms. Ported from SubDub.
 - [ ] Check in CapCut that it reads our `KFTypeVolume` keyframes the same way (see FORMAT.md).
-- [ ] Voice-over on Windows (`DraftVoiceOverWriter` port + a TTS engine).
+- [x] Voice-over on Windows: `DraftVoiceOverWriter` ported, Windows voices (Windows.Media.SpeechSynthesis) through
+      `Dubber`; in the app's Subtitles & Voice-over window and `ecc subtitles --voice`.
 - [x] Windows: `ecc subtitles` with Whisper (whisper.cpp) and NLLB-200 (ONNX Runtime), models downloaded on first
-      use; same segmentation and draft writing as the Mac (ported). The window comes with the WinUI app.
+      use; same segmentation and draft writing as the Mac (ported), and the same window in the app.
 
 ## Milestone 2 — LUT filters
 
@@ -139,8 +140,12 @@ CapCut for Windows writes the same draft format as the Mac app (not checked yet)
     mode; CapCut's own fallback fonts aren't read (Windows' font fallback is used); the mix is held in
     memory (~350 MB per 15 min); no Lanczos pre-shrink for large downscales; masks aren't drawn (also not
     on the Mac).
-- [ ] Stage 3: the export window in WinUI 3 (same settings as the Mac window), started from a tray icon or
-  hotkey; the open project is detected by `.locked` like on the Mac.
+- [x] Stage 3: the app in WinUI 3 (unpackaged, self-contained Windows App SDK; UI built in code): the export window
+  and the Subtitles & Voice-over window with the Mac windows' layout, texts and behaviour; one instance, a second
+  launch brings the export window back and re-detects the project open in CapCut (by `.locked`, like on the Mac).
+  CI starts it and keeps screenshots.
+  - Open: check on a real Windows machine with CapCut; a tray icon or global hotkey (the Mac's Services entry);
+    an app icon.
 - [ ] Stage 4: voice effects. Apple's voice isolation has no Windows counterpart; candidates are an ONNX
   model through DirectML. Until then they are listed as not rendered.
 - [ ] Stage 5: release build in CI (self-contained installer).

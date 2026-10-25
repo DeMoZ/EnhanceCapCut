@@ -26,12 +26,33 @@ sealed partial class App : Application, IXamlMetadataProvider
     SubtitlesWindow? subtitlesWindow;
     bool quitting;
 
-    App(string[] args) => this.args = args;
+    App(string[] args)
+    {
+        this.args = args;
+        UnhandledException += (_, e) => Log(e.Exception);
+    }
+
+    /// <summary>Where a crash is described: <c>%LOCALAPPDATA%\EnhanceCapCut\crash.log</c>.</summary>
+    public static string CrashLog => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "EnhanceCapCut", "crash.log");
+
+    static void Log(Exception? e)
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(CrashLog)!);
+            File.AppendAllText(CrashLog, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {e}\n\n");
+        }
+        catch (IOException)
+        {
+        }
+    }
 
     [STAThread]
     static int Main(string[] args)
     {
         WinRT.ComWrappersSupport.InitializeComWrappers();
+        AppDomain.CurrentDomain.UnhandledException += (_, e) => Log(e.ExceptionObject as Exception);
         if (RedirectToRunningInstance()) return 0;
         Start(callback =>
         {

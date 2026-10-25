@@ -14,21 +14,26 @@ and timeline logic is a port of it and is checked against it (see "Status").
   EBU R128 loudness.
 - `src/EnhanceCapCut.Windows` — the Windows renderer through Vortice: Media Foundation reading and writing
   (`MfVideoReader`, `MfAudioDecoder`, `MfVideoWriter`), Direct2D on Direct3D 11 (`Graphics`, `Compositor`),
-  DirectWrite text (`TextImageRenderer`), WIC photos (`ImageLoader`), and the `Exporter` pipeline.
+  DirectWrite text (`TextImageRenderer`), WIC photos (`ImageLoader`), the `Exporter` pipeline, and the voice-over
+  voices (`WindowsVoices`, Windows.Media.SpeechSynthesis).
 - `src/EnhanceCapCut.Subtitles` — offline subtitles: speech recognition with Whisper (whisper.cpp through
-  Whisper.net, CPU or Vulkan GPU), translation with NLLB-200 (ONNX Runtime), the model store and the pipeline. The
-  segmentation, the language table and writing captions into the draft (`DraftSubtitleWriter`) live in
-  `EnhanceCapCut.Draft`, ported from the macOS version. Platform-neutral.
+  Whisper.net, CPU or Vulkan GPU), translation with NLLB-200 (ONNX Runtime), the model store, voice-over timing
+  (`Dubber`) and the pipeline. The segmentation, the language table and writing captions and voice-over into the
+  draft (`DraftSubtitleWriter`, `DraftVoiceOverWriter`) live in `EnhanceCapCut.Draft`, ported from the macOS
+  version. Platform-neutral.
+- `src/EnhanceCapCut.App` — the app (`EnhanceCapCut.exe`), WinUI 3 (Windows App SDK, unpackaged and
+  self-contained): the export window and the Subtitles & Voice-over window, see below.
 - `src/ecc` — command-line tool: `ecc list`, `ecc info [project] [--timeline name|number]`, and on Windows
   `ecc render` (same options as the macOS CLI; HEVC 10-bit needs an encoder that supports it), and
-  `ecc subtitles` (see below).
+  `ecc subtitles` / `ecc voices` (see below).
 - `tests/` — unit tests for the draft and render layers (run anywhere) and end-to-end export tests (Windows only;
   elsewhere they return without checking).
 
 ## Build
 
-Requires the .NET 10 SDK. Everything here builds and runs on macOS too, which is how it's checked against
-the Swift version.
+Requires the .NET 10 SDK. Everything here builds on macOS too and, except the app, runs there, which is how it's
+checked against the Swift version (on macOS the app is only compiled: the Windows App SDK's packaging tools are
+skipped).
 
 ```sh
 dotnet test windows/EnhanceCapCut.slnx
@@ -38,8 +43,34 @@ dotnet run --project windows/src/ecc -f net10.0 -- info "My Project"
 On Windows:
 
 ```sh
-dotnet run --project windows/src/ecc -f net10.0-windows -c Release -- render "My Project" --from 10 --duration 5 -o x.mp4
+dotnet run --project windows/src/ecc -f net10.0-windows10.0.19041.0 -c Release -- render "My Project" --from 10 --duration 5 -o x.mp4
+dotnet run --project windows/src/EnhanceCapCut.App -c Release
+dotnet publish windows/src/EnhanceCapCut.App -c Release -r win-x64 --self-contained -o build/app
 ```
+
+## The app
+
+`EnhanceCapCut.exe` shows the same two windows as the macOS app, laid out the same way (the SwiftUI grouped forms
+are rebuilt from WinUI controls in `Form.cs`: titled sections as cards, label on the left and control on the
+right, the status and main button in a bar at the bottom):
+
+- **Export with EnhanceCapCut** — the CapCut project (the one open in CapCut is selected), timeline, what isn't
+  rendered yet, video (aspect ratio, resolution, frame rate, H.264 / HEVC 8-bit / HEVC 10-bit, constant quality
+  or bitrate, burned-in captions), audio (loudness normalization — built in, no ffmpeg needed), output folder and
+  file name. Settings are shared with `ecc render` (`%APPDATA%\EnhanceCapCut\settings.json`).
+- **Subtitles & Voice-over** — the same choices as on the Mac: subtitles and/or voice-over, the spoken language,
+  translations, the track shown on screen, per-language Windows voices (▶ previews), the audible voice-over track
+  and what happens to the original sound. When the Whisper or NLLB model isn't there yet, the window offers the
+  one-time download.
+
+There is one instance: starting it again brings the export window back and re-detects the project open in CapCut
+(pin it to the taskbar for the macOS Services entry's role). Closing a window hides it while the other one is
+open; closing the last one quits, after asking if an export or a subtitles run is still going. Window frames and
+the subtitle choices are kept in `%APPDATA%\EnhanceCapCut\app.json`. For testing:
+`EnhanceCapCut.exe [--project <name>] [--auto-export] [--subtitles]`.
+
+CI starts the published app on a demo project and keeps screenshots of both windows (the `windows-ui` artifact
+of the Windows workflow).
 
 ## Subtitles
 
@@ -56,13 +87,20 @@ for translation, NLLB-200 distilled 600M, 8-bit ONNX (~0.9 GB). NLLB's licence (
 which is why it isn't shipped. Apple's Translation on the Mac is noticeably better than NLLB-600M, especially
 between two non-English languages (Russian → Thai). Languages: `SubtitleLanguage.All` (24, all handled by both
 models). On other systems `ecc subtitles` needs the mix as a WAV file (`--audio mix.wav`), which is how it's
-checked on macOS. The window comes with the WinUI app.
+checked on macOS.
+
+Voice-over, as on the Mac: `--voice en,th` (or `en=<voice id>`) speaks those translations with Windows voices
+(Settings ▸ Time & language ▸ Speech ▸ Add voices; `ecc voices <language>` lists the installed ones), `--hear th`
+picks the audible track, `--original keep|lower|mute` what happens to the project's own sound, `--no-captions`
+makes only the voice-over. Each line is sped up just enough to fit its slot (at most 1.35×), saved inside the
+project folder and added as a clip of its own.
 
 ## Status
 
-Stages 1–2 of the roadmap in [docs/PLAN.md](../docs/PLAN.md#windows-version): the draft/timeline layer and a
-first version of the renderer (`ecc render`), checked by CI's end-to-end test but not yet on real projects on
-Windows, and subtitles (`ecc subtitles`), checked on macOS with a WAV mix. The WinUI 3 window comes next. Voice effects aren't applied on Windows yet (the export warns).
+Stages 1–3 of the roadmap in [docs/PLAN.md](../docs/PLAN.md#windows-version): the draft/timeline layer, a first
+version of the renderer (`ecc render`), checked by CI's end-to-end test but not yet on real projects on Windows,
+subtitles and voice-over (`ecc subtitles`, checked on macOS with a WAV mix apart from the Windows voices), and the
+app's two windows. Voice effects aren't applied on Windows yet (the export warns).
 
 CapCut for Windows is assumed to write the same draft format as the Mac app and to keep projects in
 `%LOCALAPPDATA%\CapCut\User Data\Projects\com.lveditor.draft`.
