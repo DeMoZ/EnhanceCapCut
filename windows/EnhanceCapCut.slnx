@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/ecc/ecc.csproj" />
+    <Project Path="src/EnhanceCapCut.App/EnhanceCapCut.App.csproj" />
     <Project Path="src/EnhanceCapCut.Draft/EnhanceCapCut.Draft.csproj" />
     <Project Path="src/EnhanceCapCut.Render/EnhanceCapCut.Render.csproj" />
     <Project Path="src/EnhanceCapCut.Subtitles/EnhanceCapCut.Subtitles.csproj" />

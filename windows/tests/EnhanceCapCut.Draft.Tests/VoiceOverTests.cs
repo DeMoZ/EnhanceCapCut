@@ -1,0 +1,162 @@
+using System.Text;
+using System.Text.Json;
+using EnhanceCapCut.Draft;
+
+namespace EnhanceCapCut.Draft.Tests;
+
+// Ported from the macOS version's VoiceOverTests.swift; same cases, same expectations.
+
+public class VoiceOverWriterTests
+{
+    const string Project = "/Projects/Demo";
+    const string Placeholder = "##_draftpath_placeholder_0E685133-18CE-45ED-8CB8-2904A212EC80_##";
+
+    /// <summary>A video clip over the whole 10 s, a music clip from 6 s, and one with volume keyframes of its own.</summary>
+    const string Draft =
+        "{\"id\":\"D\",\"fps\":30.0,\"duration\":10000000,\"tracks\":["
+        + "{\"id\":\"V\",\"type\":\"video\",\"flag\":0,\"attribute\":0,\"segments\":[{\"id\":\"S1\",\"material_id\":\"M1\","
+        + "\"target_timerange\":{\"start\":0,\"duration\":10000000},\"volume\":0.5,\"common_keyframes\":[]}]},"
+        + "{\"id\":\"A\",\"type\":\"audio\",\"flag\":0,\"attribute\":0,\"segments\":[{\"id\":\"S2\",\"material_id\":\"M2\","
+        + "\"target_timerange\":{\"start\":6000000,\"duration\":4000000},\"volume\":1.0}]},"
+        + "{\"id\":\"B\",\"type\":\"audio\",\"flag\":0,\"attribute\":0,\"segments\":[{\"id\":\"S3\",\"material_id\":\"M3\","
+        + "\"target_timerange\":{\"start\":0,\"duration\":4000000},\"volume\":1.0,\"common_keyframes\":[{\"id\":\"K\","
+        + "\"property_type\":\"KFTypeVolume\",\"keyframe_list\":[{\"time_offset\":0,\"values\":[1.0]}]}]}]}],"
+        + "\"materials\":{\"videos\":[{\"id\":\"M1\",\"path\":\"" + Placeholder + "/clip.mp4\"}],\"audios\":[],\"speeds\":[]}}";
+
+    static List<VoiceOverTrack> Tracks() =>
+    [
+        new(SubtitleLanguage.Find("en")!, Project + "/EnhanceCapCut/voiceover 1/en.wav", 10, [(1, 2.5), (3, 4)], IsAudible: true),
+        new(SubtitleLanguage.Find("th")!, "/elsewhere/th.wav", 10, [(1, 2)], IsAudible: false),
+    ];
+
+    static JsonElement Json(byte[] data) => JsonDocument.Parse(data).RootElement;
+    static byte[] Bytes(string s) => Encoding.UTF8.GetBytes(s);
+
+    static JsonElement Segments(JsonElement d, int track) => d.GetProperty("tracks")[track].GetProperty("segments");
+
+    static List<JsonElement> VolumeKeyframes(JsonElement segment) =>
+        segment.TryGetProperty("common_keyframes", out var groups)
+            ? groups.EnumerateArray().Where(g => g.GetProperty("property_type").GetString() == "KFTypeVolume").ToList()
+            : [];
+
+    [Fact]
+    public void AddsAudioTracksWithAClipPerLine()
+    {
+        var output = DraftVoiceOverWriter.Apply(Tracks(), Bytes(Draft), OriginalAudio.Keep, replacePrevious: true, Project);
+        var d = Json(output);
+        var all = d.GetProperty("tracks");
+        Assert.Equal(5, all.GetArrayLength());
+        Assert.Equal("audio", all[3].GetProperty("type").GetString());
+        Assert.Equal(0, all[3].GetProperty("attribute").GetInt32());
+        Assert.Equal(1, all[4].GetProperty("attribute").GetInt32());  // muted
+        Assert.Equal("EnhanceCapCut voice-over · en", all[3].GetProperty("name").GetString());
+
+        var lines = Segments(d, 3);
+        Assert.Equal(2, lines.GetArrayLength());
+        var target = lines[0].GetProperty("target_timerange");
+        Assert.Equal(1_000_000, target.GetProperty("start").GetInt64());
+        Assert.Equal(1_500_000, target.GetProperty("duration").GetInt64());
+        var source = lines[0].GetProperty("source_timerange");
+        Assert.Equal(1_000_000, source.GetProperty("start").GetInt64());
+        Assert.Equal(1_500_000, source.GetProperty("duration").GetInt64());
+        Assert.Equal(3, lines[0].GetProperty("track_render_index").GetInt32());
+        Assert.Equal(5, lines[0].GetProperty("extra_material_refs").GetArrayLength());
+
+        var materials = d.GetProperty("materials");
+        var audios = materials.GetProperty("audios");
+        Assert.Equal(3, audios.GetArrayLength());
+        var id = lines[0].GetProperty("material_id").GetString();
+        var first = audios.EnumerateArray().First(a => a.GetProperty("id").GetString() == id);
+        Assert.Equal("record", first.GetProperty("type").GetString());
+        Assert.Equal(10_000_000, first.GetProperty("duration").GetInt64());
+        // Inside the project: written with the draft's placeholder; elsewhere: absolute.
+        Assert.Equal(Placeholder + "/EnhanceCapCut/voiceover 1/en.wav", first.GetProperty("path").GetString());
+        Assert.Contains(audios.EnumerateArray(), a => a.GetProperty("path").GetString() == "/elsewhere/th.wav");
+        Assert.Equal(3, materials.GetProperty("speeds").GetArrayLength());
+        Assert.Equal(3, materials.GetProperty("vocal_separations").GetArrayLength());
+
+        // Keep: nothing else changes.
+        Assert.Empty(VolumeKeyframes(Segments(d, 0)[0]));
+        Assert.StartsWith("{\"id\":\"D\",\"fps\":30.0,\"duration\":10000000,\"tracks\":[{\"id\":\"V\",\"type\":\"video\"",
+            Encoding.UTF8.GetString(output));
+    }
+
+    [Fact]
+    public void DucksOtherAudioWhileTheVoiceSpeaks()
+    {
+        var d = Json(DraftVoiceOverWriter.Apply(Tracks(), Bytes(Draft), OriginalAudio.Lower, replacePrevious: true, Project));
+        // The two lines (1–2.5 s, 3–4 s) are less than the ramps apart, so they duck as one: 1–4 s.
+        var video = VolumeKeyframes(Segments(d, 0)[0]).First();
+        Assert.StartsWith(DraftVoiceOverWriter.KeyframeIDPrefix, video.GetProperty("id").GetString());
+        var list = video.GetProperty("keyframe_list").EnumerateArray().ToList();
+        Assert.Equal([750_000L, 1_000_000, 4_000_000, 4_400_000], list.Select(k => k.GetProperty("time_offset").GetInt64()));
+        var values = list.Select(k => k.GetProperty("values")[0].GetDouble()).ToList();
+        Assert.Equal(0.5, values[0]);
+        Assert.Equal(0.5 * DraftVoiceOverWriter.LowerGain, values[1], 9);
+        Assert.Equal(0.5, values[3]);
+
+        // Music from 6 s: no speech there. The clip with its own volume keyframes is left alone.
+        Assert.Empty(VolumeKeyframes(Segments(d, 1)[0]));
+        Assert.Equal(["K"], VolumeKeyframes(Segments(d, 2)[0]).Select(g => g.GetProperty("id").GetString()));
+        // Voice-over tracks aren't ducked.
+        Assert.Empty(VolumeKeyframes(Segments(d, 3)[0]));
+    }
+
+    [Fact]
+    public void ReplacesPreviousRun()
+    {
+        var once = DraftVoiceOverWriter.Apply(Tracks(), Bytes(Draft), OriginalAudio.Mute, replacePrevious: true, Project);
+        var twice = DraftVoiceOverWriter.Apply(Tracks(), once, OriginalAudio.Mute, replacePrevious: true, Project);
+        var d = Json(twice);
+        Assert.Equal(5, d.GetProperty("tracks").GetArrayLength());
+        var materials = d.GetProperty("materials");
+        Assert.Equal(3, materials.GetProperty("audios").GetArrayLength());
+        Assert.Equal(3, materials.GetProperty("beats").GetArrayLength());
+        var video = VolumeKeyframes(Segments(d, 0)[0]);
+        Assert.Single(video);
+        Assert.Equal(0, video[0].GetProperty("keyframe_list")[1].GetProperty("values")[0].GetDouble());
+
+        // Keep the original sound this time: the earlier ducking goes too.
+        var kept = DraftVoiceOverWriter.Apply(Tracks(), once, OriginalAudio.Keep, replacePrevious: true, Project);
+        Assert.Empty(VolumeKeyframes(Segments(Json(kept), 0)[0]));
+
+        // What speech recognition hears: no voice-over, no ducking.
+        var clean = Json(DraftVoiceOverWriter.WithoutVoiceOver(once));
+        Assert.Equal(3, clean.GetProperty("tracks").GetArrayLength());
+        Assert.Equal(0, clean.GetProperty("materials").GetProperty("audios").GetArrayLength());
+        Assert.Empty(VolumeKeyframes(Segments(clean, 0)[0]));
+    }
+
+    [Fact]
+    public void DuckingReachesTheTimeline()
+    {
+        var media = Path.Combine(Path.GetTempPath(), $"ecc-duck-{Guid.NewGuid()}.m4a");
+        File.WriteAllBytes(media, [0]);
+        try
+        {
+            var source = "{\"duration\":10000000,\"tracks\":[{\"type\":\"audio\",\"segments\":[{\"id\":\"S\",\"material_id\":\"A\","
+                + "\"target_timerange\":{\"start\":0,\"duration\":10000000},\"volume\":0.5}]}],"
+                + "\"materials\":{\"audios\":[{\"id\":\"A\",\"path\":" + JsonSerializer.Serialize(media) + "}]}}";
+            var ducked = DraftVoiceOverWriter.Apply([Tracks()[0]], Bytes(source), OriginalAudio.Lower, replacePrevious: true);
+            var timeline = TimelineBuilder.Build(EnhanceCapCut.Draft.Draft.Parse(Encoding.UTF8.GetString(ducked)), Path.GetTempPath());
+            var clip = timeline.AudioClips.First(c => c.Path == media);
+            Assert.Equal(0.5, clip.Volume);
+            var envelope = clip.VolumeEnvelope;
+            Assert.NotNull(envelope);
+            Assert.Equal(1, envelope.Value(0));
+            Assert.Equal(DraftVoiceOverWriter.LowerGain, envelope.Value(2_000_000), 9);
+            Assert.DoesNotContain(timeline.Report.Unsupported, i => i.Category == "Keyframes");
+        }
+        finally
+        {
+            File.Delete(media);
+        }
+    }
+
+    [Fact]
+    public void FindsThePlaceholder()
+    {
+        Assert.Equal(Placeholder, DraftVoiceOverWriter.PlaceholderPrefix(Bytes(Draft)));
+        Assert.Null(DraftVoiceOverWriter.PlaceholderPrefix(Bytes("{\"tracks\":[]}")));
+    }
+}

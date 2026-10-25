@@ -1,4 +1,5 @@
-# Builds and tests the Windows version (windows/, .NET) on Windows.
+# Builds and tests the Windows version (windows/, .NET) on Windows, then starts the app and keeps screenshots of its
+# windows as the `windows-ui` artifact.
 name: Windows
 
 on:
@@ -16,3 +17,14 @@ jobs:
           dotnet-version: 10.0.x
       - run: dotnet build windows/EnhanceCapCut.slnx -c Release
       - run: dotnet test windows/EnhanceCapCut.slnx -c Release --no-build
+      - name: Publish the app
+        run: dotnet publish windows/src/EnhanceCapCut.App -c Release -r win-x64 --self-contained -o build/app
+      - name: Start the app
+        shell: pwsh
+        run: windows/scripts/ui-smoke.ps1 -App build/app -Out build/ui
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-ui
+          path: build/ui
+          if-no-files-found: ignore

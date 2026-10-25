@@ -1,15 +1,31 @@
+using System.Globalization;
+using System.Text;
 using EnhanceCapCut.Draft;
 
 namespace EnhanceCapCut.Subtitles;
 
 /// <summary>
-/// Timeline mix → speech recognition → cues → translations: the counterpart of the macOS version's
-/// <c>SubtitlePipeline</c>. The result goes into the draft with <see cref="DraftSubtitleWriter"/> and into .srt files.
+/// Timeline mix → speech recognition → cues → translations → voice-over: the counterpart of the macOS version's
+/// <c>SubtitlePipeline</c>. The result goes into the draft with <see cref="DraftSubtitleWriter"/> /
+/// <see cref="DraftVoiceOverWriter"/> and into .srt files.
 /// </summary>
 public static class SubtitlePipeline
 {
+    /// <param name="VisibleLanguage">The language whose track stays visible; the others are added hidden. Null = the first track.</param>
     public sealed record Options(SubtitleLanguage Source, bool IncludeOriginal, IReadOnlyList<SubtitleLanguage> Targets,
-        string? VisibleLanguage = null);
+        string? VisibleLanguage = null)
+    {
+        /// <summary>Make caption tracks. Off = only translate for the voice-over.</summary>
+        public bool Captions { get; init; } = true;
+        /// <summary>Voice-over languages: language code → voice id ("" = the best installed voice).</summary>
+        public IReadOnlyDictionary<string, string> Voices { get; init; } = new Dictionary<string, string>();
+        /// <summary>The voice-over language left audible; the other tracks are added muted. Null = the first one.</summary>
+        public string? AudibleVoice { get; init; }
+        /// <summary>Where the voice-over audio files go (inside the project folder, so CapCut can reach them).</summary>
+        public string? VoiceOverFolder { get; init; }
+    }
+
+    public sealed record Output(List<SubtitleTrack> Captions, List<VoiceOverTrack> VoiceOver);
 
     public delegate void Report(string step, double fraction);
 
@@ -18,38 +34,96 @@ public static class SubtitlePipeline
         options.Targets.Any(t => t.Code != options.Source.Code) ? [ModelStore.Whisper, .. ModelStore.Translation] : [ModelStore.Whisper];
 
     /// <param name="audio">The timeline's mix as 16 kHz mono (<see cref="AudioInput"/>).</param>
-    public static async Task<List<SubtitleTrack>> RunAsync(float[] audio, Options options, Report report, CancellationToken cancel = default)
+    /// <param name="voices">Speaks the voice-over; needed when <see cref="Options.Voices"/> isn't empty.</param>
+    public static async Task<Output> RunAsync(float[] audio, Options options, Report report, IVoiceEngine? voices = null,
+        CancellationToken cancel = default)
     {
+        var duration = (double)audio.Length / AudioInput.SampleRate;
+        var targets = options.Targets.Where(t => t.Code != options.Source.Code).ToList();
+        var dubbing = voices is null ? [] : targets.Where(t => options.Voices.ContainsKey(t.Code)).ToList();
+        // Progress: models up to 0.15, speech up to `speechEnd`, translations up to `translateEnd`, then the voice-over.
+        var speechEnd = dubbing.Count == 0 ? 0.75 : 0.6;
+        var translateEnd = dubbing.Count == 0 ? 1 : 0.7;
+
         // 1. Models (downloaded once).
         var models = RequiredModels(options);
         if (!ModelStore.IsDownloaded(models))
             await ModelStore.EnsureAsync(models, p => report("Downloading models (one time)…", 0.15 * p), cancel);
 
         // 2. Speech
-        var words = await SpeechRecognizer.TranscribeAsync(audio, options.Source, p => report("Transcribing…", 0.15 + 0.6 * p), cancel);
+        var words = await SpeechRecognizer.TranscribeAsync(audio, options.Source,
+            p => report("Transcribing…", 0.15 + (speechEnd - 0.15) * p), cancel);
         var cues = Segmenter.Cues(words, options.Source.Code);
 
         // 3. Translations
         var tracks = new List<SubtitleTrack>();
-        if (options.IncludeOriginal) tracks.Add(new SubtitleTrack(options.Source, cues, IsOriginal: true, IsVisible: false));
-        var targets = options.Targets.Where(t => t.Code != options.Source.Code).ToList();
-        if (targets.Count > 0)
+        var spoken = new Dictionary<string, List<CaptionCue>>();
+        if (options.IncludeOriginal && options.Captions) tracks.Add(new SubtitleTrack(options.Source, cues, IsOriginal: true, IsVisible: false));
+        var translating = options.Captions ? targets : dubbing;
+        if (translating.Count > 0)
         {
             using var translator = new Translator();
-            for (var i = 0; i < targets.Count; i++)
+            for (var i = 0; i < translating.Count; i++)
             {
-                var target = targets[i];
-                var baseFraction = 0.75 + 0.25 * i / targets.Count;
+                var target = translating[i];
+                var baseFraction = speechEnd + (translateEnd - speechEnd) * i / translating.Count;
                 var translated = translator.Translate(cues.Select(c => c.Text).ToList(), options.Source, target,
-                    p => report($"Translating: {target.Name}…", baseFraction + 0.25 * p / targets.Count), cancel);
+                    p => report($"Translating: {target.Name}…", baseFraction + (translateEnd - speechEnd) * p / translating.Count), cancel);
+                spoken[target.Code] = cues.Zip(translated, (c, t) => c with { Text = t }).ToList();
+                if (!options.Captions) continue;
                 var wrapped = cues.Zip(translated, (c, t) => c with { Text = LineWrapper.Wrap(t, target.Code) }).ToList();
                 tracks.Add(new SubtitleTrack(target, wrapped, IsOriginal: false, IsVisible: false));
             }
         }
         var visible = tracks.FindIndex(t => t.Language.Code == options.VisibleLanguage);
         if (tracks.Count > 0) tracks[Math.Max(visible, 0)] = tracks[Math.Max(visible, 0)] with { IsVisible = true };
+
+        // 4. Voice-over
+        var voiceOver = new List<VoiceOverTrack>();
+        if (dubbing.Count > 0 && options.VoiceOverFolder is { } folder)
+        {
+            Directory.CreateDirectory(folder);
+            for (var i = 0; i < dubbing.Count; i++)
+            {
+                var language = dubbing[i];
+                var baseFraction = translateEnd + (1 - translateEnd) * i / dubbing.Count;
+                report($"Voicing: {language.Name}…", baseFraction);
+                var voice = options.Voices[language.Code] is { Length: > 0 } chosen ? chosen
+                    : Dubber.DefaultVoice(voices!, language)?.Id ?? throw new NoVoiceException(language);
+                var path = Path.Combine(folder, $"{language.Code}.wav");
+                var lines = await Dubber.RenderAsync(voices!, spoken.GetValueOrDefault(language.Code) ?? [], voice, duration, path,
+                    p => report($"Voicing: {language.Name}…", baseFraction + (1 - translateEnd) * p / dubbing.Count), cancel);
+                var length = Math.Max(duration, lines.Count > 0 ? lines[^1].End : 0);
+                voiceOver.Add(new VoiceOverTrack(language, path, length, lines, IsAudible: false));
+            }
+            var audible = voiceOver.FindIndex(t => t.Language.Code == options.AudibleVoice);
+            voiceOver[Math.Max(audible, 0)] = voiceOver[Math.Max(audible, 0)] with { IsAudible = true };
+        }
         report("Done", 1);
-        return tracks;
+        return new Output(tracks, voiceOver);
+    }
+
+    /// <summary>The timeline to transcribe: without voice-over (and its ducking) that earlier runs added.</summary>
+    public static Timeline SpeechTimeline(CapCutProject project, ProjectTimeline timeline)
+    {
+        var data = DraftVoiceOverWriter.WithoutVoiceOver(File.ReadAllBytes(timeline.DraftPath));
+        return TimelineBuilder.Build(EnhanceCapCut.Draft.Draft.Parse(Encoding.UTF8.GetString(data)), project.Folder);
+    }
+
+    /// <summary>A new folder for a run's voice-over audio, inside the project so CapCut can read it.</summary>
+    public static string VoiceOverFolder(CapCutProject project) => Path.Combine(project.Folder, "EnhanceCapCut",
+        "voiceover " + DateTime.UtcNow.ToString("yyyy-MM-ddTHH-mm-ssZ", CultureInfo.InvariantCulture));
+
+    /// <summary>
+    /// The draft with the run's caption and voice-over tracks added. Only what the run made is touched: without
+    /// captions the draft's earlier subtitles stay, without voice-over its earlier voice-over.
+    /// </summary>
+    public static byte[] Apply(Output output, byte[] draft, OriginalAudio original, bool replacePrevious, string? projectFolder)
+    {
+        var data = draft;
+        if (output.Captions.Count > 0) data = DraftSubtitleWriter.Apply(output.Captions, data, replacePrevious);
+        if (output.VoiceOver.Count > 0) data = DraftVoiceOverWriter.Apply(output.VoiceOver, data, original, replacePrevious, projectFolder);
+        return data;
     }
 
     /// <summary>Writes one .srt per track into <paramref name="folder"/>, named "&lt;base&gt; &lt;code&gt;.srt".</summary>
@@ -65,3 +139,6 @@ public static class SubtitlePipeline
         }).ToList();
     }
 }
+
+public sealed class NoVoiceException(SubtitleLanguage language) : Exception(
+    $"No Windows voice is installed for {language.Name}. Add one in Settings ▸ Time & language ▸ Speech (Add voices).");

@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The Windows app: the export window and the Subtitles & Voice-over window, in WinUI 3 (Windows App SDK,
+       unpackaged and self-contained). The UI is built in code, without XAML markup. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>EnhanceCapCut</AssemblyName>
+    <RootNamespace>EnhanceCapCut.App</RootNamespace>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-x64</RuntimeIdentifier>
+    <UseWinUI>true</UseWinUI>
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <!-- Generates resources.pri, where an unpackaged app finds the WinUI control themes. -->
+    <EnableMsixTooling>true</EnableMsixTooling>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+  </PropertyGroup>
+
+  <!-- On macOS and Linux only the code is compiled (to check it; `dotnet test` builds the whole solution there):
+       the Windows-only packaging tools (mt.exe, makepri.exe) are skipped. -->
+  <PropertyGroup Condition="!$([MSBuild]::IsOSPlatform('Windows'))">
+    <WindowsAppSDKSelfContained>false</WindowsAppSDKSelfContained>
+    <AppxGeneratePriEnabled>false</AppxGeneratePriEnabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Only the WinUI part of the Windows App SDK: the full package also brings its AI/ML components and their own
+         ONNX Runtime, which would clash with the one translation uses. -->
+    <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" Version="1.8.260803003" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.Foundation" Version="1.8.260803002" />
+  </ItemGroup>
+
+  <ItemGroup Condition="!$([MSBuild]::IsOSPlatform('Windows'))">
+    <PackageReference Include="Microsoft.WindowsAppSDK.Runtime" Version="1.8.260921001" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EnhanceCapCut.Draft\EnhanceCapCut.Draft.csproj" />
+    <ProjectReference Include="..\EnhanceCapCut.Subtitles\EnhanceCapCut.Subtitles.csproj" />
+    <ProjectReference Include="..\EnhanceCapCut.Windows\EnhanceCapCut.Windows.csproj" />
+  </ItemGroup>
+
+</Project>

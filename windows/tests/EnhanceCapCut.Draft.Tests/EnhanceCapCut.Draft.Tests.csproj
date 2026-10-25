@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\EnhanceCapCut.Draft\EnhanceCapCut.Draft.csproj" />
+    <ProjectReference Include="..\..\src\EnhanceCapCut.Subtitles\EnhanceCapCut.Subtitles.csproj" />
   </ItemGroup>
 
 </Project>

@@ -58,11 +58,15 @@ public static class DraftSubtitleWriter
     /// CapCut keeps (the root <c>draft_info.json</c> of the main timeline, <c>template-2.tmp</c>) are rewritten; their
     /// previous contents go to <see cref="BackupRoot"/> first.
     /// </summary>
-    public static Result Write(IReadOnlyList<SubtitleTrack> tracks, CapCutProject project, ProjectTimeline timeline, bool replacePrevious)
+    public static Result Write(IReadOnlyList<SubtitleTrack> tracks, CapCutProject project, ProjectTimeline timeline, bool replacePrevious) =>
+        Write(project, timeline, tracks.Sum(t => t.Cues.Count), draft => Apply(tracks, draft, replacePrevious));
+
+    /// <summary>Rewrites the timeline's draft (and its copies) with <paramref name="transform"/>, after a backup.</summary>
+    public static Result Write(CapCutProject project, ProjectTimeline timeline, int cueCount, Func<byte[], byte[]> transform)
     {
         if (IsOpenInCapCut(project)) throw new ProjectOpenException(project.Name);
         var original = File.ReadAllBytes(timeline.DraftPath);
-        var updated = Apply(tracks, original, replacePrevious);
+        var updated = transform(original);
 
         // Copies of this draft: identical files next to it and, for the main timeline, the root draft.
         var candidates = new List<string> { timeline.DraftPath, Path.Combine(Path.GetDirectoryName(timeline.DraftPath)!, "template-2.tmp") };
@@ -89,7 +93,7 @@ public static class DraftSubtitleWriter
             File.WriteAllBytes(temp, updated);
             File.Move(temp, path, overwrite: true);
         }
-        return new Result(files, backup, tracks.Sum(t => t.Cues.Count));
+        return new Result(files, backup, cueCount);
     }
 
     /// <summary>

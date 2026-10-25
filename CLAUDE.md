@@ -38,10 +38,14 @@ usage, docs/PLAN.md for the roadmap, docs/FORMAT.md for what we know about CapCu
 - `windows/`: the Windows version in C# (.NET 10; Media Foundation, Direct3D/Direct2D, DirectWrite, WinUI 3 — no
   Swift there). `EnhanceCapCut.Draft` is a port of the Swift draft/timeline code and must stay in step with it:
   a change to draft parsing or `TimelineBuilder` on one side gets the same change on the other, and
-  `ecc info` output of both CLIs should stay identical. The same goes for subtitles: segmentation and
-  `DraftSubtitleWriter` (Swift `EnhanceCapCutCore/Subtitles`, C# `EnhanceCapCut.Draft`); only the engines differ
-  (Apple speech/Translation on the Mac, Whisper/NLLB in `EnhanceCapCut.Subtitles` on Windows).
-  `dotnet test windows/EnhanceCapCut.slnx` runs on macOS too.
+  `ecc info` output of both CLIs should stay identical. The same goes for subtitles and voice-over: segmentation,
+  `DraftSubtitleWriter` and `DraftVoiceOverWriter` (Swift `EnhanceCapCutCore/Subtitles`, C# `EnhanceCapCut.Draft`);
+  only the engines differ (Apple speech/Translation/voices on the Mac, Whisper/NLLB in `EnhanceCapCut.Subtitles` and
+  Windows voices in `EnhanceCapCut.Windows` on Windows). `dotnet test windows/EnhanceCapCut.slnx` runs on macOS too.
+- `windows/src/EnhanceCapCut.App` mirrors the macOS windows (`ExportView`/`SubtitlesView` and their models) row for
+  row, with the same texts: a UI change on one side gets the same change on the other. The WinUI UI is built in code
+  (no XAML markup) from the grouped-form pieces in `Form.cs`; on macOS it only compiles. CI's `windows-ui` artifact
+  has screenshots of both windows.
 
 ## Git
 

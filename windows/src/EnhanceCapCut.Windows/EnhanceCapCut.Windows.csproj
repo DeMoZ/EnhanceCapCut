@@ -1,9 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- The Windows renderer: Media Foundation, Direct2D on Direct3D 11, DirectWrite, WIC (through Vortice).
+  <!-- The Windows renderer: Media Foundation, Direct2D on Direct3D 11, DirectWrite, WIC (through Vortice), and the
+       voice-over voices (Windows.Media.SpeechSynthesis, hence the Windows 10 SDK target).
        Builds on any OS (EnableWindowsTargeting), runs on Windows 10/11. -->
   <PropertyGroup>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
@@ -16,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EnhanceCapCut.Render\EnhanceCapCut.Render.csproj" />
+    <ProjectReference Include="..\EnhanceCapCut.Subtitles\EnhanceCapCut.Subtitles.csproj" />
   </ItemGroup>
 
 </Project>

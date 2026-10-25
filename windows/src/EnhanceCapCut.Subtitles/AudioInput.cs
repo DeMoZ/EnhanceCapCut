@@ -21,7 +21,8 @@ public static class AudioInput
         return sampleRate == SampleRate ? mono : Resample(mono, sampleRate, SampleRate);
     }
 
-    static float[] Resample(float[] input, int from, int to)
+    /// <summary>Mono resampling with a windowed-sinc low-pass.</summary>
+    public static float[] Resample(float[] input, int from, int to)
     {
         const int halfTaps = 16;
         var ratio = (double)from / to;
@@ -50,8 +51,14 @@ public static class AudioInput
     /// <summary>Reads a PCM (16/24/32-bit) or float WAV file as 16 kHz mono.</summary>
     public static float[] ReadWav(string path)
     {
-        var bytes = File.ReadAllBytes(path);
-        if (bytes.Length < 12 || BinaryPrimitives.ReadUInt32BigEndian(bytes) != 0x52494646) throw new InvalidDataException($"{path} is not a WAV file");
+        var (samples, channels, rate) = ParseWav(File.ReadAllBytes(path), path);
+        return ToMono16k(samples, channels, rate);
+    }
+
+    /// <summary>The interleaved samples of a PCM (16/24/32-bit) or float WAV file, with its channel count and rate.</summary>
+    public static (float[] Samples, int Channels, int SampleRate) ParseWav(byte[] bytes, string name = "audio")
+    {
+        if (bytes.Length < 12 || BinaryPrimitives.ReadUInt32BigEndian(bytes) != 0x52494646) throw new InvalidDataException($"{name} is not a WAV file");
         int channels = 0, rate = 0, bits = 0, format = 0, pos = 12;
         while (pos + 8 <= bytes.Length)
         {
@@ -83,10 +90,35 @@ public static class AudioInput
                         _ => throw new InvalidDataException($"Unsupported WAV format {format}/{bits} bit"),
                     };
                 }
-                return ToMono16k(samples, channels, rate);
+                return (samples, channels, rate);
             }
             pos = body + size + (size & 1);
         }
-        throw new InvalidDataException($"{path} has no audio data");
+        throw new InvalidDataException($"{name} has no audio data");
+    }
+
+    /// <summary>Writes mono samples as a 16-bit PCM WAV file.</summary>
+    public static void WriteWav(string path, ReadOnlySpan<float> samples, int sampleRate)
+    {
+        using var file = File.Create(path);
+        var header = new byte[44];
+        var data = samples.Length * 2;
+        "RIFF"u8.CopyTo(header);
+        BinaryPrimitives.WriteInt32LittleEndian(header.AsSpan(4), 36 + data);
+        "WAVEfmt "u8.CopyTo(header.AsSpan(8));
+        BinaryPrimitives.WriteInt32LittleEndian(header.AsSpan(16), 16);
+        BinaryPrimitives.WriteInt16LittleEndian(header.AsSpan(20), 1);
+        BinaryPrimitives.WriteInt16LittleEndian(header.AsSpan(22), 1);
+        BinaryPrimitives.WriteInt32LittleEndian(header.AsSpan(24), sampleRate);
+        BinaryPrimitives.WriteInt32LittleEndian(header.AsSpan(28), sampleRate * 2);
+        BinaryPrimitives.WriteInt16LittleEndian(header.AsSpan(32), 2);
+        BinaryPrimitives.WriteInt16LittleEndian(header.AsSpan(34), 16);
+        "data"u8.CopyTo(header.AsSpan(36));
+        BinaryPrimitives.WriteInt32LittleEndian(header.AsSpan(40), data);
+        file.Write(header);
+        var buffer = new byte[data];
+        for (var i = 0; i < samples.Length; i++)
+            BinaryPrimitives.WriteInt16LittleEndian(buffer.AsSpan(i * 2), (short)Math.Clamp(Math.Round(samples[i] * 32767f), short.MinValue, short.MaxValue));
+        file.Write(buffer);
     }
 }
