@@ -139,7 +139,8 @@ private struct Builder {
                                                fadeOut: fade?.fadeOut ?? 0, preservePitch: !segment.isToneModify,
                                                volumeEnvelope: volumeEnvelope(segment), voice: voice))
                     }
-                    if !muted, !compoundAudio.isEmpty {
+                    // A compound whose sound was detached plays it from the audio track instead.
+                    if !muted, !compoundAudio.isEmpty, video?.hasSoundSeparated != true {
                         clips += nestAudio(compoundAudio, in: segment, timeMap: timeMap, volume: segment.volume * gain,
                                            envelope: volumeEnvelope(segment), voice: voice)
                     }

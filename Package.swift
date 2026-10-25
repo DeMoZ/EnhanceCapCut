@@ -10,7 +10,12 @@ let package = Package(
         .library(name: "EnhanceCapCutCore", targets: ["EnhanceCapCutCore"]),
     ],
     targets: [
-        .target(name: "EnhanceCapCutCore"),
+        .target(name: "EnhanceCapCutCore", dependencies: ["whisper"]),
+        // Speech recognition with Whisper (whisper.cpp v1.9.5, the same model as the Windows version).
+        .binaryTarget(
+            name: "whisper",
+            url: "https://github.com/ggml-org/whisper.cpp/releases/download/b5454/whisper-b5454-xcframework.zip",
+            checksum: "e57f8c48933000acabc13bb913fbe82805d483a2deff692cc6738836bd92393b"),
         .executableTarget(name: "ecc", dependencies: ["EnhanceCapCutCore"]),
         .executableTarget(name: "EnhanceCapCut", dependencies: ["EnhanceCapCutCore"]),
         .testTarget(name: "EnhanceCapCutCoreTests", dependencies: ["EnhanceCapCutCore"]),

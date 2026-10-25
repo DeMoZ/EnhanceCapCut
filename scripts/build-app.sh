@@ -42,9 +42,16 @@ rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp "$bin/EnhanceCapCut" "$app/Contents/MacOS/EnhanceCapCut"
 cp "$bin/ecc" "$app/Contents/MacOS/ecc"
+# whisper.cpp (speech recognition) is a dynamic framework: ship it and let both binaries find it.
+mkdir -p "$app/Contents/Frameworks"
+ditto "$bin/whisper.framework" "$app/Contents/Frameworks/whisper.framework"
+for exe in "$app/Contents/MacOS/EnhanceCapCut" "$app/Contents/MacOS/ecc"; do
+  install_name_tool -add_rpath @executable_path/../Frameworks "$exe" 2>/dev/null || true
+done
 cp App/Info.plist "$app/Contents/Info.plist"
 # Siri voice helper, run by the app through Xcode's Swift interpreter.
 cp Tools/SiriVoice/siri-voice.swift "$app/Contents/Resources/"
+sign "$app/Contents/Frameworks/whisper.framework"
 sign "$app/Contents/MacOS/ecc"
 sign "$app"
 echo "Built $root/$app ($version)"

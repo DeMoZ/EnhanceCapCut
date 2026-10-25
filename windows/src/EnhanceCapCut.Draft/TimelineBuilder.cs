@@ -163,7 +163,8 @@ public static class TimelineBuilder
                                     fade?.FadeIn ?? 0, fade?.FadeOut ?? 0, !segment.IsToneModify)
                                     { Voice = voice, VolumeEnvelope = VolumeEnvelope(segment) });
                             }
-                            if (!muted && compoundAudio.Count > 0)
+                            // A compound whose sound was detached plays it from the audio track instead.
+                            if (!muted && compoundAudio.Count > 0 && video?.HasSoundSeparated != true)
                                 clips.AddRange(NestAudio(compoundAudio, segment, timeMap, segment.Volume * gain,
                                     VolumeEnvelope(segment), voice));
                             break;

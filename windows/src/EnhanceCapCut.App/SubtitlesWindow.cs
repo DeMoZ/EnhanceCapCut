@@ -29,6 +29,8 @@ sealed class SubtitlesWindow : Window
     // Create
     readonly OutputToggle captionsToggle, dubToggle;
     readonly Picker<string> sourcePicker = new();
+    // The Mac window also offers Apple's recogniser; here Whisper is the only one.
+    readonly Picker<string> enginePicker = new();
 
     // Languages
     readonly FormRow originalRow, visibleRow;
@@ -107,6 +109,9 @@ sealed class SubtitlesWindow : Window
         toggles.Children.Add(dubToggle);
         create.Add(toggles);
         create.Add("Spoken language", sourcePicker);
+        enginePicker.Set([("whisper", "Whisper large-v3-turbo")], "whisper");
+        create.Add("Speech recognition", enginePicker);
+        ToolTipService.SetToolTip(enginePicker, "Whisper catches more words in noisy dialogue; its model is downloaded once (574 MB).");
         create.Footer = "Speech recognition, translation and voices run on this PC (Whisper, NLLB-200 and Windows voices). "
             + "Voice-over speaks every translation.";
         sourcePicker.Picked += code => model.SourceCode = code;

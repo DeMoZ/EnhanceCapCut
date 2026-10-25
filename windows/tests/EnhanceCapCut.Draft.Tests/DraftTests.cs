@@ -219,6 +219,44 @@ public class DraftParsingTests
     }
 
     [Fact]
+    public void CompoundWithDetachedSoundPlaysOnlyTheAudioTrack()
+    {
+        var media = Path.Combine(Temp, $"ecc-compound-test-{Guid.NewGuid()}.caf");
+        File.WriteAllBytes(media, [0]);
+        try
+        {
+            var nested = $$$"""
+            {"duration": 1000000, "materials": {"audios": [{"id": "A", "path": "{{{media.Replace("\\", "\\\\")}}}", "type": "record"}]},
+             "tracks": [{"type": "audio", "segments": [{"material_id": "A", "target_timerange": {"start": 0, "duration": 1000000}}]}]}
+            """;
+            // "Extract audio" on a compound clip: the video keeps the compound and gets has_sound_separated,
+            // an audio track gets a second copy of the compound with the sound.
+            var json = $$$"""
+            {
+              "duration": 1000000,
+              "materials": {
+                "videos": [{"id": "V", "type": "video", "has_audio": true, "has_sound_separated": true}],
+                "audios": [{"id": "VA", "type": "video_original_sound"}],
+                "drafts": [{"id": "CV", "draft": {{{nested}}}}, {"id": "CA", "draft": {{{nested}}}}]
+              },
+              "tracks": [
+                {"type": "video", "segments": [{"material_id": "V", "extra_material_refs": ["CV"],
+                                                "target_timerange": {"start": 0, "duration": 1000000}}]},
+                {"type": "audio", "segments": [{"material_id": "VA", "extra_material_refs": ["CA"],
+                                                "target_timerange": {"start": 0, "duration": 1000000}}]}
+              ]
+            }
+            """;
+            var timeline = TimelineBuilder.Build(Draft.Parse(json), Temp);
+            Assert.Single(timeline.AudioClips);
+        }
+        finally
+        {
+            File.Delete(media);
+        }
+    }
+
+    [Fact]
     public void PlaceholderPathResolution()
     {
         var path = DraftLoader.ResolvePath("##_draftpath_placeholder_0E685133-18CE-45ED-8CB8-2904A212EC80_##/audio/a.aac",

@@ -89,10 +89,15 @@ struct SubtitlesView: View {
                     Text(Self.localeName(locale)).tag(locale.identifier(.bcp47))
                 }
             }
+            Picker("Speech recognition", selection: $model.engine) {
+                Text("Apple (built into macOS)").tag(SpeechEngine.apple)
+                Text("Whisper large-v3-turbo").tag(SpeechEngine.whisper)
+            }
+            .help("Whisper catches more words in noisy dialogue; its model is downloaded once (574 MB).")
         } header: {
             Text("Create")
         } footer: {
-            Text("Speech recognition, translation and voices run on this Mac (Apple's on-device models). "
+            Text("Speech recognition, translation and voices run on this Mac (Apple's on-device models or Whisper). "
                 + "Voice-over speaks every translation.")
                 .font(.caption).foregroundStyle(.secondary)
         }
@@ -214,6 +219,33 @@ struct SubtitlesView: View {
 
     @ViewBuilder
     private var downloadSection: some View {
+        if model.whisperMissing || model.modelProgress != nil {
+            Section {
+                Label("One-time download needed for offline recognition: " + model.whisperModelText,
+                      systemImage: "arrow.down.circle")
+                    .fixedSize(horizontal: false, vertical: true)
+                if let error = model.modelError {
+                    Text(error).font(.caption).foregroundStyle(.red).textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                HStack {
+                    if let progress = model.modelProgress {
+                        ProgressView(value: progress)
+                        Text("\(Int(progress * 100))%").font(.caption).monospacedDigit()
+                        Button("Cancel") { model.cancelModelDownload() }
+                    } else {
+                        Button("Download") { model.downloadModel() }
+                        Spacer()
+                    }
+                    Button("Show Folder") {
+                        try? FileManager.default.createDirectory(at: ModelStore.root, withIntermediateDirectories: true)
+                        NSWorkspace.shared.open(ModelStore.root)
+                    }
+                    .help(ModelStore.root.path)
+                }
+                .controlSize(.small)
+            }
+        }
         if !model.notDownloaded.isEmpty || model.downloadError != nil {
             Section {
                 if !model.notDownloaded.isEmpty {
