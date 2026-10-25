@@ -106,4 +106,24 @@ final class SubtitleWriterTests: XCTestCase {
         XCTAssertEqual(cues.map(\.text), ["Привет мир.", "Как дела."])
         XCTAssertEqual(cues[0].start, 0)
     }
+
+    func testChunkerCutsInThePauses() {
+        // 20 s of speech at 50 frames/s with silent half-second pauses at 5 s and 11 s.
+        let energy = (0..<1000).map { i -> Float in (250..<275).contains(i) || (550..<575).contains(i) ? 0.001 : 1 }
+        let cuts = SpeechChunker.cuts(energy: energy, frameDuration: 0.02)
+        XCTAssertEqual(cuts.count, 3)
+        XCTAssertEqual(cuts[0], 5.25, accuracy: 0.3)
+        XCTAssertEqual(cuts[1], 11.25, accuracy: 0.3)
+        // No pause left: the piece is cut at the longest allowed length.
+        XCTAssertEqual(cuts[2], cuts[1] + SpeechChunker.maxPiece, accuracy: 0.05)
+        XCTAssertEqual(SpeechChunker.cuts(energy: Array(energy.prefix(400)), frameDuration: 0.02), [])
+    }
+
+    func testChunkerSeparatesOnlyWideStereo() {
+        let voice = (0..<1000).map { Float(sin(Double($0) * 0.1)) }
+        let other = (0..<1000).map { Float(cos(Double($0) * 0.37)) }
+        XCTAssertFalse(SpeechChunker.isWideStereo([voice]))
+        XCTAssertFalse(SpeechChunker.isWideStereo([voice, voice.map { $0 * 0.9 }]))
+        XCTAssertTrue(SpeechChunker.isWideStereo([voice, zip(voice, other).map { $0 * 0.5 + $1 }]))
+    }
 }

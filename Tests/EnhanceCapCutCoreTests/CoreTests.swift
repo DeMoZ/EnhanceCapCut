@@ -188,6 +188,39 @@ final class DraftParsingTests: XCTestCase {
         XCTAssertEqual(timeline.layers.count, 2, "unsupported features don't drop the clips")
     }
 
+    func testCompoundWithDetachedSoundPlaysOnlyTheAudioTrack() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("ecc-compound-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let media = dir.appendingPathComponent("a.caf")
+        try VoiceSignal.write([0, 0, 0, 0], to: media)
+        let nested = """
+        {"duration": 1000000, "materials": {"audios": [{"id": "A", "path": "\(media.path)", "type": "record"}]},
+         "tracks": [{"type": "audio", "segments": [{"material_id": "A", "target_timerange": {"start": 0, "duration": 1000000}}]}]}
+        """
+        // "Extract audio" on a compound clip: the video keeps the compound and gets has_sound_separated,
+        // an audio track gets a second copy of the compound with the sound.
+        let json = """
+        {
+          "duration": 1000000,
+          "materials": {
+            "videos": [{"id": "V", "type": "video", "has_audio": true, "has_sound_separated": true}],
+            "audios": [{"id": "VA", "type": "video_original_sound"}],
+            "drafts": [{"id": "CV", "draft": \(nested)}, {"id": "CA", "draft": \(nested)}]
+          },
+          "tracks": [
+            {"type": "video", "segments": [{"material_id": "V", "extra_material_refs": ["CV"],
+                                            "target_timerange": {"start": 0, "duration": 1000000}}]},
+            {"type": "audio", "segments": [{"material_id": "VA", "extra_material_refs": ["CA"],
+                                            "target_timerange": {"start": 0, "duration": 1000000}}]}
+          ]
+        }
+        """
+        let draft = try JSONDecoder().decode(Draft.self, from: Data(json.utf8))
+        let timeline = TimelineBuilder.build(draft: draft, projectURL: dir)
+        XCTAssertEqual(timeline.audioClips.count, 1)
+    }
+
     func testPlaceholderPathResolution() {
         let url = DraftLoader.resolvePath("##_draftpath_placeholder_0E685133-18CE-45ED-8CB8-2904A212EC80_##/audio/a.aac",
                                           projectURL: URL(fileURLWithPath: "/Users/x/Projects/My Project"))
