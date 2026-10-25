@@ -23,6 +23,14 @@ $clip = (Join-Path $demo 'missing.mp4').Replace('\', '/')
 "@ | Set-Content -Encoding utf8 (Join-Path $demo 'draft_info.json')
 New-Item -ItemType Directory -Force -Path $Out | Out-Null
 
+# Voice-over on for English (Windows has voices) and Thai (the runner has none), so every voice row shows.
+$prefs = Join-Path $env:APPDATA 'EnhanceCapCut'
+New-Item -ItemType Directory -Force -Path $prefs | Out-Null
+'{"subtitles.makeDub": true, "subtitles.targets": ["en", "th"]}' | Set-Content -Encoding utf8 (Join-Path $prefs 'app.json')
+
+# Room for the whole windows (the runner's screen is 1024×768).
+try { Set-DisplayResolution -Width 1920 -Height 1080 -Force -ErrorAction Stop } catch { Write-Host "Display resolution unchanged: $_" }
+
 Add-Type -AssemblyName System.Drawing, System.Windows.Forms
 Add-Type @'
 using System;
@@ -36,6 +44,8 @@ public static class Win {
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hwnd);
     [DllImport("dwmapi.dll")] public static extern int DwmGetWindowAttribute(IntPtr hwnd, int attribute, out RECT rect, int size);
     [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
+    [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
+    [DllImport("user32.dll")] public static extern void mouse_event(uint flags, int dx, int dy, int data, IntPtr extra);
     public static RECT Bounds(IntPtr hwnd) {
         RECT r;
         if (DwmGetWindowAttribute(hwnd, 9, out r, Marshal.SizeOf(typeof(RECT))) != 0 || r.Right <= r.Left) GetWindowRect(hwnd, out r);
@@ -90,7 +100,14 @@ foreach ($name in $windows.Keys) {
     }
     if ($hwnd -eq [IntPtr]::Zero) { throw "No '$($windows[$name])' window" }
     Start-Sleep -Seconds 2  # the timeline loads in the background
-    Save-Window $hwnd (Join-Path $Out "$name.png")
-    Write-Host "Saved $name.png"
+    Save-Window $hwnd (Join-Path $Out "$name-1.png")
+    # Then the rest of the form, a few wheel turns at a time.
+    $r = [Win]::Bounds($hwnd)
+    [void][Win]::SetCursorPos([int](($r.Left + $r.Right) / 2), [int](($r.Top + $r.Bottom) / 2))
+    for ($page = 2; $page -le 4; $page++) {
+        for ($turn = 0; $turn -lt 5; $turn++) { [Win]::mouse_event(0x0800, 0, 0, -120, [IntPtr]::Zero); Start-Sleep -Milliseconds 100 }
+        Save-Window $hwnd (Join-Path $Out "$name-$page.png")
+    }
+    Write-Host "Saved $name"
 }
 Stop-Process -Id $process.Id -Force
