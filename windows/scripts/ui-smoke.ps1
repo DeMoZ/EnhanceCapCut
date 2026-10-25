@@ -113,7 +113,9 @@ foreach ($name in $windows.Keys) {
 Stop-Process -Id $process.Id -Force
 Start-Sleep -Seconds 1
 
-# The export window while it exports (the demo timeline renders black where its clip is missing).
+# The export window while it exports and when it's done (the demo timeline renders black where its clip is missing).
+# H.264: the runner has no HEVC encoder.
+'{"codec": "h264", "resolution": 720}' | Set-Content -Encoding utf8 (Join-Path $prefs 'settings.json')
 $process = Start-Process -FilePath (Join-Path $App 'EnhanceCapCut.exe') -ArgumentList '--auto-export' -PassThru
 $hwnd = [IntPtr]::Zero
 for ($i = 0; $i -lt 60 -and $hwnd -eq [IntPtr]::Zero; $i++) {
@@ -124,4 +126,9 @@ if ($hwnd -eq [IntPtr]::Zero) { throw "No export window with --auto-export" }
 Start-Sleep -Seconds 4
 Save-Window $hwnd (Join-Path $Out 'export-progress.png')
 Write-Host "Saved export-progress"
+$videos = [Environment]::GetFolderPath('MyVideos')
+for ($i = 0; $i -lt 120 -and -not (Get-ChildItem $videos -Filter 'Demo Project_*.mp4' -ErrorAction SilentlyContinue); $i++) { Start-Sleep -Seconds 1 }
+Start-Sleep -Seconds 2
+Save-Window $hwnd (Join-Path $Out 'export-done.png')
+Write-Host "Saved export-done"
 Stop-Process -Id $process.Id -Force
