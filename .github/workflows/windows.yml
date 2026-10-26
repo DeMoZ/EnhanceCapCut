@@ -1,5 +1,5 @@
 # Builds and tests the Windows version (windows/, .NET) on Windows, then starts the app and keeps screenshots of its
-# windows as the `windows-ui` artifact.
+# windows as the `windows-ui` artifact, and updates a published app from one version to the next.
 name: Windows
 
 on:
@@ -22,6 +22,12 @@ jobs:
       - name: Start the app
         shell: pwsh
         run: windows/scripts/ui-smoke.ps1 -App build/app -Out build/ui
+      - name: Update the app
+        shell: pwsh
+        run: |
+          dotnet publish windows/src/EnhanceCapCut.App -c Release -r win-x64 --self-contained -p:Version=0.0.1 -o build/update/old
+          dotnet publish windows/src/EnhanceCapCut.App -c Release -r win-x64 --self-contained -p:Version=0.0.2 -o build/update/new
+          windows/scripts/update-smoke.ps1 -Old build/update/old -New build/update/new -Work build/update/work
       - uses: actions/upload-artifact@v4
         if: always()
         with:

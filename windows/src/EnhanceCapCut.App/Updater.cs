@@ -92,7 +92,21 @@ sealed class Updater(DispatcherQueue ui, Func<Window> owner, Func<Window, Task<b
                 $"You have {current}. Download it and restart? What's new: {release.PageUrl}", "Update and Restart", "Later"))
             return;
         if (!await confirmQuit(window)) return;
+        await Install(release);
+    }
 
+    /// <summary><c>--auto-update</c> (CI's update test): installs a newer release without asking.</summary>
+    public async Task CheckUnattended()
+    {
+        if (Current is not { } current) return;
+        var release = await AppUpdates.LatestAsync();
+        if (release is not null && AppUpdates.IsNewer(release, current)) await Install(release);
+    }
+
+    /// <summary>Downloads <paramref name="release"/>, then quits and leaves the rest to the install script.</summary>
+    async Task Install(AppRelease release)
+    {
+        var folder = AppContext.BaseDirectory;
         string source;
         try
         {
@@ -110,7 +124,7 @@ sealed class Updater(DispatcherQueue ui, Func<Window> owner, Func<Window, Task<b
         {
             Progress = null;
             Changed?.Invoke();
-            await Platform.Ask(window, "The update couldn't be downloaded", e.Message, "OK", "");
+            await Platform.Ask(owner(), "The update couldn't be downloaded", e.Message, "OK", "");
             return;
         }
 

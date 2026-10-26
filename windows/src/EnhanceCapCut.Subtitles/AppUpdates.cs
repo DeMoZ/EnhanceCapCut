@@ -15,7 +15,10 @@ public sealed record AppRelease(Version Version, string ZipUrl, string? Sha256, 
 /// </summary>
 public static class AppUpdates
 {
-    public const string LatestReleaseApi = "https://api.github.com/repos/DeMoZ/EnhanceCapCut/releases/latest";
+    const string GitHubLatestRelease = "https://api.github.com/repos/DeMoZ/EnhanceCapCut/releases/latest";
+    /// <summary>GitHub's "latest release" answer, or the one at <c>ECC_UPDATES_URL</c> (CI's update test serves its own).</summary>
+    public static string LatestReleaseApi =>
+        Environment.GetEnvironmentVariable("ECC_UPDATES_URL") is { Length: > 0 } url ? url : GitHubLatestRelease;
     const string ZipSuffix = "-windows-x64.zip";
     const string WorkPrefix = "EnhanceCapCut-update-";
 
