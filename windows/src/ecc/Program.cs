@@ -10,11 +10,15 @@ using EnhanceCapCut.Draft;
 //              [--from s] [--duration s]                                            (Windows only)
 //   ecc subtitles [project] [--timeline name|number] --language ru-RU [--translate en,th] [--no-original] [--show en]
 //                 [--keep-previous] [--srt folder] [--draft out.json] [--audio mix.wav] [--no-captions]
-//                 [--voice en,th | en=<voice id>,th] [--hear th] [--original keep|lower|mute]
+//                 [--voice en,th | en=<voice id>,th | en=clone] [--hear th] [--original keep|lower|mute]
+//                 [--exaggeration 0.5] [--consent]
 //                 (writes into the project unless --draft is given; models are downloaded on first use;
 //                  the timeline's audio is mixed on Windows, elsewhere pass --audio;
-//                  --voice speaks these translations with Windows voices (Windows only), `ecc voices <language>` lists them)
+//                  --voice speaks these translations with Windows voices (Windows only), `ecc voices <language>` lists them;
+//                  `clone` speaks in the original speaker's voice — only with their consent, which --consent confirms)
 //   ecc voices <language>                                                           (Windows only)
+//   ecc clone <reference.wav> --language en --text "…" -o out.wav [--exaggeration 0.5] [--seed 1]
+//             (speaks the text in the reference's voice; downloads the voice cloning model on first use, 1.55 GB)
 
 var rest = new List<string>(args);
 var command = rest.Count == 0 ? "help" : rest[0];
@@ -155,8 +159,12 @@ switch (command)
 #endif
         break;
 
+    case "clone":
+        await Clone();
+        break;
+
     default:
-        Console.WriteLine("usage: ecc list | info [project] [--timeline name|number] | render [project] [options] | subtitles [project] --language ru-RU [options] | voices <language>");
+        Console.WriteLine("usage: ecc list | info [project] [--timeline name|number] | render [project] [options] | subtitles [project] --language ru-RU [options] | voices <language> | clone <reference.wav> --language en --text … -o out.wav");
         break;
 }
 
@@ -177,7 +185,18 @@ async Task Subtitles()
     }
     var hear = Option("--hear") is { } h ? Language(h).Code : null;
     var originalArg = Option("--original") ?? "lower";
-    if (!Enum.TryParse<OriginalAudio>(originalArg, ignoreCase: true, out var original)) Fail("--original takes keep, lower or mute");
+    if (!Enum.TryParse<OriginalAudio>(originalArg, ignoreCase: true, out var original) || original == OriginalAudio.Replace)
+        Fail("--original takes keep, lower or mute");
+    var exaggeration = float.TryParse(Option("--exaggeration"), CultureInfo.InvariantCulture, out var x) ? x : 0.5f;
+    if (voices.ContainsValue(EnhanceCapCut.Subtitles.Dubber.ClonedVoiceId))
+    {
+        if (!rest.Remove("--consent"))
+            Fail("Cloning copies a real person's voice. Use it only for voices you have the right to use: your own, or people "
+                + "who agreed to it. Add --consent to confirm you have their consent.");
+        foreach (var (code, voice) in voices)
+            if (voice == EnhanceCapCut.Subtitles.Dubber.ClonedVoiceId && EnhanceCapCut.Subtitles.VoiceCloner.ModelLanguage(code) is null)
+                Fail($"Voice cloning doesn't speak {code}; give it a Windows voice instead");
+    }
     var visible = Option("--show") is { } show ? SubtitleLanguage.Find(show)?.Code ?? show : null;
     var srtFolder = Option("--srt");
     var draftOut = Option("--draft");
@@ -192,9 +211,15 @@ async Task Subtitles()
 
     EnhanceCapCut.Subtitles.IVoiceEngine? engine = null;
     float[] audio;
+    // What cloned voices copy: the mix itself (no voice isolation on Windows yet), at the model's rate.
+    float[]? originalVoice = null;
+    var cloning = voices.ContainsValue(EnhanceCapCut.Subtitles.Dubber.ClonedVoiceId);
+    var systemVoices = voices.Values.Any(v => v != EnhanceCapCut.Subtitles.Dubber.ClonedVoiceId);
     if (audioPath is not null)
     {
-        audio = EnhanceCapCut.Subtitles.AudioInput.ReadWav(audioPath);
+        var (samples, channels, rate) = EnhanceCapCut.Subtitles.AudioInput.ParseWav(File.ReadAllBytes(audioPath), audioPath);
+        audio = EnhanceCapCut.Subtitles.AudioInput.ToMono16k(samples, channels, rate);
+        if (cloning) originalVoice = EnhanceCapCut.Subtitles.AudioInput.ToMono(samples, channels, rate, EnhanceCapCut.Subtitles.VoiceCloner.SampleRate);
     }
     else
     {
@@ -206,15 +231,17 @@ async Task Subtitles()
         var mix = EnhanceCapCut.Render.AudioMixer.Mix(timeline, new EnhanceCapCut.Windows.MfAudioDecoder(), warnings);
         foreach (var warning in warnings) Console.WriteLine($"warning: {warning}");
         audio = EnhanceCapCut.Subtitles.AudioInput.ToMono16k(mix, 2, EnhanceCapCut.Render.AudioMixer.SampleRate);
+        if (cloning) originalVoice = EnhanceCapCut.Subtitles.AudioInput.ToMono(mix, 2, EnhanceCapCut.Render.AudioMixer.SampleRate,
+            EnhanceCapCut.Subtitles.VoiceCloner.SampleRate);
 #else
         Fail("Mixing the timeline needs Windows (Media Foundation); pass the mix with --audio file.wav");
         return;
 #endif
     }
 #if WINDOWS
-    if (voices.Count > 0) engine = new EnhanceCapCut.Windows.WindowsVoices();
+    if (systemVoices) engine = new EnhanceCapCut.Windows.WindowsVoices();
 #else
-    if (voices.Count > 0) Fail("Voice-over needs Windows (Windows.Media.SpeechSynthesis)");
+    if (systemVoices) Fail("Voice-over with Windows voices needs Windows (Windows.Media.SpeechSynthesis); `clone` runs anywhere");
 #endif
 
     var options = new EnhanceCapCut.Subtitles.SubtitlePipeline.Options(source!, includeOriginal,
@@ -222,6 +249,7 @@ async Task Subtitles()
     {
         Captions = captions,
         Voices = voices,
+        Exaggeration = exaggeration,
         AudibleVoice = hear,
         // A dry run (--draft) keeps the voice-over audio next to the draft it writes.
         VoiceOverFolder = draftOut is not null
@@ -238,7 +266,7 @@ async Task Subtitles()
             lastStep = step;
             lastPercent = percent;
             Console.WriteLine($"  {step} {percent}%");
-        }, engine);
+        }, engine, originalVoice: originalVoice);
     var tracks = output.Captions;
     foreach (var track in output.VoiceOver)
         Console.WriteLine($"voice-over {track.Language.Code}{(track.IsAudible ? " (audible)" : "")}: {track.Lines.Count} lines → {track.Path}");
@@ -266,6 +294,43 @@ async Task Subtitles()
         foreach (var file in result.Files) Console.WriteLine($"Updated {file}");
         Console.WriteLine($"Backup: {result.BackupFolder}");
     }
+}
+
+// Audition voice cloning: the text spoken in the voice of a reference recording.
+async Task Clone()
+{
+    var language = Option("--language");
+    var text = Option("--text");
+    var output = Option("-o");
+    var exaggeration = float.TryParse(Option("--exaggeration"), CultureInfo.InvariantCulture, out var x) ? x : 0.5f;
+    var seed = ulong.TryParse(Option("--seed"), out var s) ? s : 1;
+    var reference = rest.FirstOrDefault(a => !a.StartsWith('-'));
+    if (language is null || text is null || output is null || reference is null)
+    {
+        Fail("usage: ecc clone <reference.wav> --language en --text \"…\" -o out.wav [--exaggeration 0.5] [--seed 1]");
+        return;
+    }
+    if (EnhanceCapCut.Subtitles.VoiceCloner.ModelLanguage(language) is not { } code)
+    {
+        Fail($"Voice cloning doesn't speak {language}");
+        return;
+    }
+    var files = EnhanceCapCut.Subtitles.ModelStore.VoiceCloning;
+    if (!EnhanceCapCut.Subtitles.ModelStore.IsDownloaded(files))
+    {
+        Console.WriteLine("Downloading the voice cloning model (one time)…");
+        await EnhanceCapCut.Subtitles.ModelStore.EnsureAsync(files);
+    }
+    var started = DateTime.Now;
+    using var cloner = new EnhanceCapCut.Subtitles.VoiceCloner();
+    Console.WriteLine($"Loaded in {(DateTime.Now - started).TotalSeconds:0.0}s");
+    started = DateTime.Now;
+    var (samples, channels, rate) = EnhanceCapCut.Subtitles.AudioInput.ParseWav(File.ReadAllBytes(reference), reference);
+    var voice = cloner.VoiceFrom(EnhanceCapCut.Subtitles.AudioInput.ToMono(samples, channels, rate, EnhanceCapCut.Subtitles.VoiceCloner.SampleRate));
+    var speech = cloner.Speak(text, code, voice, exaggeration, seed);
+    EnhanceCapCut.Subtitles.AudioInput.WriteWav(output, speech.Samples, EnhanceCapCut.Subtitles.VoiceCloner.SampleRate);
+    Console.WriteLine($"{speech.Duration:0.00}s of speech in {(DateTime.Now - started).TotalSeconds:0.0}s"
+        + (speech.Finished ? "" : " (no stop token)") + $": {output}");
 }
 
 #if WINDOWS

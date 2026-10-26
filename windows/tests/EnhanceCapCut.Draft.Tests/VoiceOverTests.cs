@@ -39,6 +39,38 @@ public class VoiceOverWriterTests
             ? groups.EnumerateArray().Where(g => g.GetProperty("property_type").GetString() == "KFTypeVolume").ToList()
             : [];
 
+    /// <summary>Replace voice: the original is muted like Mute and a background track (always audible) fills in.</summary>
+    [Fact]
+    public void ReplaceAddsAnAudibleBackgroundAndMutesTheOriginal()
+    {
+        var all = Tracks();
+        all.Add(new VoiceOverTrack(all[0].Language, Project + "/EnhanceCapCut/voiceover 1/background.wav", 10, [(0.75, 4.4)],
+            IsAudible: true, IsBackground: true));
+        var output = DraftVoiceOverWriter.Apply(all, Bytes(Draft), OriginalAudio.Replace, replacePrevious: true, Project);
+        var d = Json(output);
+        var tracks = d.GetProperty("tracks");
+        Assert.Equal(6, tracks.GetArrayLength());
+        Assert.Equal("EnhanceCapCut voice-over · background", tracks[5].GetProperty("name").GetString());
+        Assert.Equal(0, tracks[5].GetProperty("attribute").GetInt32());
+        // Ducked to silence under the voice's lines, not the background's.
+        var video = VolumeKeyframes(Segments(d, 0)[0]);
+        var values = video[0].GetProperty("keyframe_list").EnumerateArray().Select(k => k.GetProperty("values")[0].GetDouble());
+        Assert.Equal([0.5, 0, 0, 0.5], values);
+        // A later run takes the background away too.
+        Assert.Equal(3, Json(DraftVoiceOverWriter.WithoutVoiceOver(output)).GetProperty("tracks").GetArrayLength());
+    }
+
+    [Fact]
+    public void BackgroundGainCrossFadesWithTheDucking()
+    {
+        (long, long) r = (1_000_000, 2_000_000);
+        Assert.Equal(0, DraftVoiceOverWriter.BackgroundGain(500_000, r));
+        Assert.Equal(0.5, DraftVoiceOverWriter.BackgroundGain(875_000, r), 9);
+        Assert.Equal(1, DraftVoiceOverWriter.BackgroundGain(1_500_000, r));
+        Assert.Equal(0.5, DraftVoiceOverWriter.BackgroundGain(2_200_000, r), 9);
+        Assert.Equal(0, DraftVoiceOverWriter.BackgroundGain(2_400_000, r));
+    }
+
     [Fact]
     public void AddsAudioTracksWithAClipPerLine()
     {

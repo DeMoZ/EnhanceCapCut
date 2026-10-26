@@ -131,7 +131,9 @@ on Windows): Whisper catches more words in noisy dialogue, and its model is down
    hidden (show them with the track's eye button in CapCut).
 4. For voice-over: pick a female or male voice for each translation (▶ previews it), which language is
    **heard** (the other voice-over tracks are added muted: unmute them with the track's speaker button), and
-   what happens to the **original audio** while the voice speaks: keep, lower by 15 dB, or mute.
+   what happens to the **original audio** while the voice speaks: keep, lower by 15 dB, mute, or **replace
+   voice** (the sound is muted and a track with it minus the voice plays instead, so music and ambience stay).
+   Or turn on **Clone the original voice** to dub in the speaker's own voice instead (below).
 5. Click **Create**, then open the project in CapCut.
 
 The style and position are copied from captions already in the timeline; otherwise CapCut's default caption
@@ -149,6 +151,18 @@ download *Enhanced* or *Premium* voices in System Settings ▸ Accessibility ▸
 button). **Siri voices** are offered too when Xcode is installed: macOS lets only Apple-signed programs use them,
 so the app speaks them through Xcode's Swift interpreter (`Tools/SiriVoice/siri-voice.swift`).
 
+**Clone the original voice** dubs in the voice of the person speaking, with the intonation and emotion of each
+line: every translated line is spoken by [Chatterbox Multilingual](https://huggingface.co/ResembleAI/chatterbox)
+V3 (Resemble AI, MIT; the ONNX export runs in ONNX Runtime on this Mac) from a reference that is the original speech
+at that line, taken from the timeline with Apple's voice isolation. Each line is read back with Whisper and made
+again when it came out garbled; lines that run long are sped up (at most 1.35×) without changing the pitch.
+**Expressiveness** (0.5 = like the original) makes the delivery calmer or more dramatic. It speaks Arabic, Danish,
+Dutch, English, Finnish, French, German, Greek, Hindi, Italian, Korean, Malay, Norwegian, Polish, Portuguese,
+Russian, Spanish, Swahili, Swedish and Turkish; other languages fall back to the chosen system voice. The model is
+downloaded once (1.55 GB, plus Whisper's 574 MB for the check), and a line takes about twice its length to make on
+an M1. **Use it only for your own voice or people who agreed to have their voice cloned**: the window asks you to
+confirm their consent before every run. Best with "Replace voice", so the original speech doesn't play underneath.
+
 ## Command line
 
 The `ecc` tool (built next to the app, also inside the bundle at `Contents/MacOS/ecc`) uses the same renderer:
@@ -162,6 +176,8 @@ ecc render 1014 --from 10 --duration 5 --codec prores422 -o /tmp/test.mov
 ecc voice clip.mov -o voice.wav --keep-voice # audition the voice processing on one file
 ecc subtitles DurianDick --language ru-RU --translate en,th --show en --srt ~/Movies   # add captions to the project
 ecc subtitles DurianDick --language ru-RU --voice en,th --hear en --no-captions        # voice-over only
+ecc subtitles ATV --language ru-RU --translate en --voice en=clone --consent --original replace   # dub in the speaker's voice
+ecc clone reference.wav --language en --text "Hello there." -o hello.wav   # audition voice cloning
 ecc voices th                              # installed voices for a language, with their ids
 ```
 
@@ -176,9 +192,10 @@ downloaded it (i.e. it has been used or previewed in CapCut on this Mac).
 `ecc subtitles` takes `--language` (spoken, e.g. `ru-RU`), `--translate en,th`, `--no-original`, `--show <code>`
 (the visible track), `--keep-previous` (don't replace earlier tracks), `--srt <folder>` and `--draft out.json`
 (write the changed draft there instead of into the project), `--no-captions`, `--voice en,th` (voice-over
-languages; `th=<voice id>` picks a voice from `ecc voices`, Siri voices as `siri:<id>`), `--hear <code>` (the
-audible voice-over track) and `--original keep|lower|mute` (default `lower`). Translation languages must already
-be downloaded (the app's window can download them).
+languages; `th=<voice id>` picks a voice from `ecc voices`, Siri voices as `siri:<id>`, `en=clone` the cloned
+original voice, which needs `--consent` to confirm the speakers agreed, and takes `--exaggeration 0.5`),
+`--hear <code>` (the audible voice-over track) and `--original keep|lower|mute|replace` (default `lower`).
+Translation languages must already be downloaded (the app's window can download them).
 
 ## Development
 

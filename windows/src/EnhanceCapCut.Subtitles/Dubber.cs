@@ -108,6 +108,130 @@ public static class Dubber
         return ranges;
     }
 
+    // MARK: Cloned voice
+
+    /// <summary>Voice id for "the original speaker's voice, cloned" (<see cref="VoiceCloner"/>), in place of a system voice id.</summary>
+    public const string ClonedVoiceId = "clone";
+    /// <summary>
+    /// A cloned line is read back with Whisper and made again (another seed) when its character error rate against the
+    /// text is above this: about one line in ten comes out garbled or cut short.
+    /// </summary>
+    const double MaxLineError = 0.35;
+    const int CloneAttempts = 3;
+    /// <summary>The reference for a line starts at the line and is at least this long (the model uses its first 6 s).</summary>
+    const double ReferenceSeconds = 4;
+    const double MaxReferenceSeconds = 6;
+
+    /// <summary>
+    /// Speaks every cue in the voice of the original speaker and writes a 48 kHz mono WAV aligned to the timeline. Each
+    /// line's reference is the original speech at that line (<paramref name="voice"/>: the timeline's voice, 24 kHz mono),
+    /// so its tone and emotion carry over. With <paramref name="checker"/>, garbled lines are made again.
+    /// </summary>
+    /// <returns>The speech ranges actually used (seconds), one per cue.</returns>
+    public static async Task<List<(double Start, double End)>> RenderClonedAsync(VoiceCloner cloner, WhisperChecker? checker,
+        IReadOnlyList<CaptionCue> cues, string language, float[] voice, float exaggeration, double totalDuration, string path,
+        Action<double>? progress = null, CancellationToken cancel = default)
+    {
+        var code = VoiceCloner.ModelLanguage(language) ?? throw new ArgumentException($"Voice cloning doesn't speak {language}");
+        var output = new List<float>((int)(totalDuration * SampleRate) + SampleRate);
+        var ranges = new List<(double Start, double End)>();
+        for (var i = 0; i < cues.Count; i++)
+        {
+            cancel.ThrowIfCancellationRequested();
+            var cue = cues[i];
+            var text = cue.Text.Replace('\n', ' ');
+            var slotEnd = i + 1 < cues.Count ? cues[i + 1].Start : Math.Max(cue.End, totalDuration);
+            var actualStart = Math.Max(cue.Start, (double)output.Count / SampleRate);
+            var slot = Math.Max(0.3, slotEnd - actualStart);
+            var limit = i + 1 < cues.Count ? MaxSpeedUp : LastLineSpeedUp;
+
+            var reference = cloner.VoiceFrom(ReferenceRange(cue, voice));
+            VoiceCloner.Speech? best = null;
+            var bestError = double.MaxValue;
+            for (var attempt = 0; attempt < CloneAttempts; attempt++)
+            {
+                var speech = cloner.Speak(text, code, reference, exaggeration, (ulong)i * 1000 + (ulong)attempt + 1, cancel);
+                var error = speech.Finished ? 0 : 1.0;
+                if (checker is not null && speech.Samples.Length > 0)
+                {
+                    var heard = await checker.TextAsync(AudioInput.Resample(speech.Samples, VoiceCloner.SampleRate, AudioInput.SampleRate), code, cancel);
+                    error = Math.Max(error, LineError(text, heard));
+                }
+                if (best is null || error < bestError || (error == bestError && speech.Duration < best.Duration))
+                {
+                    best = speech;
+                    bestError = error;
+                }
+                if (error <= MaxLineError) break;
+            }
+            var samples = best?.Samples ?? [];
+            var duration = (double)samples.Length / VoiceCloner.SampleRate;
+            if (duration > slot * 1.02) samples = TimeStretch.Stretch(samples, Math.Min(limit, duration / slot), VoiceCloner.SampleRate);
+            samples = AudioInput.Resample(samples, VoiceCloner.SampleRate, SampleRate);
+
+            var startFrame = Math.Max((int)(cue.Start * SampleRate), output.Count);
+            while (output.Count < startFrame) output.Add(0);
+            output.AddRange(samples);
+            ranges.Add(((double)startFrame / SampleRate, (double)output.Count / SampleRate));
+            progress?.Invoke((double)(i + 1) / cues.Count);
+        }
+        var total = (int)(totalDuration * SampleRate);
+        while (output.Count < total) output.Add(0);
+        AudioInput.WriteWav(path, System.Runtime.InteropServices.CollectionsMarshal.AsSpan(output), SampleRate);
+        return ranges;
+    }
+
+    /// <summary>
+    /// The original speech a line is cloned from: from the line's start, at least <see cref="ReferenceSeconds"/> (taken
+    /// from before the line near the end of the timeline), at most <see cref="MaxReferenceSeconds"/>.
+    /// </summary>
+    internal static float[] ReferenceRange(CaptionCue cue, float[] voice)
+    {
+        const int rate = VoiceCloner.SampleRate;
+        var total = (double)voice.Length / rate;
+        var start = Math.Max(0, cue.Start);
+        var end = Math.Min(Math.Min(total, Math.Max(cue.End, start + ReferenceSeconds)), start + MaxReferenceSeconds);
+        if (end - start < ReferenceSeconds) start = Math.Max(0, end - ReferenceSeconds);
+        var a = Math.Min(voice.Length, (int)(start * rate));
+        var b = Math.Min(voice.Length, (int)(end * rate));
+        return voice[a..Math.Max(a, b)];
+    }
+
+    /// <summary>
+    /// Character error rate of <paramref name="heard"/> against <paramref name="expected"/>: edit distance over letters
+    /// and digits (lower case, punctuation and spacing ignored) divided by the expected length.
+    /// </summary>
+    internal static double LineError(string expected, string heard)
+    {
+        static List<string> Normalized(string s)
+        {
+            var characters = new List<string>();
+            var e = System.Globalization.StringInfo.GetTextElementEnumerator(s.ToLowerInvariant());
+            while (e.MoveNext())
+            {
+                var character = e.GetTextElement();
+                if (char.IsLetterOrDigit(character, 0)) characters.Add(character);
+            }
+            return characters;
+        }
+        var a = Normalized(expected);
+        var b = Normalized(heard);
+        if (a.Count == 0) return b.Count == 0 ? 0 : 1;
+        var row = Enumerable.Range(0, b.Count + 1).ToArray();
+        for (var i = 1; i <= a.Count; i++)
+        {
+            var diagonal = row[0];
+            row[0] = i;
+            for (var j = 1; j <= b.Count; j++)
+            {
+                var above = row[j];
+                row[j] = Math.Min(Math.Min(row[j] + 1, row[j - 1] + 1), diagonal + (a[i - 1] == b[j - 1] ? 0 : 1));
+                diagonal = above;
+            }
+        }
+        return (double)row[b.Count] / a.Count;
+    }
+
     static double Seconds(float[] samples) => (double)samples.Length / SampleRate;
 
     /// <summary>Removes leading/trailing near-silence the engine adds around speech, keeping 20 ms so words don't start abruptly.</summary>

@@ -12,11 +12,16 @@ import Foundation
 //   ecc subtitles [project] [--timeline name|number] --language ru-RU [--engine apple|whisper] [--translate en,th]
 //                 [--no-original] [--show en]
 //                 [--keep-previous] [--srt folder] [--draft out.json] [--no-captions]
-//                 [--voice en,th | en=<voice id>,th] [--hear th] [--original keep|lower|mute]
+//                 [--voice en,th | en=<voice id>,th | en=clone] [--hear th] [--original keep|lower|mute|replace]
+//                 [--exaggeration 0.5] [--consent]
 //                 (macOS 26+; writes into the project unless --draft is given; translation languages must be downloaded;
 //                 --engine whisper downloads its model on first use (574 MB);
-//                 --voice speaks these translations with system voices, `ecc voices <language>` lists them)
+//                 --voice speaks these translations with system voices, `ecc voices <language>` lists them;
+//                 `clone` speaks in the original speaker's voice — only with their consent, which --consent confirms —
+//                 downloading its model on first use (1.55 GB); --original replace keeps the background under the voice)
 //   ecc voices <language>
+//   ecc clone <reference audio> --language en --text "…" -o out.wav [--exaggeration 0.5] [--seed 1]
+//             (speaks the text in the reference's voice; downloads the voice cloning model on first use, 1.55 GB)
 
 func fail(_ message: String) -> Never {
     FileHandle.standardError.write((message + "\n").data(using: .utf8)!)
@@ -194,9 +199,22 @@ case "subtitles":
     let engineArg = option("--engine") ?? "apple"
     guard let engine = SpeechEngine(rawValue: engineArg.lowercased()) else { fail("--engine takes apple or whisper") }
     let originalArg = option("--original") ?? "lower"
-    guard let original = OriginalAudio.allCases.first(where: { $0.rawValue.lowercased() == originalArg.lowercased() }) else {
-        fail("--original takes keep, lower or mute")
+    guard let original = OriginalAudio.allCases.first(where: {
+        $0.rawValue.split(separator: " ")[0].lowercased() == originalArg.lowercased()
+    }) else {
+        fail("--original takes keep, lower, mute or replace")
     }
+    let exaggeration = Float(option("--exaggeration") ?? "") ?? 0.5
+    if voices.values.contains(Dubber.clonedVoiceID) {
+        guard args.contains("--consent") else {
+            fail("Cloning copies a real person's voice. Use it only for voices you have the right to use: your own, or "
+                + "people who agreed to it. Add --consent to confirm you have their consent.")
+        }
+        for code in voices.keys where voices[code] == Dubber.clonedVoiceID && VoiceCloner.modelLanguage(code) == nil {
+            fail("Voice cloning doesn't speak \(code); give it a system voice instead")
+        }
+    }
+    args.removeAll { $0 == "--consent" }
     let includeOriginal = !args.contains("--no-original")
     let replace = !args.contains("--keep-previous")
     let captions = !args.contains("--no-captions")
@@ -213,6 +231,8 @@ case "subtitles":
     options.captions = captions
     options.engine = engine
     options.voices = voices
+    options.exaggeration = exaggeration
+    options.background = original == .replace
     options.audibleVoice = hear
     // A dry run (--draft) keeps the voice-over audio next to the draft it writes.
     options.voiceOverFolder = draftOut.map {
@@ -252,6 +272,30 @@ case "subtitles":
         print("Backup: \(result.backupFolder.path)")
     }
 
+case "clone":
+    // Audition voice cloning: the text spoken in the voice of a reference recording.
+    guard let language = option("--language"), let text = option("--text"), let out = option("-o"),
+          let reference = args.first(where: { !$0.hasPrefix("-") }) else {
+        fail("usage: ecc clone <reference audio> --language en --text \"…\" -o out.wav [--exaggeration 0.5] [--seed 1]")
+    }
+    guard let code = VoiceCloner.modelLanguage(language) else { fail("Voice cloning doesn't speak \(language)") }
+    let exaggeration = Float(option("--exaggeration") ?? "") ?? 0.5
+    let seed = UInt64(option("--seed") ?? "") ?? 1
+    if !ModelStore.isDownloaded(ModelStore.voiceCloning) {
+        print("Downloading the voice cloning model (one time)…")
+        try await ModelStore.ensure(ModelStore.voiceCloning) { _ in }
+    }
+    var started = Date()
+    let cloner = try VoiceCloner()
+    print(String(format: "Loaded in %.1fs", Date().timeIntervalSince(started)))
+    started = Date()
+    let samples = try MonoAudio.read(URL(fileURLWithPath: reference), sampleRate: VoiceCloner.sampleRate)
+    let voice = try cloner.voice(from: samples)
+    let speech = try cloner.speak(text, language: code, voice: voice, exaggeration: exaggeration, seed: seed)
+    try MonoAudio.write(speech.samples, sampleRate: VoiceCloner.sampleRate, to: URL(fileURLWithPath: out))
+    print(String(format: "%.2fs of speech in %.1fs%@: %@", speech.duration, Date().timeIntervalSince(started),
+                 speech.finished ? "" : " (no stop token)", out))
+
 case "voices":
     guard let code = args.first else { fail("usage: ecc voices <language code>") }
     for voice in Dubber.voices(for: code) {
@@ -265,5 +309,5 @@ case "voices":
     }
 
 default:
-    print("usage: ecc list | info [project] | render [project] [options] | voice <media> -o out.wav [options] | subtitles [project] --language ru-RU [options] | voices <language>")
+    print("usage: ecc list | info [project] | render [project] [options] | voice <media> -o out.wav [options] | subtitles [project] --language ru-RU [options] | voices <language> | clone <reference audio> --language en --text … -o out.wav")
 }

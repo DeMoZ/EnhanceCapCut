@@ -66,6 +66,19 @@ Usage counts from the author's 69 projects drive the order of the later mileston
       pieces cut at pauses (fed whole it dropped half the words), Whisper in pieces under its 30 s window (Whisper.net
       stopped after the first one with DTW). Whisper is also on the Mac now, as a choice in the window
       (`WhisperTranscriber`, whisper.cpp xcframework): word error 11–25% vs Apple's 12–31%, same word timing.
+- [x] Dubbing in the original voice ("Clone the original voice"): Chatterbox Multilingual V3 (Resemble AI, MIT) as
+      ONNX (`Masterx/chatterbox-multilingual-v3-ONNX`, 4-bit language model, 1.55 GB) in ONNX Runtime on both
+      platforms (`VoiceCloner`, `ChatterboxTokenizer`, checked against Hugging Face's tokenizer ids). Each line's
+      reference is the original speech at that line (4–6 s, Apple voice isolation on the Mac, the mix on Windows), so
+      intonation and emotion carry over; sampling (temperature 0.8, min-p 0.05, repetition penalty 1.2 — greedy
+      decoding looped or cut lines short); every line read back with Whisper and made again above 35% character
+      error (2 of 19 lines garbled in the first ATV test); WSOLA speed-up (`TimeStretch`). Consent confirmation
+      before every run. Measured on an M1: ~2× real time, model load ~30 s.
+- [x] "Replace voice" original audio (Mac): muted under the voice-over, with a background track made by our
+      vocal removal in its place (see FORMAT.md).
+- [ ] Voice cloning: speaker diarization, so a line's reference never borrows another speaker's voice; Chinese,
+      Japanese and Hebrew (need Cangjie / kana / diacritics front ends); voice isolation on Windows for cleaner
+      references and "Replace voice" there; GPU (CoreML / DirectML) for the decoder, now the slow part.
 
 ## Milestone 2 — LUT filters
 

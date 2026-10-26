@@ -60,8 +60,10 @@ right, the status and main button in a bar at the bottom):
   file name. Settings are shared with `ecc render` (`%APPDATA%\EnhanceCapCut\settings.json`).
 - **Subtitles & Voice-over** — the same choices as on the Mac: subtitles and/or voice-over, the spoken language,
   translations, the track shown on screen, per-language Windows voices (▶ previews), the audible voice-over track
-  and what happens to the original sound. When the Whisper or NLLB model isn't there yet, the window offers the
-  one-time download.
+  and what happens to the original sound. **Clone the original voice** dubs in the speaker's own voice with
+  Chatterbox (`VoiceCloner`, ONNX Runtime, the same model and code as on the Mac) after a consent confirmation;
+  Windows has no voice isolation yet, so the reference is the mix itself and "Replace voice" isn't offered. When the
+  Whisper, NLLB or voice cloning model isn't there yet, the window offers the one-time download.
 
 There is one instance: starting it again brings the export window back and re-detects the project open in CapCut
 (pin it to the taskbar for the macOS Services entry's role). Closing a window hides it while the other one is

@@ -17,6 +17,22 @@ public static class ModelStore
     public static readonly ModelFile Whisper = new("whisper", "ggml-large-v3-turbo-q5_0.bin",
         "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin", 574_041_195);
 
+    /// <summary>
+    /// Chatterbox Multilingual V3 (Resemble AI, MIT) as ONNX, with the 4-bit language model: voice cloning
+    /// (<see cref="VoiceCloner"/>). Pinned to a revision of the export so the files never change under us. The same
+    /// files and folder as the macOS version.
+    /// </summary>
+    public static readonly IReadOnlyList<ModelFile> VoiceCloning = new (string Name, long Bytes)[]
+    {
+        ("tokenizer.json", 72_765),
+        ("onnx/speech_encoder.onnx", 1_204_600), ("onnx/speech_encoder.onnx_data", 591_274_880),
+        ("onnx/embed_tokens.onnx", 17_616), ("onnx/embed_tokens.onnx_data", 68_808_704),
+        ("onnx/language_model_q4.onnx", 228_633), ("onnx/language_model_q4.onnx_data", 353_621_248),
+        ("onnx/conditional_decoder.onnx", 6_371_670), ("onnx/conditional_decoder.onnx_data", 533_970_816),
+    }.Select(f => new ModelFile("chatterbox-v3", f.Name,
+        "https://huggingface.co/Masterx/chatterbox-multilingual-v3-ONNX/resolve/19b94afe41de738624b2f3afc75b4cd56221fbeb/" + f.Name,
+        f.Bytes)).ToList();
+
     public static readonly IReadOnlyList<ModelFile> Translation =
     [
         new("nllb", "encoder_model_quantized.onnx", Nllb + "onnx/encoder_model_quantized.onnx", 419_120_483),
@@ -42,6 +58,9 @@ public static class ModelStore
     }
 
     public static string PathOf(ModelFile file) => Path.Combine(Root, file.Folder, file.Name);
+
+    /// <summary>The folder a set of files lives in.</summary>
+    public static string FolderOf(IReadOnlyList<ModelFile> files) => Path.Combine(Root, files.Count > 0 ? files[0].Folder : "");
 
     public static bool IsDownloaded(IEnumerable<ModelFile> files) => files.All(f => File.Exists(PathOf(f)));
 
