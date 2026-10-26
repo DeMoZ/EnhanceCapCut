@@ -10,8 +10,8 @@ namespace EnhanceCapCut.App;
 
 /// <summary>
 /// The app: one instance, the export window on every launch (a second launch brings it back and re-detects the project
-/// open in CapCut, like the macOS Services entry), the subtitles window on demand, and the same questions as the macOS
-/// version before quitting during an export or a subtitles run.
+/// open in CapCut, like the macOS Services entry), the subtitles and donate windows on demand, and the same questions as
+/// the macOS version before quitting during an export or a subtitles run.
 ///
 /// Command line (for testing and scripting, like the macOS <c>--args -project … -autoExport YES</c>):
 /// <c>EnhanceCapCut.exe [--project &lt;name&gt;] [--auto-export] [--subtitles]</c> (the last one opens the subtitles window too);
@@ -26,6 +26,8 @@ sealed partial class App : Application, IXamlMetadataProvider
     ExportWindow? exportWindow;
     SubtitlesModel? subtitles;
     SubtitlesWindow? subtitlesWindow;
+    DonateModel? donate;
+    DonateWindow? donateWindow;
     bool quitting;
 
     App(string[] args)
@@ -70,6 +72,7 @@ sealed partial class App : Application, IXamlMetadataProvider
         var ui = DispatcherQueue.GetForCurrentThread();
         model = new ExportModel(ui) { AutoExport = args.Contains("--auto-export") };
         model.OpenSubtitles = ShowSubtitlesWindow;
+        model.OpenDonate = ShowDonateWindow;
         model.Finished = () => { if (exportWindow is not null) Platform.Flash(exportWindow); };
         var updater = new Updater(ui, () => exportWindow!, ConfirmQuit, Quit);
         updater.Changed += model.Notify;
@@ -120,6 +123,19 @@ sealed partial class App : Application, IXamlMetadataProvider
         Bring(subtitlesWindow);
     }
 
+    /// <summary>Shows the "Support EnhanceCapCut" window, downloading the ways to donate again.</summary>
+    void ShowDonateWindow()
+    {
+        donate ??= new DonateModel();
+        if (donateWindow is null)
+        {
+            donateWindow = new DonateWindow(donate);
+            HandleClose(donateWindow);
+        }
+        donate.Load();
+        Bring(donateWindow);
+    }
+
     static void Bring(Window window)
     {
         window.AppWindow.Show();
@@ -135,7 +151,7 @@ sealed partial class App : Application, IXamlMetadataProvider
     {
         if (quitting) return;
         e.Cancel = true;
-        var others = new Window?[] { exportWindow, subtitlesWindow }.Where(w => w is not null && w != window && w.AppWindow.IsVisible);
+        var others = new Window?[] { exportWindow, subtitlesWindow, donateWindow }.Where(w => w is not null && w != window && w.AppWindow.IsVisible);
         if (others.Any())
         {
             sender.Hide();
@@ -165,6 +181,7 @@ sealed partial class App : Application, IXamlMetadataProvider
     {
         quitting = true;
         subtitlesWindow?.Close();
+        donateWindow?.Close();
         exportWindow?.Close();
         Exit();
     }

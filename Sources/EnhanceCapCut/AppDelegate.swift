@@ -8,6 +8,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var subtitlesWindow: NSWindow?
     /// A `SubtitlesModel` (macOS 26+), kept for the life of the app so running jobs survive closing the window.
     private var subtitlesModel: AnyObject?
+    private var donateWindow: NSWindow?
+    private let donateModel = DonateModel()
     private let model = ExportModel()
     private let services = ServiceProvider()
     /// Sparkle, only in the app bundle (a `swift run` build has no Info.plist feed to check).
@@ -23,6 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.mainMenu = makeMenu()
         services.onInvoke = { [weak self] in self?.showExportWindow() }
         model.openSubtitles = { [weak self] in self?.showSubtitlesWindow() }
+        model.openDonate = { [weak self] in self?.showDonateWindow() }
         if let updater {
             model.checkForUpdates = { updater.checkForUpdates(nil) }
         }
@@ -105,6 +108,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         subtitlesWindow?.makeKeyAndOrderFront(nil)
     }
 
+    /// Shows the "Support EnhanceCapCut" window, downloading the ways to donate again.
+    func showDonateWindow() {
+        if donateWindow == nil {
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 440, height: 340),
+                                  styleMask: [.titled, .closable, .miniaturizable, .resizable],
+                                  backing: .buffered, defer: false)
+            window.title = "Support EnhanceCapCut"
+            window.isReleasedWhenClosed = false
+            window.contentView = NSHostingView(rootView: DonateView(model: donateModel))
+            window.setFrameAutosaveName("DonateWindow")
+            window.center()
+            donateWindow = window
+        }
+        donateModel.load()
+        NSApp.activate(ignoringOtherApps: true)
+        donateWindow?.makeKeyAndOrderFront(nil)
+    }
+
     private func makeMenu() -> NSMenu {
         let main = NSMenu()
         let appItem = NSMenuItem()
@@ -114,6 +135,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             appMenu.addItem(withTitle: "Check for Updates…", action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)),
                             keyEquivalent: "").target = updater
         }
+        appMenu.addItem(withTitle: "Donate…", action: #selector(showDonateAction), keyEquivalent: "").target = self
         appMenu.addItem(.separator())
         let servicesItem = NSMenuItem(title: "Services", action: nil, keyEquivalent: "")
         let servicesMenu = NSMenu()
@@ -154,6 +176,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func showWindowAction() { showExportWindow() }
     @objc private func showSubtitlesAction() { showSubtitlesWindow() }
+    @objc private func showDonateAction() { showDonateWindow() }
 
     /// Keeps a single instance when two copies are installed (e.g. ~/Applications and /Applications):
     /// both can answer the Services entry and show their own export window. Older copies are asked to
