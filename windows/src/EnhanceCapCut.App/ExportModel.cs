@@ -73,6 +73,8 @@ sealed class ExportModel(DispatcherQueue ui)
 
     /// <summary>Opens the subtitles window (set by the app).</summary>
     public Action? OpenSubtitles { get; set; }
+    /// <summary>"Check for Updates…" in the footer.</summary>
+    public Updater? Updates { get; set; }
     /// <summary>The export finished while the window wasn't in front (set by the app).</summary>
     public Action? Finished { get; set; }
 

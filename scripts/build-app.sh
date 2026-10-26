@@ -25,15 +25,16 @@ bundle_id=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" App/Info.plis
 arch_flags=()
 [[ "$mode" == "--pkg" ]] && arch_flags=(--arch arm64 --arch x86_64)
 
-swift build -c release "${arch_flags[@]}" --product EnhanceCapCut
+# The CLI first: building a product prunes frameworks only the other one links (Sparkle is the app's).
 swift build -c release "${arch_flags[@]}" --product ecc
+swift build -c release "${arch_flags[@]}" --product EnhanceCapCut
 bin=$(swift build -c release "${arch_flags[@]}" --show-bin-path)
 
-sign() { # sign <path>
+sign() { # sign <path> [extra codesign options]
   if [[ -n "$DEV_ID_APP" ]]; then
-    codesign --force --sign "$DEV_ID_APP" --options runtime --timestamp "$1"
+    codesign --force --sign "$DEV_ID_APP" --options runtime --timestamp "${@:2}" "$1"
   else
-    codesign --force --sign - --timestamp=none "$1"
+    codesign --force --sign - --timestamp=none "${@:2}" "$1"
   fi
 }
 
@@ -45,6 +46,8 @@ cp "$bin/ecc" "$app/Contents/MacOS/ecc"
 # whisper.cpp (speech recognition) is a dynamic framework: ship it and let both binaries find it.
 mkdir -p "$app/Contents/Frameworks"
 ditto "$bin/whisper.framework" "$app/Contents/Frameworks/whisper.framework"
+# Sparkle (app updates), signed inside out as its documentation lists.
+ditto "$bin/Sparkle.framework" "$app/Contents/Frameworks/Sparkle.framework"
 for exe in "$app/Contents/MacOS/EnhanceCapCut" "$app/Contents/MacOS/ecc"; do
   install_name_tool -add_rpath @executable_path/../Frameworks "$exe" 2>/dev/null || true
 done
@@ -52,6 +55,12 @@ cp App/Info.plist "$app/Contents/Info.plist"
 # Siri voice helper, run by the app through Xcode's Swift interpreter.
 cp Tools/SiriVoice/siri-voice.swift "$app/Contents/Resources/"
 sign "$app/Contents/Frameworks/whisper.framework"
+sparkle="$app/Contents/Frameworks/Sparkle.framework/Versions/B"
+sign "$sparkle/XPCServices/Installer.xpc"
+sign "$sparkle/XPCServices/Downloader.xpc" --preserve-metadata=entitlements
+sign "$sparkle/Autoupdate"
+sign "$sparkle/Updater.app"
+sign "$app/Contents/Frameworks/Sparkle.framework"
 sign "$app/Contents/MacOS/ecc"
 sign "$app"
 echo "Built $root/$app ($version)"

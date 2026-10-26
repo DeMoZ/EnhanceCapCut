@@ -19,6 +19,8 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+    <!-- Releases pass -p:Version=<x.y.z>; a local build is 0.0.0, which the updater treats as a development build. -->
+    <Version Condition="'$(Version)' == ''">0.0.0</Version>
   </PropertyGroup>
 
   <!-- On macOS and Linux only the code is compiled (to check it; `dotnet test` builds the whole solution there):

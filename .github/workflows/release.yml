@@ -2,6 +2,7 @@
 #   git tag v0.3.0 && git push origin v0.3.0
 # The tag must match CFBundleShortVersionString in App/Info.plist (the version of both platforms).
 # Release notes come from docs/releases/<tag>.md, or are generated from the merged PRs.
+# appcast.xml (the Mac app's update feed, signed with the SPARKLE_PRIVATE_KEY secret) is published with the release.
 name: Release
 
 on:
@@ -22,10 +23,16 @@ jobs:
           [[ "v$version" == "$GITHUB_REF_NAME" ]] || { echo "::error::Tag $GITHUB_REF_NAME doesn't match App/Info.plist ($version)"; exit 1; }
       - name: Build the installer
         run: scripts/build-app.sh --pkg
+      - name: Sign the update for Sparkle (build/appcast.xml)
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: scripts/appcast.sh build/EnhanceCapCut-*.pkg
       - uses: actions/upload-artifact@v4
         with:
           name: macos
-          path: build/EnhanceCapCut-*.pkg
+          path: |
+            build/EnhanceCapCut-*.pkg
+            build/appcast.xml
           if-no-files-found: error
 
   windows:

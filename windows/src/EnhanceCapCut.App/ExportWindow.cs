@@ -62,6 +62,10 @@ sealed class ExportWindow : Window
     readonly Button revealButton = new() { Content = "Show in Explorer" };
     readonly StackPanel exportingView, finishedView;
     readonly Grid idleView, failedView;
+    // "Version 0.6.0 · Check for Updates…" (as on the Mac), or the update found / its download.
+    readonly StackPanel updatesView = new() { Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
+    readonly TextBlock versionText = Text.Caption();
+    readonly HyperlinkButton updatesLink = new() { FontSize = 12, Padding = new Thickness(2, 0, 2, 0) };
     readonly StackPanel finishedButtons = new() { Orientation = Orientation.Horizontal, Spacing = 8 };
     readonly StackPanel failedButtons = new() { Orientation = Orientation.Horizontal };
     readonly StackPanel idleButtons = new() { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
@@ -153,7 +157,10 @@ sealed class ExportWindow : Window
         failedText.MaxLines = 3;
         failedText.TextTrimming = TextTrimming.CharacterEllipsis;
         failedView = Spread(Text.Label(Theme.ErrorFilled, failedText, Theme.Red), failedButtons);
-        idleView = Spread(new Grid(), idleButtons);
+        updatesView.Children.Add(versionText);
+        updatesView.Children.Add(updatesLink);
+        updatesLink.Click += async (_, _) => { if (model.Updates is { } u) await u.Check(); };
+        idleView = Spread(updatesView, idleButtons);
 
         var root = new Grid { Background = Theme.Resource("SolidBackgroundFillColorBaseBrush") };
         root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
@@ -288,6 +295,7 @@ sealed class ExportWindow : Window
     void UpdateFooter()
     {
         exportButton.IsEnabled = model.Timeline is not null && model.OutputPath is not null;
+        UpdateUpdatesLink();
         switch (model.State)
         {
             case ExportState.Exporting(var progress):
@@ -308,6 +316,24 @@ sealed class ExportWindow : Window
             default:
                 Show(idleView, idleButtons);
                 break;
+        }
+    }
+
+    void UpdateUpdatesLink()
+    {
+        var updater = model.Updates;
+        updatesView.Visibility = updater is not null && Updater.Current is not null ? Visibility.Visible : Visibility.Collapsed;
+        if (updater is null || Updater.Current is not { } current) return;
+        versionText.Text = $"Version {current} ·";
+        if (updater.Progress is { } p)
+        {
+            updatesLink.Content = $"Downloading the update… {p:P0}";
+            updatesLink.IsEnabled = false;
+        }
+        else
+        {
+            updatesLink.Content = updater.Available is { } release ? $"Update to {release.Version}…" : "Check for Updates…";
+            updatesLink.IsEnabled = true;
         }
     }
 

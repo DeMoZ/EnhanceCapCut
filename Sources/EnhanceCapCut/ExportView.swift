@@ -231,9 +231,22 @@ struct ExportView: View {
             }
         case .idle:
             HStack {
+                updatesLink
                 Spacer()
                 exportButton
             }
+        }
+    }
+
+    /// "Version 0.6.0 · Check for Updates…", as in the Windows version.
+    @ViewBuilder
+    private var updatesLink: some View {
+        if let check = model.checkForUpdates {
+            HStack(spacing: 4) {
+                Text("Version \(model.version) ·").foregroundStyle(.secondary)
+                Button("Check for Updates…", action: check).buttonStyle(.link)
+            }
+            .font(.caption)
         }
     }
 
