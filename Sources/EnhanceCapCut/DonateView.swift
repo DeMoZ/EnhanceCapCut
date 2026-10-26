@@ -7,6 +7,7 @@ struct DonateView: View {
 
     var body: some View {
         Form {
+            Section { about }
             switch model.state {
             case .loading:
                 Section {
@@ -34,7 +35,21 @@ struct DonateView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(minWidth: 400, minHeight: 280)
+        .frame(minWidth: 400, minHeight: 360)
+    }
+
+    /// Icon, name, version and the project page, like the standard About panel.
+    private var about: some View {
+        HStack(spacing: 12) {
+            Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 56, height: 56)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("EnhanceCapCut").font(.title3.bold())
+                if !model.version.isEmpty {
+                    Text("Version \(model.version)").foregroundStyle(.secondary)
+                }
+                Link("github.com/DeMoZ/EnhanceCapCut", destination: DonateModel.projectPage)
+            }
+        }
     }
 
     private func row(_ method: DonationMethod, title: String) -> some View {

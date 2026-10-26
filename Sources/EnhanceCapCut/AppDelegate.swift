@@ -26,6 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         services.onInvoke = { [weak self] in self?.showExportWindow() }
         model.openSubtitles = { [weak self] in self?.showSubtitlesWindow() }
         model.openDonate = { [weak self] in self?.showDonateWindow() }
+        model.exportFinished = { [weak self] in self?.offerDonationOncePerDay() }
         if let updater {
             model.checkForUpdates = { updater.checkForUpdates(nil) }
         }
@@ -108,29 +109,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         subtitlesWindow?.makeKeyAndOrderFront(nil)
     }
 
-    /// Shows the "Support EnhanceCapCut" window, downloading the ways to donate again.
-    func showDonateWindow() {
+    /// Shows the "Support EnhanceCapCut" window (app info and the ways to donate, downloaded again); it's also the
+    /// About window.
+    func showDonateWindow(title: String = "Support EnhanceCapCut") {
         if donateWindow == nil {
-            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 440, height: 340),
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 440, height: 440),
                                   styleMask: [.titled, .closable, .miniaturizable, .resizable],
                                   backing: .buffered, defer: false)
-            window.title = "Support EnhanceCapCut"
             window.isReleasedWhenClosed = false
             window.contentView = NSHostingView(rootView: DonateView(model: donateModel))
             window.setFrameAutosaveName("DonateWindow")
             window.center()
             donateWindow = window
         }
+        donateWindow?.title = title
         donateModel.load()
         NSApp.activate(ignoringOtherApps: true)
         donateWindow?.makeKeyAndOrderFront(nil)
+    }
+
+    /// After the first export of each day, offers to donate (as on Windows).
+    private func offerDonationOncePerDay() {
+        let today = Date().formatted(Date.ISO8601FormatStyle(timeZone: .current).year().month().day())
+        guard UserDefaults.standard.string(forKey: "donateOfferDay") != today else { return }
+        UserDefaults.standard.set(today, forKey: "donateOfferDay")
+        showDonateWindow()
     }
 
     private func makeMenu() -> NSMenu {
         let main = NSMenu()
         let appItem = NSMenuItem()
         let appMenu = NSMenu()
-        appMenu.addItem(withTitle: "About EnhanceCapCut", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        appMenu.addItem(withTitle: "About EnhanceCapCut", action: #selector(showAboutAction), keyEquivalent: "").target = self
         if let updater {
             appMenu.addItem(withTitle: "Check for Updates…", action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)),
                             keyEquivalent: "").target = updater
@@ -177,6 +187,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func showWindowAction() { showExportWindow() }
     @objc private func showSubtitlesAction() { showSubtitlesWindow() }
     @objc private func showDonateAction() { showDonateWindow() }
+    @objc private func showAboutAction() { showDonateWindow(title: "About EnhanceCapCut") }
 
     /// Keeps a single instance when two copies are installed (e.g. ~/Applications and /Applications):
     /// both can answer the Services entry and show their own export window. Older copies are asked to

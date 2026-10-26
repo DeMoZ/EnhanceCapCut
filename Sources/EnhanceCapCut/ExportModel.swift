@@ -36,6 +36,8 @@ final class ExportModel: ObservableObject {
     var openSubtitles: (() -> Void)?
     /// Opens the "Support EnhanceCapCut" window (set by the app delegate).
     var openDonate: (() -> Void)?
+    /// An export finished (not one started by `-autoExport`); set by the app delegate.
+    var exportFinished: (() -> Void)?
     /// Sparkle's "Check for Updates…" (nil outside the app bundle).
     var checkForUpdates: (() -> Void)?
     /// "0.6.0" from the bundle; empty for a `swift run` build.
@@ -151,6 +153,7 @@ final class ExportModel: ObservableObject {
                 await MainActor.run {
                     self.state = .finished(url, warnings: warnings, seconds: Date().timeIntervalSince(started))
                     NSApp.requestUserAttention(.informationalRequest)
+                    if !UserDefaults.standard.bool(forKey: "autoExport") { self.exportFinished?() }
                 }
             } catch RenderError.cancelled {
                 try? FileManager.default.removeItem(at: url)

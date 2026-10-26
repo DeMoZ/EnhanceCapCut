@@ -16,6 +16,22 @@ sealed class DonateWindow : Window
         this.model = model;
         Title = "Support EnhanceCapCut";
 
+        // Name, version and the project page, as in the macOS window (which also shows the icon).
+        var about = form.Section();
+        var name = Text.Headline("EnhanceCapCut");
+        name.FontSize = 20;
+        var info = new StackPanel { Spacing = 2, Children = { name } };
+        if (Updater.Current is { } version)
+        {
+            var versionText = Text.Body($"Version {version}");
+            versionText.Foreground = Theme.Secondary;
+            info.Children.Add(versionText);
+        }
+        var page = new HyperlinkButton { Content = "github.com/DeMoZ/EnhanceCapCut", Padding = new Thickness(0) };
+        page.Click += (_, _) => Platform.OpenUri(DonateModel.ProjectPage);
+        info.Children.Add(page);
+        about.Add(info);
+
         loadingSection = form.Section();
         var loadingText = Text.Body("Loading the ways to donate…");
         loadingText.Foreground = Theme.Secondary;
@@ -32,7 +48,7 @@ sealed class DonateWindow : Window
         methodsSection = form.Section("Ways to donate");
 
         Content = new Grid { Background = Theme.Resource("SolidBackgroundFillColorBaseBrush"), Children = { form } };
-        Platform.SetUpFrame(this, "window.donate", 440, 340, 400, 280);
+        Platform.SetUpFrame(this, "window.donate", 440, 440, 400, 360);
         model.Changed += Update;
         Update();
     }

@@ -10,9 +10,10 @@ abstract record DonateState
 }
 
 /// <summary>
-/// The "Support EnhanceCapCut" window: ways to donate, downloaded from the <c>DeMoZ/donations</c> repository each time
-/// the window opens, so links and texts change without a release. The last copy shows while (or if) the download
-/// fails. The counterpart of the macOS version's <c>DonateModel</c>; <see cref="Changed"/> fires on the UI thread.
+/// The "Support EnhanceCapCut" window (the About window on the Mac): app info, then ways to donate, downloaded from the
+/// <c>DeMoZ/donations</c> repository each time the window opens, so links and texts change without a release. The last
+/// copy shows while (or if) the download fails. The counterpart of the macOS version's <c>DonateModel</c>;
+/// <see cref="Changed"/> fires on the UI thread.
 /// </summary>
 sealed class DonateModel
 {
@@ -38,6 +39,8 @@ sealed class DonateModel
         else if (State is DonateState.Loading) State = new DonateState.Failed();
         Changed?.Invoke();
     }
+
+    public const string ProjectPage = "https://github.com/DeMoZ/EnhanceCapCut";
 
     public static void Open(DonationMethod method) => Platform.OpenUri(method.Url.AbsoluteUri);
 }

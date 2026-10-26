@@ -73,7 +73,11 @@ sealed partial class App : Application, IXamlMetadataProvider
         model = new ExportModel(ui) { AutoExport = args.Contains("--auto-export") };
         model.OpenSubtitles = ShowSubtitlesWindow;
         model.OpenDonate = ShowDonateWindow;
-        model.Finished = () => { if (exportWindow is not null) Platform.Flash(exportWindow); };
+        model.Finished = () =>
+        {
+            if (exportWindow is not null) Platform.Flash(exportWindow);
+            if (!model.AutoExport) OfferDonationOncePerDay();
+        };
         var updater = new Updater(ui, () => exportWindow!, ConfirmQuit, Quit);
         updater.Changed += model.Notify;
         model.Updates = updater;
@@ -134,6 +138,15 @@ sealed partial class App : Application, IXamlMetadataProvider
         }
         donate.Load();
         Bring(donateWindow);
+    }
+
+    /// <summary>After the first export of each day, offers to donate (as on the Mac).</summary>
+    void OfferDonationOncePerDay()
+    {
+        var today = DateTime.Now.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        if (Preferences.String("donateOfferDay") == today) return;
+        Preferences.Set("donateOfferDay", today);
+        ShowDonateWindow();
     }
 
     static void Bring(Window window)
