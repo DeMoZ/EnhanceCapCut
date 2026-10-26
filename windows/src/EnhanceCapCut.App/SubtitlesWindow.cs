@@ -42,6 +42,9 @@ sealed class SubtitlesWindow : Window
     // Voice-over
     readonly FormSection voiceSection;
     readonly Segmented<VoiceGender> genderPicker = new([(VoiceGender.Female, "Female"), (VoiceGender.Male, "Male")]);
+    readonly Switch cloneSwitch = new();
+    readonly Slider expressivenessSlider = new() { Minimum = 0.25, Maximum = 1, StepFrequency = 0.05, Width = 200 };
+    bool updatingSlider;
     string voiceSignature = "";
     readonly Picker<string> audiblePicker = new();
     readonly Segmented<OriginalAudio> originalAudio = new([(OriginalAudio.Keep, "Keep"), (OriginalAudio.Lower, "Lower"), (OriginalAudio.Mute, "Mute")]);
@@ -138,11 +141,15 @@ sealed class SubtitlesWindow : Window
         // Voice-over
         voiceSection = form.Section("Voice-over");
         genderPicker.Picked += g => model.VoiceGender = g;
+        cloneSwitch.Switched += on => model.CloneVoice = on;
+        expressivenessSlider.ValueChanged += (_, e) => { if (!updatingSlider) model.Expressiveness = e.NewValue; };
+        ToolTipService.SetToolTip(expressivenessSlider, "0.5 sounds like the original; higher is more dramatic (and a little faster).");
         ToolTipService.SetToolTip(audiblePicker, "Each language becomes its own audio track. The others are added muted: "
             + "unmute them with the track's speaker button in CapCut.");
         audiblePicker.Picked += code => model.AudibleVoice = code;
         ToolTipService.SetToolTip(originalAudio, "While the voice-over speaks: leave the project's own sound as it is, lower it by "
-            + "15 dB, or silence it. Done with volume keyframes on the clips, which you can adjust in CapCut.");
+            + "15 dB, or silence it. Done with volume keyframes on the clips, which you can adjust in CapCut. (Replacing only the "
+            + "voice needs voice isolation, which the Mac version has.)");
         originalAudio.Picked += o => model.OriginalAudio = o;
         var openSettings = new HyperlinkButton { Content = "Open", FontSize = 12, Padding = new Thickness(2, 0, 2, 0) };
         openSettings.Click += (_, _) => Platform.OpenUri(WindowsVoices.SettingsUri);
@@ -190,7 +197,11 @@ sealed class SubtitlesWindow : Window
         srtSwitch.Switched += on => model.SaveSrt = on;
 
         // Footer
-        createButton.Click += (_, _) => model.Start();
+        createButton.Click += async (_, _) =>
+        {
+            if (model.NeedsConsent && !await Platform.Ask(this, "Clone voices only with consent", ConsentText, "Create", "Cancel")) return;
+            model.Start();
+        };
         createButton.KeyboardAccelerators.Add(new KeyboardAccelerator { Key = VirtualKey.Enter });
         var cancel = new Button { Content = "Cancel" };
         cancel.Click += (_, _) => model.Cancel();
@@ -296,22 +307,46 @@ sealed class SubtitlesWindow : Window
         visiblePicker.Set(outputs.Select(l => (l.Code, l.Name)), model.EffectiveVisibleLanguage ?? "");
     }
 
+    /// <summary>The warning before cloning, the same as the macOS version's.</summary>
+    const string ConsentText = "The voice-over will copy the voices of the people speaking in this video. Use it only for your "
+        + "own voice or for people who agreed to have their voice cloned. Click Create only if you have their consent.";
+
     void UpdateVoices()
     {
         var dub = model.DubLanguages;
         voiceSection.IsShown = dub.Count > 0;
         genderPicker.Select(model.VoiceGender);
+        cloneSwitch.Set(model.CloneVoice);
+        updatingSlider = true;
+        expressivenessSlider.Value = model.Expressiveness;
+        updatingSlider = false;
         originalAudio.Select(model.OriginalAudio);
         audiblePicker.Set(dub.Select(l => (l.Code, l.Name)), model.EffectiveAudibleVoice ?? "");
 
         // The per-language rows depend on the installed voices: the section is rebuilt only when what they show changes.
-        var signature = string.Join("\n", dub.Select(l => $"{l.Code}|{model.VoiceGender}|{model.VoiceID(l)}|{model.VoiceHelpLanguage}|"
-            + string.Join(",", model.Voices(l).Select(v => v.Id))));
+        var signature = $"{model.CloneVoice}\n" + string.Join("\n", dub.Select(l => $"{l.Code}|{model.VoiceGender}|{model.VoiceID(l)}|"
+            + $"{model.VoiceHelpLanguage}|" + string.Join(",", model.Voices(l).Select(v => v.Id))));
         if (signature == voiceSignature) return;
         voiceSignature = signature;
         voiceSection.Clear();
-        voiceSection.Add("Voice", genderPicker);
-        foreach (var language in dub) AddVoiceRows(language);
+        voiceSection.Add("Clone the original voice", cloneSwitch);
+        voiceSection.Add(Text.Caption("Keeps each speaker's voice, intonation and emotion. Runs on this PC; slower than Windows voices."));
+        if (model.CloneVoice)
+        {
+            voiceSection.Add(Text.Caption("⚠ Only for your own voice or people who agreed to have their voice cloned.", Theme.Orange));
+            if (model.ClonedLanguages.Count > 0) voiceSection.Add("Expressiveness", expressivenessSlider);
+        }
+        if (dub.Any(l => !model.IsCloned(l))) voiceSection.Add("Voice", genderPicker);
+        foreach (var language in dub)
+        {
+            if (model.IsCloned(language))
+            {
+                voiceSection.Add(language.Name, Text.Body("Original voice, cloned"));
+                continue;
+            }
+            AddVoiceRows(language);
+            if (model.CloneVoice) voiceSection.Add(Text.Caption($"Voice cloning doesn't speak {language.Name}: a Windows voice will speak it."));
+        }
         if (dub.Count > 1) voiceSection.Add("Heard", audiblePicker);
         voiceSection.Add("Original audio", originalAudio);
     }

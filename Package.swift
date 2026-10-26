@@ -12,9 +12,13 @@ let package = Package(
     dependencies: [
         // App updates: "Check for Updates…", EdDSA-signed appcast published with each release.
         .package(url: "https://github.com/sparkle-project/Sparkle", exact: "2.10.0"),
+        // Voice cloning (Chatterbox) runs in ONNX Runtime, as on Windows.
+        .package(url: "https://github.com/microsoft/onnxruntime-swift-package-manager", exact: "1.24.2"),
     ],
     targets: [
-        .target(name: "EnhanceCapCutCore", dependencies: ["whisper"]),
+        .target(name: "EnhanceCapCutCore", dependencies: [
+            "whisper", .product(name: "onnxruntime", package: "onnxruntime-swift-package-manager"),
+        ]),
         // Speech recognition with Whisper (whisper.cpp v1.9.5, the same model as the Windows version).
         .binaryTarget(
             name: "whisper",

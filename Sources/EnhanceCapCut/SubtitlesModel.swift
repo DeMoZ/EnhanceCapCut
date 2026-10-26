@@ -73,6 +73,17 @@ final class SubtitlesModel: ObservableObject {
     @Published var audibleVoice: String {
         didSet { UserDefaults.standard.set(audibleVoice, forKey: "subtitles.audibleVoice") }
     }
+    /// Speak in the original speaker's voice (`VoiceCloner`) where the model knows the language; system voices
+    /// for the rest. Off = system voices only, as before.
+    @Published var cloneVoice: Bool {
+        didSet { UserDefaults.standard.set(cloneVoice, forKey: "subtitles.cloneVoice") }
+    }
+    /// How expressive cloned voices are, 0.25…1 (0.5 = like the original).
+    @Published var expressiveness: Double {
+        didSet { UserDefaults.standard.set(expressiveness, forKey: "subtitles.expressiveness") }
+    }
+    /// The consent warning before a run that clones voices.
+    @Published var askConsent = false
 
     /// Siri voices (only with Xcode installed, see `SiriVoices`).
     @Published var siriVoices: [DubVoice] = []
@@ -119,6 +130,8 @@ final class SubtitlesModel: ObservableObject {
         voiceGender = VoiceGender(rawValue: d.string(forKey: "subtitles.voiceGender") ?? "") ?? .female
         originalAudio = OriginalAudio(rawValue: d.string(forKey: "subtitles.originalAudio") ?? "") ?? .lower
         audibleVoice = d.string(forKey: "subtitles.audibleVoice") ?? ""
+        cloneVoice = d.object(forKey: "subtitles.cloneVoice") as? Bool ?? false
+        expressiveness = d.object(forKey: "subtitles.expressiveness") as? Double ?? 0.5
 
         // Voices downloaded in System Settings appear in the window without a manual refresh.
         voicesObserver = NotificationCenter.default.addObserver(
@@ -170,20 +183,41 @@ final class SubtitlesModel: ObservableObject {
             && !(outputLanguages.isEmpty && dubLanguages.isEmpty)
     }
 
-    /// Whisper is chosen but its model isn't downloaded yet.
-    var whisperMissing: Bool { engine == .whisper && !ModelStore.isDownloaded(ModelStore.whisper) }
+    /// Voice-over languages spoken in the cloned original voice.
+    var clonedLanguages: [SubtitleLanguage] {
+        cloneVoice ? dubLanguages.filter { VoiceCloner.modelLanguage($0.code) != nil } : []
+    }
 
-    /// "Whisper speech recognition (574 MB)", as in the Windows version.
-    var whisperModelText: String {
-        "Whisper speech recognition (\(ModelStore.whisper.approximateBytes / 1_000_000) MB)"
+    func isCloned(_ language: SubtitleLanguage) -> Bool { clonedLanguages.contains(language) }
+
+    /// Models the chosen options need that aren't downloaded yet: Whisper for recognition (and for checking cloned
+    /// lines), the voice cloning model.
+    var missingModels: [ModelFile] {
+        var files: [ModelFile] = []
+        if engine == .whisper || !clonedLanguages.isEmpty { files.append(ModelStore.whisper) }
+        if !clonedLanguages.isEmpty { files += ModelStore.voiceCloning }
+        return files.filter { !ModelStore.isDownloaded($0) }
+    }
+
+    /// "Whisper speech recognition (574 MB), voice cloning (1550 MB)", as in the Windows version.
+    var missingModelsText: String {
+        let missing = missingModels
+        var parts: [String] = []
+        if missing.contains(where: { $0.folder == ModelStore.whisper.folder }) {
+            parts.append("Whisper speech recognition (\(ModelStore.whisper.approximateBytes / 1_000_000) MB)")
+        }
+        let cloning = missing.filter { $0.folder == ModelStore.voiceCloning[0].folder }
+        if !cloning.isEmpty { parts.append("voice cloning (\(ModelStore.approximateBytes(cloning) / 1_000_000) MB)") }
+        return parts.joined(separator: ", ")
     }
 
     func downloadModel() {
         modelError = nil
         modelProgress = 0
+        let files = missingModels
         modelTask = Task {
             do {
-                try await ModelStore.ensure(ModelStore.whisper) { p in
+                try await ModelStore.ensure(files) { p in
                     Task { @MainActor in
                         if self.modelProgress != nil { self.modelProgress = p }
                     }
@@ -258,8 +292,14 @@ final class SubtitlesModel: ObservableObject {
 
     private func choiceKey(_ language: SubtitleLanguage) -> String { "\(language.code)|\(voiceGender.rawValue)" }
 
-    /// The voice used for a language: the saved choice for the current gender if still installed, else the best match.
+    /// The voice used for a language: the cloned voice when it can speak the language, else the saved choice for the
+    /// current gender if still installed, else the best match.
     func voiceID(for language: SubtitleLanguage) -> String {
+        if isCloned(language) { return Dubber.clonedVoiceID }
+        return systemVoiceID(for: language)
+    }
+
+    func systemVoiceID(for language: SubtitleLanguage) -> String {
         let list = pickerVoices(for: language)
         if let saved = dubVoices[choiceKey(language)], list.contains(where: { $0.id == saved }) { return saved }
         // A Siri voice of the right gender beats the built-in voices.
@@ -273,7 +313,7 @@ final class SubtitlesModel: ObservableObject {
 
     func preview(_ language: SubtitleLanguage) {
         previewSynth.stopSpeaking(at: .immediate)
-        let id = voiceID(for: language)
+        let id = systemVoiceID(for: language)
         if id.hasPrefix(SiriVoices.idPrefix) {
             previewing = language.code
             Task {
@@ -381,9 +421,14 @@ final class SubtitlesModel: ObservableObject {
         }
     }
 
-    func start() {
+    /// Starts a run; one that clones voices asks for consent first (`askConsent`, then `start(consented:)`).
+    func start(consented: Bool = false) {
         guard canStart, export.timeline != nil, let project = export.selectedProject,
               let projectTimeline = export.selectedTimeline else { return }
+        if !clonedLanguages.isEmpty && !consented {
+            askConsent = true
+            return
+        }
         refreshProjectState()
         if projectIsOpen {
             phase = .failed(DraftSubtitleError.projectOpen(project.name).localizedDescription)
@@ -395,6 +440,8 @@ final class SubtitlesModel: ObservableObject {
         options.captions = makeCaptions
         options.engine = engine
         options.voices = Dictionary(uniqueKeysWithValues: dubLanguages.map { ($0.code, voiceID(for: $0)) })
+        options.exaggeration = Float(expressiveness)
+        options.background = originalAudio == .replace
         options.audibleVoice = effectiveAudibleVoice
         options.voiceOverFolder = SubtitlePipeline.voiceOverFolder(in: project)
         let pipeline = SubtitlePipeline(translator: translator)

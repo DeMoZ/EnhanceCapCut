@@ -16,6 +16,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="EnhanceCapCut.Draft.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\EnhanceCapCut.Draft\EnhanceCapCut.Draft.csproj" />
   </ItemGroup>
 

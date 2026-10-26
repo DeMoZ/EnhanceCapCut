@@ -134,25 +134,42 @@ public enum WhisperTranscriber {
     }
 
     /// The recording as 16 kHz mono (channels averaged, like the Windows version's `AudioInput`).
-    static func mono16k(_ url: URL) throws -> [Float] {
-        let file = try AVAudioFile(forReading: url)
-        let target = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: sampleRate, channels: 1, interleaved: false)!
-        guard let converter = AVAudioConverter(from: file.processingFormat, to: target),
-              let input = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(max(1, file.length))) else { return [] }
-        converter.downmix = true
-        try file.read(into: input)
-        let capacity = AVAudioFrameCount(Double(input.frameLength) * sampleRate / file.processingFormat.sampleRate) + 1024
-        guard let output = AVAudioPCMBuffer(pcmFormat: target, frameCapacity: capacity) else { return [] }
-        var fed = false
-        var error: NSError?
-        converter.convert(to: output, error: &error) { _, status in
-            if fed { status.pointee = .endOfStream; return nil }
-            fed = true
-            status.pointee = .haveData
-            return input
+    static func mono16k(_ url: URL) throws -> [Float] { try MonoAudio.read(url, sampleRate: sampleRate) }
+}
+
+/// Whisper kept loaded to read back short pieces of speech: checks that a cloned line says what it should.
+public final class WhisperChecker {
+    private let context: OpaquePointer
+
+    public init(modelPath: String = ModelStore.path(of: ModelStore.whisper).path) throws {
+        whisper_log_set({ _, _, _ in }, nil)
+        var contextParams = whisper_context_default_params()
+        contextParams.use_gpu = true
+        guard let context = whisper_init_from_file_with_params(modelPath, contextParams) else {
+            throw TranscriberError.modelFailed(modelPath)
         }
-        if let error { throw error }
-        return Array(UnsafeBufferPointer(start: output.floatChannelData![0], count: Int(output.frameLength)))
+        self.context = context
+    }
+
+    deinit { whisper_free(context) }
+
+    /// The text of `samples` (16 kHz mono, under 30 s) in `language` (a Whisper code: "en", "ru", …).
+    func text(_ samples: [Float], language: String) throws -> String {
+        let languageName = strdup(language)
+        defer { free(languageName) }
+        var params = whisper_full_default_params(WHISPER_SAMPLING_GREEDY)
+        params.language = UnsafePointer(languageName)
+        params.n_threads = Int32(max(1, ProcessInfo.processInfo.activeProcessorCount - 1))
+        params.single_segment = true
+        params.no_context = true
+        params.print_progress = false
+        params.print_realtime = false
+        params.print_timestamps = false
+        let status = samples.withUnsafeBufferPointer { whisper_full(context, params, $0.baseAddress, Int32($0.count)) }
+        guard status == 0 else { throw TranscriberError.modelFailed("whisper") }
+        return (0..<whisper_full_n_segments(context))
+            .map { String(cString: whisper_full_get_segment_text(context, $0)) }
+            .joined(separator: " ")
     }
 }
 

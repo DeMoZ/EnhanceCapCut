@@ -112,3 +112,27 @@ public static class SpeechRecognizer
         return result;
     }
 }
+
+/// <summary>Whisper kept loaded to read back short pieces of speech: checks that a cloned line says what it should.</summary>
+public sealed class WhisperChecker : IDisposable
+{
+    readonly WhisperFactory factory = WhisperFactory.FromPath(ModelStore.PathOf(ModelStore.Whisper));
+    readonly Dictionary<string, WhisperProcessor> processors = [];
+
+    public void Dispose()
+    {
+        foreach (var p in processors.Values) p.Dispose();
+        factory.Dispose();
+    }
+
+    /// <summary>The text of <paramref name="samples"/> (16 kHz mono, under 30 s) in <paramref name="language"/> (a Whisper code).</summary>
+    public async Task<string> TextAsync(float[] samples, string language, CancellationToken cancel = default)
+    {
+        if (!processors.TryGetValue(language, out var processor))
+            processors[language] = processor = factory.CreateBuilder().WithLanguage(language)
+                .WithThreads(Math.Max(1, Environment.ProcessorCount - 1)).WithNoContext().WithSingleSegment().Build();
+        var texts = new List<string>();
+        await foreach (var segment in processor.ProcessAsync(samples, cancel)) texts.Add(segment.Text);
+        return string.Join(' ', texts);
+    }
+}

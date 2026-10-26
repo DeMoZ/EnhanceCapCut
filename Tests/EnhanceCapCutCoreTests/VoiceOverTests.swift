@@ -44,6 +44,36 @@ final class VoiceOverWriterTests: XCTestCase {
         (segment["common_keyframes"] as? [[String: Any]] ?? []).filter { $0["property_type"] as? String == "KFTypeVolume" }
     }
 
+    /// Replace voice: the original is muted like Mute and a background track (always audible) fills in.
+    func testReplaceAddsAnAudibleBackgroundAndMutesTheOriginal() throws {
+        var all = tracks()
+        all.append(VoiceOverTrack(language: all[0].language, url: project.appendingPathComponent("EnhanceCapCut/voiceover 1/background.wav"),
+                                  fileDuration: 10, lines: [0.75...4.4], isAudible: true, isBackground: true))
+        let out = try DraftVoiceOverWriter.apply(all, to: Data(draft.utf8), original: .replace, replacePrevious: true,
+                                                 projectURL: project)
+        let d = try json(out)
+        let tracks = try XCTUnwrap(d["tracks"] as? [[String: Any]])
+        XCTAssertEqual(tracks.count, 6)
+        XCTAssertEqual(tracks[5]["name"] as? String, "EnhanceCapCut voice-over · background")
+        XCTAssertEqual(tracks[5]["attribute"] as? Int, 0)
+        // Ducked to silence under the voice's lines, not the background's.
+        let video = volumeKeyframes(try segments(d, track: 0)[0])
+        let values = (video.first?["keyframe_list"] as? [[String: Any]] ?? []).compactMap { ($0["values"] as? [Double])?.first }
+        XCTAssertEqual(values, [0.5, 0, 0, 0.5])
+        // A later run takes the background away too.
+        let cleaned = try json(try DraftVoiceOverWriter.withoutVoiceOver(out))
+        XCTAssertEqual((cleaned["tracks"] as? [Any])?.count, 3)
+    }
+
+    func testBackgroundGainCrossFadesWithTheDucking() {
+        let r: Range<Int64> = 1_000_000..<2_000_000
+        XCTAssertEqual(DraftVoiceOverWriter.backgroundGain(at: 500_000, range: r), 0)
+        XCTAssertEqual(DraftVoiceOverWriter.backgroundGain(at: 875_000, range: r), 0.5, accuracy: 1e-9)
+        XCTAssertEqual(DraftVoiceOverWriter.backgroundGain(at: 1_500_000, range: r), 1)
+        XCTAssertEqual(DraftVoiceOverWriter.backgroundGain(at: 2_200_000, range: r), 0.5, accuracy: 1e-9)
+        XCTAssertEqual(DraftVoiceOverWriter.backgroundGain(at: 2_400_000, range: r), 0)
+    }
+
     func testAddsAudioTracksWithAClipPerLine() throws {
         let out = try DraftVoiceOverWriter.apply(tracks(), to: Data(draft.utf8), original: .keep, replacePrevious: true,
                                                  projectURL: project)

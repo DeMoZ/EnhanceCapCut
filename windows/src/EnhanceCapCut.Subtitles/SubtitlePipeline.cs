@@ -17,8 +17,13 @@ public static class SubtitlePipeline
     {
         /// <summary>Make caption tracks. Off = only translate for the voice-over.</summary>
         public bool Captions { get; init; } = true;
-        /// <summary>Voice-over languages: language code → voice id ("" = the best installed voice).</summary>
+        /// <summary>
+        /// Voice-over languages: language code → voice id ("" = the best installed voice, <see cref="Dubber.ClonedVoiceId"/> =
+        /// the original speaker's voice, cloned).
+        /// </summary>
         public IReadOnlyDictionary<string, string> Voices { get; init; } = new Dictionary<string, string>();
+        /// <summary>How expressive cloned voices are, 0…1 (0.5 = like the original).</summary>
+        public float Exaggeration { get; init; } = 0.5f;
         /// <summary>The voice-over language left audible; the other tracks are added muted. Null = the first one.</summary>
         public string? AudibleVoice { get; init; }
         /// <summary>Where the voice-over audio files go (inside the project folder, so CapCut can reach them).</summary>
@@ -29,18 +34,28 @@ public static class SubtitlePipeline
 
     public delegate void Report(string step, double fraction);
 
-    /// <summary>The models the run needs (translation only when there are targets).</summary>
-    public static List<ModelFile> RequiredModels(Options options) =>
-        options.Targets.Any(t => t.Code != options.Source.Code) ? [ModelStore.Whisper, .. ModelStore.Translation] : [ModelStore.Whisper];
+    /// <summary>The models the run needs (translation only when there are targets, voice cloning when a voice is cloned).</summary>
+    public static List<ModelFile> RequiredModels(Options options)
+    {
+        List<ModelFile> models = [ModelStore.Whisper];
+        if (options.Targets.Any(t => t.Code != options.Source.Code)) models.AddRange(ModelStore.Translation);
+        if (options.Voices.Values.Contains(Dubber.ClonedVoiceId)) models.AddRange(ModelStore.VoiceCloning);
+        return models;
+    }
 
     /// <param name="audio">The timeline's mix as 16 kHz mono (<see cref="AudioInput"/>).</param>
-    /// <param name="voices">Speaks the voice-over; needed when <see cref="Options.Voices"/> isn't empty.</param>
+    /// <param name="voices">Speaks the voice-over; needed when <see cref="Options.Voices"/> has system voices.</param>
+    /// <param name="originalVoice">
+    /// What cloned voices copy: the timeline's voice as 24 kHz mono. Windows has no voice isolation yet, so the callers pass
+    /// the mix; null = <paramref name="audio"/>, upsampled.
+    /// </param>
     public static async Task<Output> RunAsync(float[] audio, Options options, Report report, IVoiceEngine? voices = null,
-        CancellationToken cancel = default)
+        CancellationToken cancel = default, float[]? originalVoice = null)
     {
         var duration = (double)audio.Length / AudioInput.SampleRate;
         var targets = options.Targets.Where(t => t.Code != options.Source.Code).ToList();
-        var dubbing = voices is null ? [] : targets.Where(t => options.Voices.ContainsKey(t.Code)).ToList();
+        var dubbing = targets.Where(t => options.Voices.TryGetValue(t.Code, out var v) && (v == Dubber.ClonedVoiceId || voices is not null)).ToList();
+        var cloning = dubbing.Any(t => options.Voices[t.Code] == Dubber.ClonedVoiceId);
         // Progress: models up to 0.15, speech up to `speechEnd`, translations up to `translateEnd`, then the voice-over.
         var speechEnd = dubbing.Count == 0 ? 0.75 : 0.6;
         var translateEnd = dubbing.Count == 0 ? 1 : 0.7;
@@ -83,16 +98,37 @@ public static class SubtitlePipeline
         if (dubbing.Count > 0 && options.VoiceOverFolder is { } folder)
         {
             Directory.CreateDirectory(folder);
+            VoiceCloner? cloner = null;
+            WhisperChecker? checker = null;
+            if (cloning)
+            {
+                report("Loading the voice cloning model…", translateEnd);
+                originalVoice ??= AudioInput.Resample(audio, AudioInput.SampleRate, VoiceCloner.SampleRate);
+                cloner = new VoiceCloner();
+                checker = new WhisperChecker();
+            }
+            using var clonerScope = cloner;
+            using var checkerScope = checker;
             for (var i = 0; i < dubbing.Count; i++)
             {
                 var language = dubbing[i];
                 var baseFraction = translateEnd + (1 - translateEnd) * i / dubbing.Count;
                 report($"Voicing: {language.Name}…", baseFraction);
-                var voice = options.Voices[language.Code] is { Length: > 0 } chosen ? chosen
-                    : Dubber.DefaultVoice(voices!, language)?.Id ?? throw new NoVoiceException(language);
                 var path = Path.Combine(folder, $"{language.Code}.wav");
-                var lines = await Dubber.RenderAsync(voices!, spoken.GetValueOrDefault(language.Code) ?? [], voice, duration, path,
-                    p => report($"Voicing: {language.Name}…", baseFraction + (1 - translateEnd) * p / dubbing.Count), cancel);
+                void Progress(double p) => report($"Voicing: {language.Name}…", baseFraction + (1 - translateEnd) * p / dubbing.Count);
+                List<(double Start, double End)> lines;
+                if (options.Voices[language.Code] == Dubber.ClonedVoiceId)
+                {
+                    lines = await Dubber.RenderClonedAsync(cloner!, checker, spoken.GetValueOrDefault(language.Code) ?? [], language.Code,
+                        originalVoice!, options.Exaggeration, duration, path, Progress, cancel);
+                }
+                else
+                {
+                    var voice = options.Voices[language.Code] is { Length: > 0 } chosen ? chosen
+                        : Dubber.DefaultVoice(voices!, language)?.Id ?? throw new NoVoiceException(language);
+                    lines = await Dubber.RenderAsync(voices!, spoken.GetValueOrDefault(language.Code) ?? [], voice, duration, path,
+                        Progress, cancel);
+                }
                 var length = Math.Max(duration, lines.Count > 0 ? lines[^1].End : 0);
                 voiceOver.Add(new VoiceOverTrack(language, path, length, lines, IsAudible: false));
             }

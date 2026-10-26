@@ -8,11 +8,18 @@ namespace EnhanceCapCut.Draft;
 /// <param name="FileDuration">Length of the file, seconds.</param>
 /// <param name="Lines">Where each line was placed, seconds. Every line becomes its own clip on the track.</param>
 /// <param name="IsAudible">Muted tracks can be unmuted in CapCut with the track's speaker button.</param>
+/// <param name="IsBackground">
+/// The project's sound without its voice, played while the original is muted under the voice-over
+/// (<see cref="OriginalAudio.Replace"/>); <paramref name="Lines"/> are the stretches it covers.
+/// </param>
 public sealed record VoiceOverTrack(SubtitleLanguage Language, string Path, double FileDuration,
-    IReadOnlyList<(double Start, double End)> Lines, bool IsAudible);
+    IReadOnlyList<(double Start, double End)> Lines, bool IsAudible, bool IsBackground = false);
 
-/// <summary>What happens to the project's own sound while the voice-over speaks.</summary>
-public enum OriginalAudio { Keep, Lower, Mute }
+/// <summary>
+/// What happens to the project's own sound while the voice-over speaks. <see cref="Replace"/>: muted like
+/// <see cref="Mute"/>, with the project's sound minus its voice (a background track) in its place.
+/// </summary>
+public enum OriginalAudio { Keep, Lower, Mute, Replace }
 
 /// <summary>
 /// Adds voice-over to a CapCut draft: one audio track per language with a clip per spoken line
@@ -33,8 +40,8 @@ public static class DraftVoiceOverWriter
     /// <summary>"Lower": −15 dB while the voice speaks, as in SubDub.</summary>
     public const double LowerGain = 0.178;
     /// <summary>Ducking ramps: down before a line starts, back up after it ends (µs).</summary>
-    const long FadeDown = 250_000;
-    const long FadeUp = 400_000;
+    public const long FadeDown = 250_000;
+    public const long FadeUp = 400_000;
 
     /// <summary>Gain applied while the voice speaks; null = untouched.</summary>
     public static double? DuckGain(OriginalAudio original) => original switch
@@ -55,12 +62,25 @@ public static class DraftVoiceOverWriter
         var data = draft;
         if (replacePrevious) data = RemoveDucking(data);
         data = AddTracks(tracks, data, replacePrevious, projectFolder);
-        if (DuckGain(original) is { } gain && tracks.FirstOrDefault(t => t.IsAudible) is { } spoken)
-        {
-            var ranges = spoken.Lines.Select(l => (Us(l.Start), Us(l.End))).ToList();
-            data = Duck(data, Merge(ranges, FadeDown + FadeUp), gain);
-        }
+        if (DuckGain(original) is { } gain && tracks.FirstOrDefault(t => t.IsAudible && !t.IsBackground) is { } spoken)
+            data = Duck(data, DuckedRanges(spoken.Lines), gain);
         return data;
+    }
+
+    /// <summary>The stretches the original is ducked over: the voice's lines, merged when the ramps between them would meet.</summary>
+    public static List<(long Start, long End)> DuckedRanges(IReadOnlyList<(double Start, double End)> lines) =>
+        Merge(lines.Select(l => (Us(l.Start), Us(l.End))).ToList(), FadeDown + FadeUp);
+
+    /// <summary>
+    /// The background's gain at <paramref name="t"/> (µs) for one ducked range: the complement of the original's
+    /// ducking, so the two cross-fade — up during the ramp down before the range, down during the ramp back up after it.
+    /// </summary>
+    public static double BackgroundGain(long t, (long Start, long End) r)
+    {
+        if (t >= r.Start && t < r.End) return 1;
+        if (t >= r.Start - FadeDown && t < r.Start) return (double)(t - (r.Start - FadeDown)) / FadeDown;
+        if (t >= r.End && t < r.End + FadeUp) return 1 - (double)(t - r.End) / FadeUp;
+        return 0;
     }
 
     /// <summary>The draft without the voice-over and ducking of earlier runs: what speech recognition should hear.</summary>
@@ -124,7 +144,7 @@ public static class DraftVoiceOverWriter
                 var materialID = Lenient.NewId();
                 var audio = JsonText.Object(DefaultAudio);
                 audio["id"] = materialID;
-                audio["name"] = $"Voice-over {track.Language.Code} {i + 1}";
+                audio["name"] = track.IsBackground ? $"Background {i + 1}" : $"Voice-over {track.Language.Code} {i + 1}";
                 audio["path"] = path;
                 audio["duration"] = fileDuration;
                 Add("audios", JsonText.Encode(audio));
@@ -151,7 +171,7 @@ public static class DraftVoiceOverWriter
             newTracks.Add(JsonText.Encode(new SortedDictionary<string, object?>(StringComparer.Ordinal)
             {
                 ["id"] = Lenient.NewId(), ["type"] = "audio", ["flag"] = 0, ["attribute"] = attribute,
-                ["name"] = $"{TrackNamePrefix} · {track.Language.Code}", ["is_default_name"] = false, ["segments"] = segments,
+                ["name"] = $"{TrackNamePrefix} · {(track.IsBackground ? "background" : track.Language.Code)}", ["is_default_name"] = false, ["segments"] = segments,
             }));
         }
 

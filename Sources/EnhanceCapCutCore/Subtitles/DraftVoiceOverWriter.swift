@@ -11,19 +11,25 @@ public struct VoiceOverTrack {
     public var lines: [ClosedRange<Double>]
     /// Muted tracks can be unmuted in CapCut with the track's speaker button.
     public var isAudible: Bool
+    /// The project's sound without its voice, played while the original is muted under the voice-over
+    /// (`OriginalAudio.replace`); `lines` are the stretches it covers.
+    public var isBackground = false
 
-    public init(language: SubtitleLanguage, url: URL, fileDuration: Double, lines: [ClosedRange<Double>], isAudible: Bool) {
+    public init(language: SubtitleLanguage, url: URL, fileDuration: Double, lines: [ClosedRange<Double>], isAudible: Bool,
+                isBackground: Bool = false) {
         self.language = language
         self.url = url
         self.fileDuration = fileDuration
         self.lines = lines
         self.isAudible = isAudible
+        self.isBackground = isBackground
     }
 }
 
 /// What happens to the project's own sound while the voice-over speaks.
 public enum OriginalAudio: String, CaseIterable, Identifiable, Sendable {
-    case keep = "Keep", lower = "Lower", mute = "Mute"
+    /// `replace`: muted like `mute`, with the project's sound minus its voice (a background track) in its place.
+    case keep = "Keep", lower = "Lower", mute = "Mute", replace = "Replace voice"
     public var id: String { rawValue }
 
     /// Gain applied while the voice speaks; nil = untouched.
@@ -31,7 +37,7 @@ public enum OriginalAudio: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .keep: return nil
         case .lower: return DraftVoiceOverWriter.lowerGain
-        case .mute: return 0
+        case .mute, .replace: return 0
         }
     }
 }
@@ -51,8 +57,8 @@ public enum DraftVoiceOverWriter {
     /// "Lower": −15 dB while the voice speaks, as in SubDub.
     static let lowerGain = 0.178
     /// Ducking ramps: down before a line starts, back up after it ends (µs).
-    static let fadeDown: Int64 = 250_000
-    static let fadeUp: Int64 = 400_000
+    public static let fadeDown: Int64 = 250_000
+    public static let fadeUp: Int64 = 400_000
 
     /// Returns the draft with `tracks` appended as audio tracks. With `replacePrevious`, tracks and
     /// ducking from an earlier run are removed first. Media paths inside `projectURL` are written with
@@ -62,11 +68,24 @@ public enum DraftVoiceOverWriter {
         var data = draft
         if replacePrevious { data = try removeDucking(data) }
         data = try addTracks(tracks, to: data, replacePrevious: replacePrevious, projectURL: projectURL)
-        if let gain = original.duckGain, let spoken = tracks.first(where: \.isAudible) {
-            let ranges = spoken.lines.map { us($0.lowerBound)..<us($0.upperBound) }
-            data = try duck(data, speech: merge(ranges, gap: fadeDown + fadeUp), gain: gain)
+        if let gain = original.duckGain, let spoken = tracks.first(where: { $0.isAudible && !$0.isBackground }) {
+            data = try duck(data, speech: duckedRanges(spoken.lines), gain: gain)
         }
         return data
+    }
+
+    /// The stretches the original is ducked over: the voice's lines, merged when the ramps between them would meet.
+    public static func duckedRanges(_ lines: [ClosedRange<Double>]) -> [Range<Int64>] {
+        merge(lines.map { us($0.lowerBound)..<us($0.upperBound) }, gap: fadeDown + fadeUp)
+    }
+
+    /// The background's gain at `t` (µs) for one ducked range: the complement of the original's ducking, so the two
+    /// cross-fade — up during the ramp down before the range, down during the ramp back up after it.
+    public static func backgroundGain(at t: Int64, range r: Range<Int64>) -> Double {
+        if t >= r.lowerBound && t < r.upperBound { return 1 }
+        if t >= r.lowerBound - fadeDown && t < r.lowerBound { return Double(t - (r.lowerBound - fadeDown)) / Double(fadeDown) }
+        if t >= r.upperBound && t < r.upperBound + fadeUp { return 1 - Double(t - r.upperBound) / Double(fadeUp) }
+        return 0
     }
 
     /// The draft without the voice-over and ducking of earlier runs: what speech recognition should hear.
@@ -117,7 +136,7 @@ public enum DraftVoiceOverWriter {
                 let materialID = UUID().uuidString
                 var audio = defaultAudio
                 audio["id"] = materialID
-                audio["name"] = "Voice-over \(track.language.code) \(i + 1)"
+                audio["name"] = track.isBackground ? "Background \(i + 1)" : "Voice-over \(track.language.code) \(i + 1)"
                 audio["path"] = path
                 audio["duration"] = fileDuration
                 added["audios", default: []].append(JSONText.encode(audio))
@@ -142,7 +161,7 @@ public enum DraftVoiceOverWriter {
             }
             newTracks.append(JSONText.encode([
                 "id": UUID().uuidString, "type": "audio", "flag": 0, "attribute": attribute,
-                "name": "\(trackNamePrefix) · \(track.language.code)", "is_default_name": false,
+                "name": "\(trackNamePrefix) · \(track.isBackground ? "background" : track.language.code)", "is_default_name": false,
                 "segments": segments,
             ] as [String: Any]))
         }

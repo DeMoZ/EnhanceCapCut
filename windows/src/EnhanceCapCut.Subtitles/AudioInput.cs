@@ -8,7 +8,10 @@ public static class AudioInput
     public const int SampleRate = 16_000;
 
     /// <summary>Interleaved samples at any rate → 16 kHz mono (channel average, windowed-sinc low-pass resampling).</summary>
-    public static float[] ToMono16k(float[] interleaved, int channels, int sampleRate)
+    public static float[] ToMono16k(float[] interleaved, int channels, int sampleRate) => ToMono(interleaved, channels, sampleRate, SampleRate);
+
+    /// <summary>Interleaved samples → mono at <paramref name="targetRate"/> (channel average, windowed-sinc resampling).</summary>
+    public static float[] ToMono(float[] interleaved, int channels, int sampleRate, int targetRate)
     {
         var frames = interleaved.Length / channels;
         var mono = new float[frames];
@@ -18,7 +21,7 @@ public static class AudioInput
             for (var c = 0; c < channels; c++) sum += interleaved[i * channels + c];
             mono[i] = sum / channels;
         }
-        return sampleRate == SampleRate ? mono : Resample(mono, sampleRate, SampleRate);
+        return sampleRate == targetRate ? mono : Resample(mono, sampleRate, targetRate);
     }
 
     /// <summary>Mono resampling with a windowed-sinc low-pass.</summary>

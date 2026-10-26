@@ -186,6 +186,119 @@ public enum Dubber {
         return ranges
     }
 
+    // MARK: Cloned voice
+
+    /// Voice id for "the original speaker's voice, cloned" (`VoiceCloner`), in place of a system voice id.
+    public static let clonedVoiceID = "clone"
+    /// A cloned line is read back with Whisper and made again (another seed) when its character error rate against
+    /// the text is above this: about one line in ten comes out garbled or cut short.
+    static let maxLineError = 0.35
+    static let cloneAttempts = 3
+    /// The reference for a line starts at the line and is at least this long (the model uses its first 6 s).
+    static let referenceSeconds = 4.0
+    static let maxReferenceSeconds = 6.0
+
+    /// Speaks every cue in the voice of the original speaker and writes a 48 kHz mono WAV aligned to the timeline.
+    /// Each line's reference is the original speech at that line (`voice`: the timeline's isolated voice, 24 kHz
+    /// mono), so its tone and emotion carry over. With `checker`, garbled lines are made again.
+    /// - Returns: the speech ranges actually used (seconds), one per cue.
+    public static func renderCloned(cues: [CaptionCue], language: String, voice: [Float], exaggeration: Float,
+                                    cloner: VoiceCloner, checker: WhisperChecker?, totalDuration: Double, to url: URL,
+                                    isCancelled: @escaping () -> Bool, progress: (Double) -> Void) throws -> [ClosedRange<Double>] {
+        guard let code = VoiceCloner.modelLanguage(language) else { throw DubberError.noVoice(language) }
+        let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: sampleRate, channels: 1, interleaved: false)!
+        try? FileManager.default.removeItem(at: url)
+        let file = try AVAudioFile(forWriting: url, settings: [
+            AVFormatIDKey: kAudioFormatLinearPCM,
+            AVSampleRateKey: sampleRate,
+            AVNumberOfChannelsKey: 1,
+            AVLinearPCMBitDepthKey: 16,
+            AVLinearPCMIsFloatKey: false,
+            AVLinearPCMIsBigEndianKey: false,
+        ], commonFormat: .pcmFormatFloat32, interleaved: false)
+
+        var written: AVAudioFramePosition = 0
+        var ranges: [ClosedRange<Double>] = []
+        for (i, cue) in cues.enumerated() {
+            if isCancelled() { throw CancellationError() }
+            let text = cue.text.replacingOccurrences(of: "\n", with: " ")
+            let slotEnd = i + 1 < cues.count ? cues[i + 1].start : max(cue.end, totalDuration)
+            let actualStart = max(cue.start, Double(written) / sampleRate)
+            let slot = max(0.3, slotEnd - actualStart)
+            let limit = i + 1 < cues.count ? maxSpeedUp : 1.6
+
+            let reference = try cloner.voice(from: referenceRange(for: cue, in: voice))
+            var best: (speech: VoiceCloner.Speech, error: Double)?
+            for attempt in 0..<cloneAttempts {
+                let speech = try cloner.speak(text, language: code, voice: reference, exaggeration: exaggeration,
+                                              seed: UInt64(i) &* 1000 &+ UInt64(attempt) &+ 1, isCancelled: isCancelled)
+                var error = speech.finished ? 0 : 1.0
+                if let checker, !speech.samples.isEmpty {
+                    let heard = try checker.text(try MonoAudio.resample(speech.samples, from: VoiceCloner.sampleRate, to: 16_000),
+                                                 language: code)
+                    error = max(error, lineError(expected: text, heard: heard))
+                }
+                if best == nil || error < best!.error || (error == best!.error && speech.duration < best!.speech.duration) {
+                    best = (speech, error)
+                }
+                if error <= maxLineError { break }
+            }
+            var samples = best?.speech.samples ?? []
+            let duration = Double(samples.count) / VoiceCloner.sampleRate
+            if duration > slot * 1.02 {
+                samples = TimeStretch.stretch(samples, rate: min(limit, duration / slot), sampleRate: VoiceCloner.sampleRate)
+            }
+            samples = try MonoAudio.resample(samples, from: VoiceCloner.sampleRate, to: sampleRate)
+
+            let startFrame = max(AVAudioFramePosition(cue.start * sampleRate), written)
+            if startFrame > written { try writeSilence(startFrame - written, to: file, format: format) }
+            if !samples.isEmpty, let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(samples.count)) {
+                buffer.frameLength = AVAudioFrameCount(samples.count)
+                samples.withUnsafeBufferPointer { buffer.floatChannelData![0].update(from: $0.baseAddress!, count: samples.count) }
+                try file.write(from: buffer)
+            }
+            written = startFrame + AVAudioFramePosition(samples.count)
+            ranges.append(Double(startFrame) / sampleRate ... Double(written) / sampleRate)
+            progress(Double(i + 1) / Double(cues.count))
+        }
+        let total = AVAudioFramePosition(totalDuration * sampleRate)
+        if total > written { try writeSilence(total - written, to: file, format: format) }
+        return ranges
+    }
+
+    /// The original speech a line is cloned from: from the line's start, at least `referenceSeconds` (taken from
+    /// before the line near the end of the timeline), at most `maxReferenceSeconds`.
+    static func referenceRange(for cue: CaptionCue, in voice: [Float]) -> [Float] {
+        let rate = VoiceCloner.sampleRate
+        let total = Double(voice.count) / rate
+        var start = max(0, cue.start)
+        let end = min(total, max(cue.end, start + referenceSeconds), start + maxReferenceSeconds)
+        if end - start < referenceSeconds { start = max(0, end - referenceSeconds) }
+        let a = min(voice.count, Int(start * rate)), b = min(voice.count, Int(end * rate))
+        return Array(voice[a..<max(a, b)])
+    }
+
+    /// Character error rate of `heard` against `expected`: edit distance over letters and digits (lower case,
+    /// punctuation and spacing ignored) divided by the expected length.
+    static func lineError(expected: String, heard: String) -> Double {
+        func normalized(_ s: String) -> [Character] {
+            Array(s.lowercased().filter { $0.isLetter || $0.isNumber })
+        }
+        let a = normalized(expected), b = normalized(heard)
+        guard !a.isEmpty else { return b.isEmpty ? 0 : 1 }
+        var row = Array(0...b.count)
+        for i in 1...a.count {
+            var diagonal = row[0]
+            row[0] = i
+            for j in stride(from: 1, through: b.count, by: 1) {
+                let above = row[j]
+                row[j] = min(row[j] + 1, row[j - 1] + 1, diagonal + (a[i - 1] == b[j - 1] ? 0 : 1))
+                diagonal = above
+            }
+        }
+        return Double(row[b.count]) / Double(a.count)
+    }
+
     private static func writeSilence(_ frames: AVAudioFramePosition, to file: AVAudioFile, format: AVAudioFormat) throws {
         var remaining = frames
         while remaining > 0 {

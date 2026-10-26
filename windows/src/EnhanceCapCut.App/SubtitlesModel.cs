@@ -44,6 +44,9 @@ sealed class SubtitlesModel
         voiceGender = Enum.TryParse<VoiceGender>(Preferences.String("subtitles.voiceGender"), out var g) ? g : VoiceGender.Female;
         originalAudio = Enum.TryParse<OriginalAudio>(Preferences.String("subtitles.originalAudio"), out var o) ? o : OriginalAudio.Lower;
         audibleVoice = Preferences.String("subtitles.audibleVoice") ?? "";
+        cloneVoice = Preferences.Bool("subtitles.cloneVoice");
+        expressiveness = double.TryParse(Preferences.String("subtitles.expressiveness"), System.Globalization.CultureInfo.InvariantCulture,
+            out var e) ? e : 0.5;
         RefreshDownloads();
     }
 
@@ -97,7 +100,7 @@ sealed class SubtitlesModel
     public bool MakeDub
     {
         get => makeDub;
-        set { makeDub = value; Preferences.Set("subtitles.makeDub", value); Notify(); }
+        set { makeDub = value; Preferences.Set("subtitles.makeDub", value); RefreshDownloads(); Notify(); }
     }
     bool makeDub;
 
@@ -122,6 +125,30 @@ sealed class SubtitlesModel
         set { audibleVoice = value; Preferences.Set("subtitles.audibleVoice", value); Notify(); }
     }
     string audibleVoice;
+
+    /// <summary>
+    /// Speak in the original speaker's voice (<see cref="VoiceCloner"/>) where the model knows the language; Windows voices
+    /// for the rest. Off = Windows voices only, as before.
+    /// </summary>
+    public bool CloneVoice
+    {
+        get => cloneVoice;
+        set { cloneVoice = value; Preferences.Set("subtitles.cloneVoice", value); RefreshDownloads(); Notify(); }
+    }
+    bool cloneVoice;
+
+    /// <summary>How expressive cloned voices are, 0.25…1 (0.5 = like the original).</summary>
+    public double Expressiveness
+    {
+        get => expressiveness;
+        set
+        {
+            expressiveness = value;
+            Preferences.Set("subtitles.expressiveness", value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            Notify();
+        }
+    }
+    double expressiveness;
 
     readonly HashSet<string> selectedTargets;
     /// <summary>Chosen voice per "language|gender" (missing = the best match).</summary>
@@ -208,8 +235,18 @@ sealed class SubtitlesModel
 
     string ChoiceKey(SubtitleLanguage language) => $"{language.Code}|{VoiceGender}";
 
-    /// <summary>The voice used for a language: the saved choice for the current gender if still installed, else the best match.</summary>
-    public string VoiceID(SubtitleLanguage language)
+    /// <summary>Voice-over languages spoken in the cloned original voice.</summary>
+    public List<SubtitleLanguage> ClonedLanguages => CloneVoice ? DubLanguages.Where(l => VoiceCloner.ModelLanguage(l.Code) is not null).ToList() : [];
+
+    public bool IsCloned(SubtitleLanguage language) => ClonedLanguages.Any(l => l.Code == language.Code);
+
+    /// <summary>
+    /// The voice used for a language: the cloned voice when it can speak the language, else the saved choice for the
+    /// current gender if still installed, else the best match.
+    /// </summary>
+    public string VoiceID(SubtitleLanguage language) => IsCloned(language) ? Dubber.ClonedVoiceId : SystemVoiceID(language);
+
+    public string SystemVoiceID(SubtitleLanguage language)
     {
         var list = PickerVoices(language);
         if (dubVoices.TryGetValue(ChoiceKey(language), out var saved) && list.Any(v => v.Id == saved)) return saved;
@@ -225,7 +262,7 @@ sealed class SubtitlesModel
 
     public async void Preview(SubtitleLanguage language)
     {
-        try { await engine.PreviewAsync(Dubber.Sample(language), VoiceID(language)); }
+        try { await engine.PreviewAsync(Dubber.Sample(language), SystemVoiceID(language)); }
         catch (Exception e)
         {
             DownloadError = e.Message;
@@ -262,17 +299,22 @@ sealed class SubtitlesModel
 
     public void RefreshDownloads()
     {
-        var options = new SubtitlePipeline.Options(SourceLanguage, IncludeOriginal, EffectiveTargets);
+        var cloned = ClonedLanguages;
+        var options = new SubtitlePipeline.Options(SourceLanguage, IncludeOriginal, EffectiveTargets)
+        {
+            Voices = cloned.ToDictionary(l => l.Code, _ => Dubber.ClonedVoiceId),
+        };
         NotDownloaded = SubtitlePipeline.RequiredModels(options).Where(f => !ModelStore.IsDownloaded([f])).ToList();
         if (NotDownloaded.Count == 0) DownloadError = null;
     }
 
-    /// <summary>"Whisper speech recognition (570 MB), NLLB-200 translation (0.9 GB)".</summary>
+    /// <summary>"Whisper speech recognition (570 MB), NLLB-200 translation (0.9 GB), voice cloning (1.6 GB)".</summary>
     public string MissingModelsText => string.Join(", ", NotDownloaded.GroupBy(f => f.Folder).Select(g =>
     {
         var bytes = g.Sum(f => f.ApproximateBytes);
         var size = bytes >= 1_000_000_000 ? $"{bytes / 1e9:0.0} GB" : $"{bytes / 1e6:0} MB";
-        return (g.Key == "whisper" ? "Whisper speech recognition" : "NLLB-200 translation") + $" ({size})";
+        var name = g.Key switch { "whisper" => "Whisper speech recognition", "nllb" => "NLLB-200 translation", _ => "voice cloning" };
+        return $"{name} ({size})";
     }));
 
     public async Task DownloadMissing()
@@ -314,6 +356,9 @@ sealed class SubtitlesModel
 
     CancellationTokenSource? cancel;
 
+    /// <summary>A run that clones voices needs the user's confirmation that the speakers consented (the window asks).</summary>
+    public bool NeedsConsent => ClonedLanguages.Count > 0;
+
     public void Start()
     {
         if (!CanStart || Export.Timeline is null || Export.SelectedProject is not { } project || Export.SelectedTimeline is not { } projectTimeline)
@@ -331,6 +376,7 @@ sealed class SubtitlesModel
         {
             Captions = MakeCaptions,
             Voices = voices,
+            Exaggeration = (float)Expressiveness,
             AudibleVoice = EffectiveAudibleVoice,
             VoiceOverFolder = SubtitlePipeline.VoiceOverFolder(project),
         };
@@ -366,11 +412,14 @@ sealed class SubtitlesModel
                 var timeline = SubtitlePipeline.SpeechTimeline(project, projectTimeline);
                 var mix = AudioMixer.Mix(timeline, new MfAudioDecoder(), [], p => Report("Mixing timeline audio…", 0.1 * p), source.Token);
                 var audio = AudioInput.ToMono16k(mix, 2, AudioMixer.SampleRate);
+                // What cloned voices copy (no voice isolation on Windows yet: the mix itself).
+                var originalVoice = voices.ContainsValue(Dubber.ClonedVoiceId)
+                    ? AudioInput.ToMono(mix, 2, AudioMixer.SampleRate, VoiceCloner.SampleRate) : null;
                 source.Token.ThrowIfCancellationRequested();
 
                 // 2. Speech, translations, voice-over.
                 var output = await SubtitlePipeline.RunAsync(audio, options, (step, fraction) => Report(step, 0.1 + 0.9 * fraction),
-                    voices.Count > 0 ? engine : null, source.Token);
+                    voices.Values.Any(v => v != Dubber.ClonedVoiceId) ? engine : null, source.Token, originalVoice);
                 source.Token.ThrowIfCancellationRequested();
 
                 // 3. The draft.

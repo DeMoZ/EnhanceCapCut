@@ -133,6 +133,12 @@ checked in CapCut. Segments that already have volume keyframes are skipped. Our 
 `ECC0D0CC-` so a later run can remove them. The renderer reads volume keyframes as a multiplier of
 `segment.volume` over the clip (`AudioClip.volumeEnvelope`), including on compound clips.
 
+"Replace voice" mutes like "Mute" and adds one more audible track, `EnhanceCapCut voice-over · background`, laid out
+like the voice tracks: the timeline's mix with the voice removed (`background.wav`, 48 kHz stereo 16-bit, aligned to
+the timeline), with a clip over each ducked stretch from 0.25 s before to 0.4 s after it. Its gain is baked into the
+file as the complement of the ducking ramps, so original and background cross-fade. A later run removes it with the
+voice tracks (same name prefix).
+
 ## Colour
 
 Calibrated against the author's CapCut exports (HEVC Main10, BT.709 tagged):

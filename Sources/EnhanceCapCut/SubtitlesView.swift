@@ -36,7 +36,18 @@ struct SubtitlesView: View {
             model.refreshProjectState()
         }
         .modifier(TranslationHost(broker: model.translator))
+        .alert("Clone voices only with consent", isPresented: $model.askConsent) {
+            Button("Cancel", role: .cancel) {}
+            Button("Create") { model.start(consented: true) }
+        } message: {
+            Text(SubtitlesView.consentText)
+        }
     }
+
+    /// The warning before cloning, the same as the Windows version's.
+    static let consentText = "The voice-over will copy the voices of the people speaking in this video. Use it only "
+        + "for your own voice or for people who agreed to have their voice cloned. Click Create only if you have "
+        + "their consent."
 
     // MARK: Sections
 
@@ -131,12 +142,39 @@ struct SubtitlesView: View {
 
     private var voiceSection: some View {
         Section {
-            Picker("Voice", selection: $model.voiceGender) {
-                ForEach(VoiceGender.allCases) { Text($0.rawValue).tag($0) }
+            Toggle(isOn: $model.cloneVoice) {
+                Text("Clone the original voice")
+                Text("Keeps each speaker's voice, intonation and emotion. Runs on this Mac; slower than system voices.")
             }
-            .pickerStyle(.segmented)
+            if model.cloneVoice {
+                Label("Only for your own voice or people who agreed to have their voice cloned.",
+                      systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption).foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+                if !model.clonedLanguages.isEmpty {
+                    LabeledContent("Expressiveness") {
+                        Slider(value: $model.expressiveness, in: 0.25...1, step: 0.05)
+                            .frame(maxWidth: 200)
+                    }
+                    .help("0.5 sounds like the original; higher is more dramatic (and a little faster).")
+                }
+            }
+            if model.dubLanguages.contains(where: { !model.isCloned($0) }) {
+                Picker("Voice", selection: $model.voiceGender) {
+                    ForEach(VoiceGender.allCases) { Text($0.rawValue).tag($0) }
+                }
+                .pickerStyle(.segmented)
+            }
             ForEach(model.dubLanguages) { lang in
-                voiceRow(lang)
+                if model.isCloned(lang) {
+                    LabeledContent(lang.displayName) { Text("Original voice, cloned").foregroundStyle(.secondary) }
+                } else {
+                    voiceRow(lang)
+                    if model.cloneVoice {
+                        Text("Voice cloning doesn't speak \(lang.displayName): a system voice will speak it.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
             }
             if model.dubLanguages.count > 1 {
                 Picker("Heard", selection: Binding(get: { model.effectiveAudibleVoice ?? "" },
@@ -150,7 +188,8 @@ struct SubtitlesView: View {
                 ForEach(OriginalAudio.allCases) { Text($0.rawValue).tag($0) }
             }
             .pickerStyle(.segmented)
-            .help("While the voice-over speaks: leave the project's own sound as it is, lower it by 15 dB, or silence it. "
+            .help("While the voice-over speaks: leave the project's own sound as it is, lower it by 15 dB, silence it, "
+                + "or replace only the voice — the sound is silenced and a track with it minus the voice plays instead. "
                 + "Done with volume keyframes on the clips, which you can adjust in CapCut.")
         } header: {
             HStack {
@@ -219,9 +258,9 @@ struct SubtitlesView: View {
 
     @ViewBuilder
     private var downloadSection: some View {
-        if model.whisperMissing || model.modelProgress != nil {
+        if !model.missingModels.isEmpty || model.modelProgress != nil {
             Section {
-                Label("One-time download needed for offline recognition: " + model.whisperModelText,
+                Label("One-time download needed: " + model.missingModelsText,
                       systemImage: "arrow.down.circle")
                     .fixedSize(horizontal: false, vertical: true)
                 if let error = model.modelError {
