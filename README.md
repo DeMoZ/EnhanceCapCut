@@ -24,6 +24,11 @@ AVFoundation, Core Image/Metal and VideoToolbox hardware encoders.
 > If macOS says the installer is from an unidentified developer, open
 > **System Settings ▸ Privacy & Security** and click **Open Anyway**.
 
+**Updates:** **EnhanceCapCut ▸ Check for Updates…** (or the link at the bottom of the export window) installs a newer
+release; the app also checks by itself once you allow it. Updates come through [Sparkle](https://sparkle-project.org)
+and are verified with the project's signing key. On Windows the same link downloads the new zip, checks it and
+restarts the app.
+
 ## Requirements
 
 - macOS 15 or later, Apple Silicon recommended (hardware HEVC/ProRes encoding).
@@ -57,7 +62,11 @@ git tag v0.3.0 origin/main && git push origin v0.3.0
 ```
 
 The workflow builds the macOS `.pkg` and the Windows `EnhanceCapCut-<version>-windows-x64.zip` (self-contained
-`EnhanceCapCut.exe` and `ecc.exe`) and publishes the release with both. CI builds are unsigned.
+`EnhanceCapCut.exe` and `ecc.exe`) and publishes the release with both, plus `appcast.xml`: the Mac app's update feed
+(`scripts/appcast.sh`), signed with the EdDSA key in the `SPARKLE_PRIVATE_KEY` secret. Its public half is
+`SUPublicEDKey` in `App/Info.plist`; a copy of the private key is in the maintainer's login keychain (account
+`EnhanceCapCut`, Sparkle's `generate_keys`). The Windows app reads the latest release from the GitHub API and checks
+the zip against GitHub's SHA-256. CI builds are unsigned.
 
 Signed and notarized installer (requires an Apple Developer ID):
 

@@ -24,6 +24,10 @@
 	<string>public.app-category.video</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>15.0</string>
+	<key>SUFeedURL</key>
+	<string>https://github.com/DeMoZ/EnhanceCapCut/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>foJpQc9DrkRNxDc72MTND6gxTFo0kVWOnr4qc2NVSZE=</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSPrincipalClass</key>

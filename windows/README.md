@@ -69,6 +69,12 @@ open; closing the last one quits, after asking if an export or a subtitles run i
 the subtitle choices are kept in `%APPDATA%\EnhanceCapCut\app.json`. For testing:
 `EnhanceCapCut.exe [--project <name>] [--auto-export] [--subtitles]`.
 
+**Updates:** the link at the bottom of the export window ("Version 0.6.0 · Check for Updates…") asks GitHub for the
+latest release, and the app checks once a day at launch (a newer version then shows as "Update to x.y.z…"). Updating
+downloads the release zip, checks it against the SHA-256 GitHub publishes, quits, copies the new files over the app's
+folder with a small PowerShell script and starts it again (`Updater.cs`, `AppUpdates.cs`). The folder must be
+writable — keep the app outside Program Files. A local build (version 0.0.0) doesn't show the link.
+
 CI starts the published app on a demo project and keeps screenshots of both windows (the `windows-ui` artifact
 of the Windows workflow).
 

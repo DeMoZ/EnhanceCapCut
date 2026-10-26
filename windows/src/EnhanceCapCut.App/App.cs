@@ -14,7 +14,8 @@ namespace EnhanceCapCut.App;
 /// version before quitting during an export or a subtitles run.
 ///
 /// Command line (for testing and scripting, like the macOS <c>--args -project … -autoExport YES</c>):
-/// <c>EnhanceCapCut.exe [--project &lt;name&gt;] [--auto-export] [--subtitles]</c> (the last one opens the subtitles window too).
+/// <c>EnhanceCapCut.exe [--project &lt;name&gt;] [--auto-export] [--subtitles]</c> (the last one opens the subtitles window too);
+/// <c>--update-failed</c> is passed by the update script (<see cref="Updater"/>).
 /// </summary>
 sealed partial class App : Application, IXamlMetadataProvider
 {
@@ -69,9 +70,15 @@ sealed partial class App : Application, IXamlMetadataProvider
         model = new ExportModel(ui) { AutoExport = args.Contains("--auto-export") };
         model.OpenSubtitles = ShowSubtitlesWindow;
         model.Finished = () => { if (exportWindow is not null) Platform.Flash(exportWindow); };
+        var updater = new Updater(ui, () => exportWindow!, ConfirmQuit, Quit);
+        updater.Changed += model.Notify;
+        model.Updates = updater;
         AppInstance.GetCurrent().Activated += (_, _) => ui.TryEnqueue(ShowExportWindow);
         ShowExportWindow();
         if (args.Contains("--subtitles")) ShowSubtitlesWindow();
+        // Started again by the update script: either the new version or, when files couldn't be replaced, the old one.
+        if (args.Contains("--update-failed")) ui.TryEnqueue(async () => await updater.ReportFailedUpdate());
+        else _ = updater.CheckInBackground();
     }
 
     /// <summary>Shows the export window and re-detects the project open in CapCut.</summary>

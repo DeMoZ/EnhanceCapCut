@@ -34,6 +34,10 @@ final class ExportModel: ObservableObject {
 
     /// Opens the subtitles window (set by the app delegate).
     var openSubtitles: (() -> Void)?
+    /// Sparkle's "Check for Updates…" (nil outside the app bundle).
+    var checkForUpdates: (() -> Void)?
+    /// "0.6.0" from the bundle; empty for a `swift run` build.
+    let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
 
     private var exporter: Exporter?
     private var autoExported = false

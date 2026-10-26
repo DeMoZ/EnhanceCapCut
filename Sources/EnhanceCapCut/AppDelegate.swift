@@ -1,4 +1,5 @@
 import AppKit
+import Sparkle
 import SwiftUI
 
 @MainActor
@@ -9,6 +10,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var subtitlesModel: AnyObject?
     private let model = ExportModel()
     private let services = ServiceProvider()
+    /// Sparkle, only in the app bundle (a `swift run` build has no Info.plist feed to check).
+    private let updater: SPUStandardUpdaterController? = Bundle.main.bundleURL.pathExtension == "app"
+        ? SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil) : nil
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if let running = deferToRunningInstance() {
@@ -19,6 +23,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.mainMenu = makeMenu()
         services.onInvoke = { [weak self] in self?.showExportWindow() }
         model.openSubtitles = { [weak self] in self?.showSubtitlesWindow() }
+        if let updater {
+            model.checkForUpdates = { updater.checkForUpdates(nil) }
+        }
         NSApp.servicesProvider = services
         NSUpdateDynamicServices()
         showExportWindow()
@@ -103,6 +110,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let appItem = NSMenuItem()
         let appMenu = NSMenu()
         appMenu.addItem(withTitle: "About EnhanceCapCut", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        if let updater {
+            appMenu.addItem(withTitle: "Check for Updates…", action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)),
+                            keyEquivalent: "").target = updater
+        }
         appMenu.addItem(.separator())
         let servicesItem = NSMenuItem(title: "Services", action: nil, keyEquivalent: "")
         let servicesMenu = NSMenu()
