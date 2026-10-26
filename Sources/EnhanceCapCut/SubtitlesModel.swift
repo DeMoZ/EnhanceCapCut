@@ -128,7 +128,9 @@ final class SubtitlesModel: ObservableObject {
         makeDub = d.object(forKey: "subtitles.makeDub") as? Bool ?? false
         dubVoices = d.dictionary(forKey: "subtitles.dubVoices") as? [String: String] ?? [:]
         voiceGender = VoiceGender(rawValue: d.string(forKey: "subtitles.voiceGender") ?? "") ?? .female
-        originalAudio = OriginalAudio(rawValue: d.string(forKey: "subtitles.originalAudio") ?? "") ?? .lower
+        // "Mute" was renamed "Mute all".
+        let savedOriginal = d.string(forKey: "subtitles.originalAudio").map { $0 == "Mute" ? OriginalAudio.mute.rawValue : $0 }
+        originalAudio = OriginalAudio(rawValue: savedOriginal ?? "") ?? .lower
         audibleVoice = d.string(forKey: "subtitles.audibleVoice") ?? ""
         cloneVoice = d.object(forKey: "subtitles.cloneVoice") as? Bool ?? false
         expressiveness = d.object(forKey: "subtitles.expressiveness") as? Double ?? 0.5
@@ -181,6 +183,13 @@ final class SubtitlesModel: ObservableObject {
     var canStart: Bool {
         export.timeline != nil && !isRunning && downloadingLanguage == nil && modelProgress == nil
             && !(outputLanguages.isEmpty && dubLanguages.isEmpty)
+    }
+
+    /// The timeline a voice-over run creates (a dubbed copy of the selected one); nil without voice-over.
+    var dubTimelineName: String? {
+        guard let project = export.selectedProject, let heard = effectiveAudibleVoice else { return nil }
+        let codes = [heard] + dubLanguages.map(\.code).filter { $0 != heard }
+        return DubTimeline.name(project: project, languages: codes, original: originalAudio)
     }
 
     /// Voice-over languages spoken in the cloned original voice.
@@ -451,6 +460,7 @@ final class SubtitlesModel: ObservableObject {
         let srtFolder = saveSRT && makeCaptions
             ? URL(fileURLWithPath: (export.settings.outputFolder as NSString).expandingTildeInPath) : nil
         let baseName = projectTimeline.isMain ? project.name : "\(project.name) \(projectTimeline.name)"
+        let dubName = dubTimelineName
         phase = .running(step: "Preparing…", fraction: 0)
 
         task = Task {
@@ -469,10 +479,21 @@ final class SubtitlesModel: ObservableObject {
                 }
                 try Task.checkCancellation()
                 let tracks = output.captions
-                let result = try DraftSubtitleWriter.write(project: project, timeline: projectTimeline,
-                                                           cueCount: tracks.reduce(0) { $0 + $1.cues.count }) {
-                    try SubtitlePipeline.apply(output, to: $0, original: original, replacePrevious: replace,
+                let cueCount = tracks.reduce(0) { $0 + $1.cues.count }
+                func apply(_ draft: Data) throws -> Data {
+                    try SubtitlePipeline.apply(output, to: draft, original: original, replacePrevious: replace,
                                                projectURL: project.url)
+                }
+                // Voice-over goes to a dubbed copy of the timeline; captions alone into the timeline itself.
+                let result: DraftSubtitleWriter.Result
+                var target = project.name
+                if let dubName, !output.voiceOver.isEmpty {
+                    result = try DubTimeline.create(project: project, source: projectTimeline, name: dubName,
+                                                    cueCount: cueCount, transform: apply).1
+                    target = "the new timeline \(dubName)"
+                } else {
+                    result = try DraftSubtitleWriter.write(project: project, timeline: projectTimeline, cueCount: cueCount,
+                                                           transform: apply)
                 }
                 draftWritten = true
                 let srt = try srtFolder.map { try SubtitlePipeline.writeSRT(tracks, to: $0, baseName: baseName) } ?? []
@@ -483,9 +504,9 @@ final class SubtitlesModel: ObservableObject {
                 if !output.voiceOver.isEmpty {
                     parts.append("voice-over (\(output.voiceOver.map(\.language.code).joined(separator: ", ")))")
                 }
-                phase = .done(result, summary: "Added \(parts.joined(separator: " and ")) to \(project.name)", srt: srt)
-                // The export window shows the new captions too.
-                export.loadTimeline()
+                phase = .done(result, summary: "Added \(parts.joined(separator: " and ")) to \(target)", srt: srt)
+                // The export window shows the new captions (or the new timeline) too.
+                export.refreshProjects(selectOpen: false)
                 NSApp.requestUserAttention(.informationalRequest)
             } catch is CancellationError {
                 phase = .idle

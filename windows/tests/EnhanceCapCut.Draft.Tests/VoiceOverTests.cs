@@ -119,7 +119,7 @@ public class VoiceOverWriterTests
         var d = Json(DraftVoiceOverWriter.Apply(Tracks(), Bytes(Draft), OriginalAudio.Lower, replacePrevious: true, Project));
         // The two lines (1–2.5 s, 3–4 s) are less than the ramps apart, so they duck as one: 1–4 s.
         var video = VolumeKeyframes(Segments(d, 0)[0]).First();
-        Assert.StartsWith(DraftVoiceOverWriter.KeyframeIDPrefix, video.GetProperty("id").GetString());
+        Assert.StartsWith(DraftVoiceOverWriter.IDPrefix, video.GetProperty("id").GetString());
         var list = video.GetProperty("keyframe_list").EnumerateArray().ToList();
         Assert.Equal([750_000L, 1_000_000, 4_000_000, 4_400_000], list.Select(k => k.GetProperty("time_offset").GetInt64()));
         var values = list.Select(k => k.GetProperty("values")[0].GetDouble()).ToList();
@@ -132,6 +132,78 @@ public class VoiceOverWriterTests
         Assert.Equal(["K"], VolumeKeyframes(Segments(d, 2)[0]).Select(g => g.GetProperty("id").GetString()));
         // Voice-over tracks aren't ducked.
         Assert.Empty(VolumeKeyframes(Segments(d, 3)[0]));
+    }
+
+    /// <summary>
+    /// A video clip with its own (off) vocal separation, a compound clip, CapCut music and an extracted sound, all under
+    /// the voice, and a clip after it.
+    /// </summary>
+    const string VocalDraft =
+        "{\"id\":\"D\",\"duration\":10000000,\"tracks\":["
+        + "{\"type\":\"video\",\"attribute\":0,\"segments\":[{\"id\":\"S1\",\"material_id\":\"M1\",\"extra_material_refs\":[\"VS1\"],"
+        + "\"target_timerange\":{\"start\":0,\"duration\":5000000},\"source_timerange\":{\"start\":2000000,\"duration\":5000000},"
+        + "\"volume\":1.0},{\"id\":\"S2\",\"material_id\":\"M1\",\"extra_material_refs\":[],"
+        + "\"target_timerange\":{\"start\":6000000,\"duration\":4000000},\"volume\":1.0}]},"
+        + "{\"type\":\"video\",\"attribute\":0,\"segments\":[{\"id\":\"S3\",\"material_id\":\"M1\",\"extra_material_refs\":[\"C1\"],"
+        + "\"target_timerange\":{\"start\":0,\"duration\":5000000},\"volume\":1.0}]},"
+        + "{\"type\":\"audio\",\"attribute\":0,\"segments\":[{\"id\":\"S4\",\"material_id\":\"A1\","
+        + "\"target_timerange\":{\"start\":0,\"duration\":5000000},\"volume\":1.0},{\"id\":\"S5\",\"material_id\":\"A2\","
+        + "\"target_timerange\":{\"start\":5000000,\"duration\":1000000},\"volume\":1.0}]}],"
+        + "\"materials\":{\"videos\":[{\"id\":\"M1\",\"type\":\"video\",\"duration\":20000000}],"
+        + "\"audios\":[{\"id\":\"A1\",\"type\":\"music\",\"duration\":5000000},{\"id\":\"A2\",\"type\":\"extract_music\",\"duration\":1000000}],"
+        + "\"drafts\":[{\"id\":\"C1\"}],\"vocal_separations\":[{\"id\":\"VS1\",\"type\":\"vocal_separation\",\"choice\":0}]}}";
+
+    static JsonElement? Separation(JsonElement d, JsonElement segment)
+    {
+        var refs = segment.GetProperty("extra_material_refs").EnumerateArray().Select(r => r.GetString()).ToList();
+        foreach (var s in d.GetProperty("materials").GetProperty("vocal_separations").EnumerateArray())
+            if (refs.Contains(s.GetProperty("id").GetString())) return s;
+        return null;
+    }
+
+    static List<long> OurChoices(JsonElement d) => d.GetProperty("materials").GetProperty("vocal_separations").EnumerateArray()
+        .Where(s => s.GetProperty("id").GetString()!.StartsWith(DraftVoiceOverWriter.IDPrefix, StringComparison.Ordinal))
+        .Select(s => s.GetProperty("choice").GetInt64()).ToList();
+
+    /// <summary>Remove vocal: CapCut's "Remove vocal" on the clips under the voice, muting where CapCut can't separate.</summary>
+    [Fact]
+    public void RemoveVocalTurnsOnCapCutsSeparation()
+    {
+        List<VoiceOverTrack> line = [Tracks()[0] with { Lines = [(1, 5.5)] }];
+        var once = DraftVoiceOverWriter.Apply(line, Bytes(VocalDraft), OriginalAudio.RemoveVocal, replacePrevious: true, Project);
+        var d = Json(once);
+        var s1 = Segments(d, 0)[0];
+        var own = Separation(d, s1)!.Value;
+        Assert.StartsWith(DraftVoiceOverWriter.IDPrefix, own.GetProperty("id").GetString());
+        Assert.Equal(1, own.GetProperty("choice").GetInt64());
+        Assert.Equal("vocal_separate", own.GetProperty("final_algorithm").GetString());
+        Assert.Equal(2_000_000, own.GetProperty("time_range").GetProperty("start").GetInt64());
+        Assert.Empty(VolumeKeyframes(s1));
+        // The clip's own entry stays, unchanged, for whatever else refers to it.
+        Assert.Equal(0, d.GetProperty("materials").GetProperty("vocal_separations").EnumerateArray()
+            .First(s => s.GetProperty("id").GetString() == "VS1").GetProperty("choice").GetInt64());
+        // No speech over the clip from 6 s.
+        Assert.Null(Separation(d, Segments(d, 0)[1]));
+        // Compound clips and CapCut music can't be separated: muted instead.
+        foreach (var segment in new[] { Segments(d, 1)[0], Segments(d, 2)[0] })
+        {
+            Assert.False(segment.TryGetProperty("extra_material_refs", out var refs) && Separation(d, segment) is not null);
+            Assert.Single(VolumeKeyframes(segment));
+        }
+        // A segment without separation material gets one.
+        var s5 = Segments(d, 2)[1];
+        Assert.Equal(1, Separation(d, s5)!.Value.GetProperty("choice").GetInt64());
+        Assert.Empty(VolumeKeyframes(s5));
+
+        // Running again reuses our entries; keeping the original sound turns them off.
+        var twice = DraftVoiceOverWriter.Apply(line, once, OriginalAudio.RemoveVocal, replacePrevious: true, Project);
+        d = Json(twice);
+        Assert.Equal([1L, 1L], OurChoices(d));
+        Assert.Equal(own.GetProperty("id").GetString(), Separation(d, Segments(d, 0)[0])!.Value.GetProperty("id").GetString());
+        var kept = Json(DraftVoiceOverWriter.Apply(line, twice, OriginalAudio.Keep, replacePrevious: true, Project));
+        Assert.Equal([0L, 0L], OurChoices(kept));
+        Assert.Empty(VolumeKeyframes(Segments(kept, 1)[0]));
+        Assert.Equal([0L, 0L], OurChoices(Json(DraftVoiceOverWriter.WithoutVoiceOver(twice))));
     }
 
     [Fact]

@@ -118,7 +118,7 @@ final class VoiceOverWriterTests: XCTestCase {
         let d = try json(out)
         // The two lines (1–2.5 s, 3–4 s) are less than the ramps apart, so they duck as one: 1–4 s.
         let video = try XCTUnwrap(volumeKeyframes(try segments(d, track: 0)[0]).first)
-        XCTAssertTrue((video["id"] as? String)?.hasPrefix(DraftVoiceOverWriter.keyframeIDPrefix) == true)
+        XCTAssertTrue((video["id"] as? String)?.hasPrefix(DraftVoiceOverWriter.idPrefix) == true)
         let list = try XCTUnwrap(video["keyframe_list"] as? [[String: Any]])
         XCTAssertEqual(list.map { $0["time_offset"] as? Int }, [750_000, 1_000_000, 4_000_000, 4_400_000])
         let values = list.map { ($0["values"] as? [Double])?.first ?? -1 }
@@ -150,6 +150,80 @@ final class VoiceOverWriterTests: XCTestCase {
         // Keep the original sound this time: the earlier ducking goes too.
         let kept = try DraftVoiceOverWriter.apply(tracks(), to: once, original: .keep, replacePrevious: true, projectURL: project)
         XCTAssertTrue(volumeKeyframes(try segments(try json(kept), track: 0)[0]).isEmpty)
+    }
+
+    /// A video clip with its own (off) vocal separation, a compound clip, CapCut music and an extracted sound, all under
+    /// the voice, and a clip after it.
+    private var vocalDraft: String {
+        """
+        {"id":"D","duration":10000000,"tracks":[\
+        {"type":"video","attribute":0,"segments":[{"id":"S1","material_id":"M1","extra_material_refs":["VS1"],\
+        "target_timerange":{"start":0,"duration":5000000},"source_timerange":{"start":2000000,"duration":5000000},\
+        "volume":1.0},{"id":"S2","material_id":"M1","extra_material_refs":[],\
+        "target_timerange":{"start":6000000,"duration":4000000},"volume":1.0}]},\
+        {"type":"video","attribute":0,"segments":[{"id":"S3","material_id":"M1","extra_material_refs":["C1"],\
+        "target_timerange":{"start":0,"duration":5000000},"volume":1.0}]},\
+        {"type":"audio","attribute":0,"segments":[{"id":"S4","material_id":"A1",\
+        "target_timerange":{"start":0,"duration":5000000},"volume":1.0},{"id":"S5","material_id":"A2",\
+        "target_timerange":{"start":5000000,"duration":1000000},"volume":1.0}]}],\
+        "materials":{"videos":[{"id":"M1","type":"video","duration":20000000}],\
+        "audios":[{"id":"A1","type":"music","duration":5000000},{"id":"A2","type":"extract_music","duration":1000000}],\
+        "drafts":[{"id":"C1"}],"vocal_separations":[{"id":"VS1","type":"vocal_separation","choice":0}]}}
+        """
+    }
+
+    private func separation(_ d: [String: Any], of segment: [String: Any]) throws -> [String: Any]? {
+        let all = try XCTUnwrap((d["materials"] as? [String: Any])?["vocal_separations"] as? [[String: Any]])
+        let refs = segment["extra_material_refs"] as? [String] ?? []
+        return all.first { refs.contains($0["id"] as? String ?? "") }
+    }
+
+    /// Remove vocal: CapCut's "Remove vocal" on the clips under the voice, muting where CapCut can't separate.
+    func testRemoveVocalTurnsOnCapCutsSeparation() throws {
+        let line = [VoiceOverTrack(language: tracks()[0].language, url: tracks()[0].url, fileDuration: 10,
+                                   lines: [1...5.5], isAudible: true)]
+        let once = try DraftVoiceOverWriter.apply(line, to: Data(vocalDraft.utf8), original: .removeVocal,
+                                                  replacePrevious: true, projectURL: project)
+        var d = try json(once)
+        let s1 = try segments(d, track: 0)[0], s2 = try segments(d, track: 0)[1]
+        let own = try XCTUnwrap(separation(d, of: s1))
+        XCTAssertTrue((own["id"] as? String)?.hasPrefix(DraftVoiceOverWriter.idPrefix) == true)
+        XCTAssertEqual(own["choice"] as? Int, 1)
+        XCTAssertEqual(own["final_algorithm"] as? String, "vocal_separate")
+        XCTAssertEqual((own["time_range"] as? [String: Any])?["start"] as? Int, 2_000_000)
+        XCTAssertTrue(volumeKeyframes(s1).isEmpty)
+        // The clip's own entry stays, unchanged, for whatever else refers to it.
+        let all = try XCTUnwrap((d["materials"] as? [String: Any])?["vocal_separations"] as? [[String: Any]])
+        XCTAssertEqual(all.first { $0["id"] as? String == "VS1" }?["choice"] as? Int, 0)
+        // No speech over the clip from 6 s.
+        XCTAssertNil(try separation(d, of: s2))
+        // Compound clips and CapCut music can't be separated: muted instead.
+        for (track, index) in [(1, 0), (2, 0)] {
+            let segment = try segments(d, track: track)[index]
+            XCTAssertNil(try separation(d, of: segment))
+            XCTAssertEqual(volumeKeyframes(segment).count, 1)
+        }
+        // A segment without separation material gets one.
+        let s5 = try segments(d, track: 2)[1]
+        XCTAssertEqual(try separation(d, of: s5)?["choice"] as? Int, 1)
+        XCTAssertTrue(volumeKeyframes(s5).isEmpty)
+
+        // Running again reuses our entries; keeping the original sound turns them off.
+        let twice = try DraftVoiceOverWriter.apply(line, to: once, original: .removeVocal, replacePrevious: true,
+                                                   projectURL: project)
+        d = try json(twice)
+        let ours = { (d: [String: Any]) in
+            ((d["materials"] as? [String: Any])?["vocal_separations"] as? [[String: Any]] ?? [])
+                .filter { ($0["id"] as? String)?.hasPrefix(DraftVoiceOverWriter.idPrefix) == true }
+        }
+        XCTAssertEqual(ours(d).map { $0["choice"] as? Int }, [1, 1])
+        XCTAssertEqual(try separation(d, of: try segments(d, track: 0)[0])?["id"] as? String, own["id"] as? String)
+        let kept = try json(try DraftVoiceOverWriter.apply(line, to: twice, original: .keep, replacePrevious: true,
+                                                           projectURL: project))
+        XCTAssertEqual(ours(kept).map { $0["choice"] as? Int }, [0, 0])
+        XCTAssertTrue(volumeKeyframes(try segments(kept, track: 1)[0]).isEmpty)
+        let restored = try json(try DraftVoiceOverWriter.withoutVoiceOver(twice))
+        XCTAssertEqual(ours(restored).map { $0["choice"] as? Int }, [0, 0])
     }
 
     func testDuckingReachesTheTimeline() throws {

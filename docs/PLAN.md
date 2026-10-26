@@ -76,6 +76,12 @@ Usage counts from the author's 69 projects drive the order of the later mileston
       before every run. Measured on an M1: ~2× real time, model load ~30 s.
 - [x] "Replace voice" original audio (Mac): muted under the voice-over, with a background track made by our
       vocal removal in its place (see FORMAT.md).
+- [x] "Remove vocal" original audio (both platforms): CapCut's own "Remove vocal" turned on for the clips under the
+      voice-over, unsupported clips muted; "Mute" renamed "Mute all".
+- [ ] Check in CapCut that it makes the "Remove vocal" result for an entry without `production_path`.
+- [x] Voice-over goes to a new timeline (`DubTimeline`, both platforms): a copy of the source timeline named
+      `<project>_dub_<languages>_<original audio>_<n>`; the source stays untouched.
+- [ ] Check in CapCut that it opens a timeline made this way (see FORMAT.md › Timelines).
 - [ ] Voice cloning: speaker diarization, so a line's reference never borrows another speaker's voice; Chinese,
       Japanese and Hebrew (need Cangjie / kana / diacritics front ends); voice isolation on Windows for cleaner
       references and "Replace voice" there; GPU (CoreML / DirectML) for the decoder, now the slow part.

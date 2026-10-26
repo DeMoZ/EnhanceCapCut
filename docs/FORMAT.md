@@ -24,6 +24,15 @@ A project can hold several timelines. `Timelines/project.json` lists them: `main
 of the main timeline. `timeline_layout.json` describes CapCut's dock of open timelines (not used).
 Projects without `project.json` have a single timeline: the root draft.
 
+Every timeline draft's root `id` is its timeline id; segment and material ids are not shared between the timelines
+of the author's projects. A voice-over run adds a timeline of its own (`DubTimeline`): a new UUID, an entry
+`{create_time, id, is_marked_delete: false, name, update_time}` (µs) appended to `project.json`'s `timelines`, a
+folder `Timelines/<id>/` with the transformed draft (root `id` replaced) and an identical `template-2.tmp`, plus the
+source folder's `attachment_editing.json`, `attachment_pc_common.json` and `common_attachment/` (plain JSON);
+`draft.extra` (binary, likely encrypted) is not copied. The id and name are also appended to the first dock's
+`timelineIds` / `timelineNames` in `timeline_layout.json`, so it opens as a tab. Not yet checked: whether CapCut
+wants `draft.extra` or fresh segment/material ids in a copied timeline.
+
 ## Time
 
 All times are microseconds. A segment has `target_timerange` (timeline) and `source_timerange` (media).
@@ -123,7 +132,7 @@ WAV that is aligned to the timeline, `duration` = the file's length), `source_ti
 The WAVs (48 kHz mono 16-bit) go to `<project>/EnhanceCapCut/voiceover <time>/<code>.wav`, written with the
 draft's `##_draftpath_placeholder_…##` prefix when the draft has one, so they move with the project.
 
-"Lower" / "Mute" original audio: a `KFTypeVolume` group in `common_keyframes` of every other audible
+"Lower" / "Mute all" original audio: a `KFTypeVolume` group in `common_keyframes` of every other audible
 `video`/`audio` segment that overlaps the speech, in the same shape as CapCut's other keyframes
 (`keyframe_list[{id, curveType "Line", time_offset, left/right_control, values, string_value, graphID}]`),
 with `time_offset` relative to the segment start in timeline time and `values` = linear volume
@@ -133,11 +142,20 @@ checked in CapCut. Segments that already have volume keyframes are skipped. Our 
 `ECC0D0CC-` so a later run can remove them. The renderer reads volume keyframes as a multiplier of
 `segment.volume` over the clip (`AudioClip.volumeEnvelope`), including on compound clips.
 
-"Replace voice" mutes like "Mute" and adds one more audible track, `EnhanceCapCut voice-over · background`, laid out
+"Replace voice" mutes like "Mute all" and adds one more audible track, `EnhanceCapCut voice-over · background`, laid out
 like the voice tracks: the timeline's mix with the voice removed (`background.wav`, 48 kHz stereo 16-bit, aligned to
 the timeline), with a clip over each ducked stretch from 0.25 s before to 0.4 s after it. Its gain is baked into the
 file as the complement of the ducking ramps, so original and background cross-fade. A later run removes it with the
 voice tracks (same name prefix).
+
+"Remove vocal" turns on CapCut's own "Remove vocal" on every audible `video`/`audio` segment that overlaps the
+speech, for the whole clip: a `vocal_separations` entry with `choice` 1, `time_range` = the segment's
+`source_timerange`, `final_algorithm` `vocal_separate` and an empty `production_path` (CapCut's result file is
+obfuscated and named by a hash we don't know, so CapCut has to make it). It replaces the segment's own entry in
+`extra_material_refs`; the old entry stays in the materials untouched. Our entries' ids start with `ECC0D0CC-`, and
+a later run sets their `choice` back to 0. Segments CapCut can't separate (compound video clips, CapCut `music`,
+reversed clips, sources over 10 minutes) and ones set to "Keep vocal" are muted like "Mute all"; ones already on
+"Remove vocal" are left alone. Whether CapCut makes the result from such an entry on its own is to be checked.
 
 ## Colour
 

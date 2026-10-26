@@ -102,8 +102,9 @@ checked on macOS.
 
 Voice-over, as on the Mac: `--voice en,th` (or `en=<voice id>`) speaks those translations with Windows voices
 (Settings ▸ Time & language ▸ Speech ▸ Add voices; `ecc voices <language>` lists the installed ones), `--hear th`
-picks the audible track, `--original keep|lower|mute` what happens to the project's own sound, `--no-captions`
-makes only the voice-over. Each line is sped up just enough to fit its slot (at most 1.35×), saved inside the
+picks the audible track, `--original keep|lower|mute|remove` what happens to the project's own sound, `--no-captions`
+makes only the voice-over. With voice-over the result goes to a new timeline, a copy of the source one named
+`<project>_dub_<languages>_<original audio>_<n>`, and the source timeline stays as it is. Each line is sped up just enough to fit its slot (at most 1.35×), saved inside the
 project folder and added as a clip of its own.
 
 ## Status

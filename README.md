@@ -131,10 +131,16 @@ on Windows): Whisper catches more words in noisy dialogue, and its model is down
    hidden (show them with the track's eye button in CapCut).
 4. For voice-over: pick a female or male voice for each translation (▶ previews it), which language is
    **heard** (the other voice-over tracks are added muted: unmute them with the track's speaker button), and
-   what happens to the **original audio** while the voice speaks: keep, lower by 15 dB, mute, or **replace
-   voice** (the sound is muted and a track with it minus the voice plays instead, so music and ambience stay).
+   what happens to the **original audio** while the voice speaks: keep, lower by 15 dB, **mute all**, **replace
+   voice** (the sound is muted and a track with it minus the voice plays instead, so music and ambience stay), or
+   **remove vocal** (CapCut's own "Remove vocal" is turned on for the clips under the voice-over; CapCut separates
+   them itself. Clips it can't do that on — compound clips, CapCut music, reversed clips, sources over 10 minutes —
+   are muted instead).
    Or turn on **Clone the original voice** to dub in the speaker's own voice instead (below).
-5. Click **Create**, then open the project in CapCut.
+5. Click **Create**, then open the project in CapCut. With voice-over, the result goes to a **new timeline** — a copy
+   of the selected one named `<project>_dub_<languages>_<original audio>_<n>` (e.g. `Trip_dub_en_muteall_1`) — and the
+   selected timeline stays as it is; subtitles alone go into the selected timeline. Pick the timeline to dub from in
+   the window's **Timeline** list (it follows the main window's choice).
 
 The style and position are copied from captions already in the timeline; otherwise CapCut's default caption
 look is used. Running again replaces the tracks added before (your own captions stay). The project file is
@@ -161,7 +167,7 @@ Dutch, English, Finnish, French, German, Greek, Hindi, Italian, Korean, Malay, N
 Russian, Spanish, Swahili, Swedish and Turkish; other languages fall back to the chosen system voice. The model is
 downloaded once (1.55 GB, plus Whisper's 574 MB for the check), and a line takes about twice its length to make on
 an M1. **Use it only for your own voice or people who agreed to have their voice cloned**: the window asks you to
-confirm their consent before every run. Best with "Replace voice", so the original speech doesn't play underneath.
+confirm their consent before every run. Best with "Replace voice" or "Remove vocal", so the original speech doesn't play underneath.
 
 ## Command line
 
@@ -194,7 +200,7 @@ downloaded it (i.e. it has been used or previewed in CapCut on this Mac).
 (write the changed draft there instead of into the project), `--no-captions`, `--voice en,th` (voice-over
 languages; `th=<voice id>` picks a voice from `ecc voices`, Siri voices as `siri:<id>`, `en=clone` the cloned
 original voice, which needs `--consent` to confirm the speakers agreed, and takes `--exaggeration 0.5`),
-`--hear <code>` (the audible voice-over track) and `--original keep|lower|mute|replace` (default `lower`).
+`--hear <code>` (the audible voice-over track) and `--original keep|lower|mute|replace|remove` (default `lower`).
 Translation languages must already be downloaded (the app's window can download them).
 
 ## Development

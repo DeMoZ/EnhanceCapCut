@@ -12,13 +12,15 @@ import Foundation
 //   ecc subtitles [project] [--timeline name|number] --language ru-RU [--engine apple|whisper] [--translate en,th]
 //                 [--no-original] [--show en]
 //                 [--keep-previous] [--srt folder] [--draft out.json] [--no-captions]
-//                 [--voice en,th | en=<voice id>,th | en=clone] [--hear th] [--original keep|lower|mute|replace]
+//                 [--voice en,th | en=<voice id>,th | en=clone] [--hear th] [--original keep|lower|mute|replace|remove]
 //                 [--exaggeration 0.5] [--consent]
-//                 (macOS 26+; writes into the project unless --draft is given; translation languages must be downloaded;
+//                 (macOS 26+; writes into the project unless --draft is given, voice-over into a new timeline
+//                 <project>_dub_<languages>_<original audio>_<n>, a copy of the source timeline; translation languages must be downloaded;
 //                 --engine whisper downloads its model on first use (574 MB);
 //                 --voice speaks these translations with system voices, `ecc voices <language>` lists them;
 //                 `clone` speaks in the original speaker's voice — only with their consent, which --consent confirms —
-//                 downloading its model on first use (1.55 GB); --original replace keeps the background under the voice)
+//                 downloading its model on first use (1.55 GB); --original replace keeps the background under the voice,
+//                 remove turns on CapCut's Remove vocal on the clips under it)
 //   ecc voices <language>
 //   ecc clone <reference audio> --language en --text "…" -o out.wav [--exaggeration 0.5] [--seed 1]
 //             (speaks the text in the reference's voice; downloads the voice cloning model on first use, 1.55 GB)
@@ -202,7 +204,7 @@ case "subtitles":
     guard let original = OriginalAudio.allCases.first(where: {
         $0.rawValue.split(separator: " ")[0].lowercased() == originalArg.lowercased()
     }) else {
-        fail("--original takes keep, lower, mute or replace")
+        fail("--original takes keep, lower, mute, replace or remove")
     }
     let exaggeration = Float(option("--exaggeration") ?? "") ?? 0.5
     if voices.values.contains(Dubber.clonedVoiceID) {
@@ -265,11 +267,22 @@ case "subtitles":
         print("Wrote \(draftOut)")
     } else {
         let count = tracks.reduce(0) { $0 + $1.cues.count }
-        let result = try DraftSubtitleWriter.write(project: p, timeline: pt, cueCount: count) {
-            try SubtitlePipeline.apply(output, to: $0, original: original, replacePrevious: replace, projectURL: p.url)
+        func apply(_ draft: Data) throws -> Data {
+            try SubtitlePipeline.apply(output, to: draft, original: original, replacePrevious: replace, projectURL: p.url)
         }
-        for url in result.files { print("Updated \(url.path)") }
-        print("Backup: \(result.backupFolder.path)")
+        // Voice-over goes to a dubbed copy of the timeline; captions alone into the timeline itself.
+        if let heard = output.voiceOver.first(where: { $0.isAudible && !$0.isBackground })?.language.code {
+            let codes = [heard] + output.voiceOver.filter { !$0.isBackground }.map(\.language.code).filter { $0 != heard }
+            let name = DubTimeline.name(project: p, languages: codes, original: original)
+            let result = try DubTimeline.create(project: p, source: pt, name: name, cueCount: count, transform: apply).1
+            print("New timeline \(name)")
+            for url in result.files { print("Wrote \(url.path)") }
+            print("Backup: \(result.backupFolder.path)")
+        } else {
+            let result = try DraftSubtitleWriter.write(project: p, timeline: pt, cueCount: count, transform: apply)
+            for url in result.files { print("Updated \(url.path)") }
+            print("Backup: \(result.backupFolder.path)")
+        }
     }
 
 case "clone":

@@ -188,9 +188,14 @@ struct SubtitlesView: View {
                 ForEach(OriginalAudio.allCases) { Text($0.rawValue).tag($0) }
             }
             .pickerStyle(.segmented)
-            .help("While the voice-over speaks: leave the project's own sound as it is, lower it by 15 dB, silence it, "
-                + "or replace only the voice — the sound is silenced and a track with it minus the voice plays instead. "
-                + "Done with volume keyframes on the clips, which you can adjust in CapCut.")
+            .help("While the voice-over speaks: leave the project's own sound as it is, lower it by 15 dB, silence all of it, "
+                + "replace only the voice — the sound is silenced and a track with it minus the voice plays instead — or "
+                + "turn on CapCut's Remove vocal on those clips, which CapCut then works out itself. The others are done with "
+                + "volume keyframes on the clips, which you can adjust in CapCut.")
+            if let name = model.dubTimelineName {
+                Text("Goes to a new timeline, \(name). \(export.selectedTimeline?.name ?? "The timeline") stays as it is.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
         } header: {
             HStack {
                 Text("Voice-over")

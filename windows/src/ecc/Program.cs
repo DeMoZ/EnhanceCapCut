@@ -10,9 +10,10 @@ using EnhanceCapCut.Draft;
 //              [--from s] [--duration s]                                            (Windows only)
 //   ecc subtitles [project] [--timeline name|number] --language ru-RU [--translate en,th] [--no-original] [--show en]
 //                 [--keep-previous] [--srt folder] [--draft out.json] [--audio mix.wav] [--no-captions]
-//                 [--voice en,th | en=<voice id>,th | en=clone] [--hear th] [--original keep|lower|mute]
+//                 [--voice en,th | en=<voice id>,th | en=clone] [--hear th] [--original keep|lower|mute|remove]
 //                 [--exaggeration 0.5] [--consent]
-//                 (writes into the project unless --draft is given; models are downloaded on first use;
+//                 (writes into the project unless --draft is given, voice-over into a new timeline
+//                  <project>_dub_<languages>_<original audio>_<n>, a copy of the source timeline; models are downloaded on first use;
 //                  the timeline's audio is mixed on Windows, elsewhere pass --audio;
 //                  --voice speaks these translations with Windows voices (Windows only), `ecc voices <language>` lists them;
 //                  `clone` speaks in the original speaker's voice — only with their consent, which --consent confirms)
@@ -185,8 +186,9 @@ async Task Subtitles()
     }
     var hear = Option("--hear") is { } h ? Language(h).Code : null;
     var originalArg = Option("--original") ?? "lower";
+    if (originalArg.Equals("remove", StringComparison.OrdinalIgnoreCase)) originalArg = nameof(OriginalAudio.RemoveVocal);
     if (!Enum.TryParse<OriginalAudio>(originalArg, ignoreCase: true, out var original) || original == OriginalAudio.Replace)
-        Fail("--original takes keep, lower or mute");
+        Fail("--original takes keep, lower, mute or remove");
     var exaggeration = float.TryParse(Option("--exaggeration"), CultureInfo.InvariantCulture, out var x) ? x : 0.5f;
     if (voices.ContainsValue(EnhanceCapCut.Subtitles.Dubber.ClonedVoiceId))
     {
@@ -287,6 +289,16 @@ async Task Subtitles()
     {
         File.WriteAllBytes(draftOut, Apply(File.ReadAllBytes(pt.DraftPath)));
         Console.WriteLine($"Wrote {draftOut}");
+    }
+    // Voice-over goes to a dubbed copy of the timeline; captions alone into the timeline itself.
+    else if (output.VoiceOver.FirstOrDefault(t => t.IsAudible && !t.IsBackground)?.Language.Code is { } heard)
+    {
+        var codes = output.VoiceOver.Where(t => !t.IsBackground).Select(t => t.Language.Code).Where(c => c != heard).Prepend(heard);
+        var name = DubTimeline.Name(p, codes, original);
+        var (_, result) = DubTimeline.Create(p, pt, name, tracks.Sum(t => t.Cues.Count), Apply);
+        Console.WriteLine($"New timeline {name}");
+        foreach (var file in result.Files) Console.WriteLine($"Wrote {file}");
+        Console.WriteLine($"Backup: {result.BackupFolder}");
     }
     else
     {

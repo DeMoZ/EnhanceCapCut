@@ -16,54 +16,67 @@ public sealed record VoiceOverTrack(SubtitleLanguage Language, string Path, doub
     IReadOnlyList<(double Start, double End)> Lines, bool IsAudible, bool IsBackground = false);
 
 /// <summary>
-/// What happens to the project's own sound while the voice-over speaks. <see cref="Replace"/>: muted like
-/// <see cref="Mute"/>, with the project's sound minus its voice (a background track) in its place.
+/// What happens to the project's own sound while the voice-over speaks. <see cref="Mute"/> is "Mute all".
+/// <see cref="Replace"/>: muted like <see cref="Mute"/>, with the project's sound minus its voice (a background track)
+/// in its place. <see cref="RemoveVocal"/>: CapCut's own "Remove vocal" on the clips the voice-over speaks over.
 /// </summary>
-public enum OriginalAudio { Keep, Lower, Mute, Replace }
+public enum OriginalAudio { Keep, Lower, Mute, Replace, RemoveVocal }
 
 /// <summary>
 /// Adds voice-over to a CapCut draft: one audio track per language with a clip per spoken line
 /// (<c>materials.audios</c> of type <c>record</c>, like CapCut's own voiceovers; see docs/FORMAT.md), and optionally
-/// ducks the other audio with <c>KFTypeVolume</c> keyframes while the voice speaks. A port of the macOS version's
-/// <c>DraftVoiceOverWriter.swift</c>; the two must stay in step.
+/// ducks the other audio with <c>KFTypeVolume</c> keyframes while the voice speaks or turns on CapCut's "Remove vocal"
+/// on it. A port of the macOS version's <c>DraftVoiceOverWriter.swift</c>; the two must stay in step.
 ///
 /// Like <see cref="DraftSubtitleWriter"/>, the draft is edited in place with <see cref="JsonScanner"/>: only the arrays
-/// we add to and the <c>common_keyframes</c> of ducked segments are rewritten.
+/// we add to, the <c>common_keyframes</c> and <c>extra_material_refs</c> of the segments we change and the vocal
+/// separations we turn on are rewritten.
 /// </summary>
 public static class DraftVoiceOverWriter
 {
     /// <summary>Name prefix of the tracks we create; a later run replaces tracks with this prefix.</summary>
     public const string TrackNamePrefix = "EnhanceCapCut voice-over";
-    /// <summary>First block of the ids of the volume keyframe groups we add, so a later run can find and remove them.</summary>
-    public const string KeyframeIDPrefix = "ECC0D0CC-";
+    /// <summary>
+    /// First block of the ids of the volume keyframe groups and vocal separations we add, so a later run can find and
+    /// undo them.
+    /// </summary>
+    public const string IDPrefix = "ECC0D0CC-";
 
     /// <summary>"Lower": −15 dB while the voice speaks, as in SubDub.</summary>
     public const double LowerGain = 0.178;
     /// <summary>Ducking ramps: down before a line starts, back up after it ends (µs).</summary>
     public const long FadeDown = 250_000;
     public const long FadeUp = 400_000;
+    /// <summary>CapCut's "Remove vocal" refuses sources longer than this (µs).</summary>
+    const long MaxVocalRemovalSource = 600_000_000;
 
     /// <summary>Gain applied while the voice speaks; null = untouched.</summary>
     public static double? DuckGain(OriginalAudio original) => original switch
     {
-        OriginalAudio.Keep => null,
+        OriginalAudio.Keep or OriginalAudio.RemoveVocal => null,
         OriginalAudio.Lower => LowerGain,
         _ => 0,
     };
 
     /// <summary>
     /// Returns the draft with <paramref name="tracks"/> appended as audio tracks. With <paramref name="replacePrevious"/>,
-    /// tracks and ducking from an earlier run are removed first. Media paths inside <paramref name="projectFolder"/> are
+    /// tracks, ducking and vocal removal from an earlier run are removed first. Media paths inside <paramref name="projectFolder"/> are
     /// written with the draft's own project-folder placeholder when it has one, so they move with the project.
     /// </summary>
     public static byte[] Apply(IReadOnlyList<VoiceOverTrack> tracks, byte[] draft, OriginalAudio original, bool replacePrevious,
         string? projectFolder = null)
     {
         var data = draft;
-        if (replacePrevious) data = RemoveDucking(data);
+        if (replacePrevious) data = RestoreOriginalAudio(data);
         data = AddTracks(tracks, data, replacePrevious, projectFolder);
-        if (DuckGain(original) is { } gain && tracks.FirstOrDefault(t => t.IsAudible && !t.IsBackground) is { } spoken)
-            data = Duck(data, DuckedRanges(spoken.Lines), gain);
+        if (tracks.FirstOrDefault(t => t.IsAudible && !t.IsBackground) is not { } spoken) return data;
+        var speech = DuckedRanges(spoken.Lines);
+        if (DuckGain(original) is { } gain) data = Duck(data, speech, gain);
+        else if (original == OriginalAudio.RemoveVocal)
+        {
+            var (removed, unsupported) = RemoveVocal(data, speech);
+            data = Duck(removed, speech, 0, only: unsupported);
+        }
         return data;
     }
 
@@ -83,8 +96,8 @@ public static class DraftVoiceOverWriter
         return 0;
     }
 
-    /// <summary>The draft without the voice-over and ducking of earlier runs: what speech recognition should hear.</summary>
-    public static byte[] WithoutVoiceOver(byte[] draft) => AddTracks([], RemoveDucking(draft), replacePrevious: true, projectFolder: null);
+    /// <summary>The draft without the voice-over, ducking and vocal removal of earlier runs: what speech recognition should hear.</summary>
+    public static byte[] WithoutVoiceOver(byte[] draft) => AddTracks([], RestoreOriginalAudio(draft), replacePrevious: true, projectFolder: null);
 
     // MARK: Tracks
 
@@ -229,20 +242,20 @@ public static class DraftVoiceOverWriter
     // MARK: Ducking
 
     /// <summary>
-    /// Volume keyframes on every audible segment that overlaps <paramref name="speech"/>: down to <paramref name="gain"/> ×
-    /// its volume while the voice speaks, back up in between. Segments that already have volume keyframes of their own
-    /// are left alone.
+    /// Volume keyframes on every audible segment that overlaps <paramref name="speech"/> (only those with ids in
+    /// <paramref name="only"/>, when given): down to <paramref name="gain"/> × its volume while the voice speaks, back up
+    /// in between. Segments that already have volume keyframes of their own are left alone.
     /// </summary>
-    static byte[] Duck(byte[] draft, List<(long Start, long End)> speech, double gain)
+    static byte[] Duck(byte[] draft, List<(long Start, long End)> speech, double gain, HashSet<string>? only = null)
     {
-        if (speech.Count == 0) return draft;
+        if (speech.Count == 0 || only is { Count: 0 }) return draft;
         var edits = new JsonEdits();
         var scanner = new JsonScanner(draft);
         ForEachSegment(scanner, (track, segment, members) =>
         {
-            if (track.Str("type") is not ("video" or "audio") || ((track.Int64("attribute") ?? 0) & 1) != 0
-                || track.Str("name")?.StartsWith(TrackNamePrefix, StringComparison.Ordinal) == true) return;
+            if (!IsOriginalSound(track)) return;
             var parsed = scanner.Parse(segment) ?? default;
+            if (only is not null && !only.Contains(parsed.Str("id") ?? "")) return;
             if (parsed.Get("common_keyframes") is { ValueKind: JsonValueKind.Array } groups
                 && groups.EnumerateArray().Any(g => g.Str("property_type") == "KFTypeVolume")) return;
             if (parsed.Obj("target_timerange") is not { } range || range.Int64("start") is not { } start
@@ -264,7 +277,7 @@ public static class DraftVoiceOverWriter
             }
             var group = JsonText.Encode(new SortedDictionary<string, object?>(StringComparer.Ordinal)
             {
-                ["id"] = KeyframeIDPrefix + Lenient.NewId()[KeyframeIDPrefix.Length..],
+                ["id"] = OwnId(),
                 ["material_id"] = "", ["property_type"] = "KFTypeVolume",
                 ["keyframe_list"] = keyframes.Select(k => (object?)new SortedDictionary<string, object?>(StringComparer.Ordinal)
                 {
@@ -290,18 +303,149 @@ public static class DraftVoiceOverWriter
 
     static SortedDictionary<string, object?> Point() => new(StringComparer.Ordinal) { ["x"] = 0.0, ["y"] = 0.0 };
 
-    /// <summary>Drops the volume keyframe groups an earlier run added.</summary>
-    static byte[] RemoveDucking(byte[] draft)
+    /// <summary>An audible video or audio track of the project itself, not one of ours.</summary>
+    static bool IsOriginalSound(JsonElement track) =>
+        track.Str("type") is "video" or "audio" && ((track.Int64("attribute") ?? 0) & 1) == 0
+        && track.Str("name")?.StartsWith(TrackNamePrefix, StringComparison.Ordinal) != true;
+
+    static string OwnId() => IDPrefix + Lenient.NewId()[IDPrefix.Length..];
+
+    // MARK: Vocal removal
+
+    /// <summary>
+    /// CapCut's "Remove vocal" (<c>vocal_separations</c> choice 1) on every audible segment that overlaps
+    /// <paramref name="speech"/>, whole: CapCut separates a clip at a time. Its result is CapCut's to make (we can't
+    /// write its <c>production_path</c>). Returns the ids of the segments CapCut can't do it on (compound clips, its own
+    /// music, reversed clips, sources over 10 minutes, and clips set to "Keep vocal"), to be muted under the voice instead.
+    /// </summary>
+    static (byte[] Draft, HashSet<string> Unsupported) RemoveVocal(byte[] draft, List<(long Start, long End)> speech)
+    {
+        var scanner = new JsonScanner(draft);
+        var root = scanner.Root();
+        var separations = new Dictionary<string, (Range Range, JsonElement Material)>();
+        Range? separationsArray = null;
+        var combos = new HashSet<string>();
+        var media = new Dictionary<string, JsonElement>();
+        var materials = scanner.Value("materials", root);
+        foreach (var (key, range) in materials is { } m ? scanner.Members(m) : [])
+        {
+            if (key is not ("vocal_separations" or "drafts" or "videos" or "audios") || scanner.Bytes[range.Start.Value] != (byte)'[') continue;
+            if (key == "vocal_separations") separationsArray = range;
+            foreach (var element in scanner.Elements(range))
+            {
+                if (scanner.Parse(element) is not { ValueKind: JsonValueKind.Object } material || material.Str("id") is not { } id) continue;
+                switch (key)
+                {
+                    case "vocal_separations": separations[id] = (element, material); break;
+                    case "drafts": combos.Add(id); break;
+                    default: media[id] = material; break;
+                }
+            }
+        }
+
+        var edits = new JsonEdits();
+        var turnedOn = new HashSet<string>();
+        var added = new List<string>();
+        var unsupported = new HashSet<string>();
+        ForEachSegment(scanner, (track, segment, members) =>
+        {
+            if (!IsOriginalSound(track)) return;
+            var parsed = scanner.Parse(segment) ?? default;
+            if (parsed.Obj("target_timerange") is not { } range || range.Int64("start") is not { } start
+                || range.Int64("duration") is not { } length || length <= 0 || (parsed.Num("volume") ?? 1) <= 0
+                || !speech.Any(r => r.End > start && r.Start < start + length)) return;
+            var refs = parsed.Strings("extra_material_refs") ?? [];
+            var separationId = refs.FirstOrDefault(separations.ContainsKey);
+            var choice = separationId is null ? 0 : separations[separationId].Material.Int64("choice") ?? 0;
+            if (choice == 1) return;
+            var isCompound = refs.Any(combos.Contains);
+            var material = media.TryGetValue(parsed.Str("material_id") ?? "", out var found) ? found : default;
+            var kind = material.ValueKind == JsonValueKind.Object ? material.Str("type") : null;
+            var supported = choice == 0 && parsed.Bool("reverse") != true
+                && (track.Str("type") == "video" ? !isCompound && kind == "video" : isCompound || kind != "music")
+                && (material.ValueKind == JsonValueKind.Object ? material.Int64("duration") ?? 0 : 0) <= MaxVocalRemovalSource;
+            if (!supported)
+            {
+                if (parsed.Str("id") is { } id) unsupported.Add(id);
+                return;
+            }
+
+            // One of ours (from an earlier run) is turned on again; anything else is replaced by one of ours, so a later
+            // run can find and undo it. The one replaced stays in the materials, unchanged.
+            var m = separationId is null
+                ? JsonText.Object(ExtraMaterials.First(e => e.Key == "vocal_separations").Json)
+                : (SortedDictionary<string, object?>)JsonText.From(separations[separationId].Material)!;
+            m["choice"] = 1;
+            m["time_range"] = parsed.Get("source_timerange") is { } source ? JsonText.From(source) : null;
+            m["final_algorithm"] = "vocal_separate";
+            if (separationId is not null && separationId.StartsWith(IDPrefix, StringComparison.Ordinal))
+            {
+                if (turnedOn.Add(separationId)) edits.Replace(separations[separationId].Range, JsonText.Encode(m));
+                return;
+            }
+            var newId = OwnId();
+            m["id"] = newId;
+            added.Add(JsonText.Encode(m));
+            var newRefs = separationId is null ? [.. refs, newId] : refs.Select(r => r == separationId ? newId : r).ToList();
+            if (members.FirstOrDefault(e => e.Key == "extra_material_refs") is { Key: not null } existing)
+                edits.Replace(existing.Value, JsonText.Encode(newRefs));
+            else
+            {
+                var close = segment.End.Value - 1;
+                edits.Replace(close..close, (members.Count == 0 ? "" : ",") + "\"extra_material_refs\":" + JsonText.Encode(newRefs));
+            }
+        });
+
+        if (added.Count > 0)
+        {
+            if (separationsArray is { } array)
+            {
+                var kept = scanner.Elements(array).Select(scanner.Text);
+                edits.Replace(array, "[" + string.Join(",", kept.Concat(added)) + "]");
+            }
+            else if (materials is { } mat)
+            {
+                var close = mat.End.Value - 1;
+                edits.Replace(close..close, (scanner.Members(mat).Count == 0 ? "" : ",") + "\"vocal_separations\":["
+                    + string.Join(",", added) + "]");
+            }
+            else
+            {
+                var close = root.End.Value - 1;
+                edits.Replace(close..close, ",\"materials\":{\"vocal_separations\":[" + string.Join(",", added) + "]}");
+            }
+        }
+        return (edits.AppliedTo(scanner.Bytes), unsupported);
+    }
+
+    // MARK: Undo
+
+    /// <summary>Drops the volume keyframe groups an earlier run added and turns its vocal removal back off.</summary>
+    static byte[] RestoreOriginalAudio(byte[] draft)
     {
         var edits = new JsonEdits();
         var changed = false;
         var scanner = new JsonScanner(draft);
+        if (scanner.Value("materials", scanner.Root()) is { } materials && scanner.Value("vocal_separations", materials) is { } separations
+            && scanner.Bytes[separations.Start.Value] == (byte)'[')
+        {
+            foreach (var element in scanner.Elements(separations))
+            {
+                if (scanner.Parse(element) is not { ValueKind: JsonValueKind.Object } material
+                    || material.Str("id")?.StartsWith(IDPrefix, StringComparison.Ordinal) != true
+                    || material.Int64("choice") == 0) continue;
+                var m = (SortedDictionary<string, object?>)JsonText.From(material)!;
+                m["choice"] = 0;
+                changed = true;
+                edits.Replace(element, JsonText.Encode(m));
+            }
+        }
         ForEachSegment(scanner, (_, _, members) =>
         {
             if (members.FirstOrDefault(m => m.Key == "common_keyframes") is not { Key: not null } entry
                 || scanner.Bytes[entry.Value.Start.Value] != (byte)'[') return;
             var groups = scanner.Elements(entry.Value);
-            var kept = groups.Where(g => !((scanner.Parse(g) ?? default).Str("id") ?? "").StartsWith(KeyframeIDPrefix, StringComparison.Ordinal))
+            var kept = groups.Where(g => !((scanner.Parse(g) ?? default).Str("id") ?? "").StartsWith(IDPrefix, StringComparison.Ordinal))
                 .ToList();
             if (kept.Count == groups.Count) return;
             changed = true;

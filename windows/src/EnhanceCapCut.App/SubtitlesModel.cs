@@ -183,6 +183,11 @@ sealed class SubtitlesModel
     public List<SubtitleLanguage> DubLanguages => MakeDub ? EffectiveTargets : [];
 
     /// <summary>The audible voice-over track: the saved choice when it's among them, else the first one.</summary>
+    /// <summary>The timeline a voice-over run creates (a dubbed copy of the selected one); null without voice-over.</summary>
+    public string? DubTimelineName => Export.SelectedProject is { } project && EffectiveAudibleVoice is { } heard
+        ? DubTimeline.Name(project, DubLanguages.Select(l => l.Code).Where(c => c != heard).Prepend(heard), OriginalAudio)
+        : null;
+
     public string? EffectiveAudibleVoice => DubLanguages.Any(l => l.Code == AudibleVoice) ? AudibleVoice : DubLanguages.FirstOrDefault()?.Code;
 
     /// <summary>The visible track: the saved choice when it's among the outputs, else the first one.</summary>
@@ -384,6 +389,7 @@ sealed class SubtitlesModel
         var original = OriginalAudio;
         var srtFolder = SaveSrt && MakeCaptions ? Export.Settings.OutputFolder : null;
         var baseName = projectTimeline.IsMain ? project.Name : $"{project.Name} {projectTimeline.Name}";
+        var dubName = DubTimelineName;
         var source = new CancellationTokenSource();
         cancel = source;
         Phase = new SubtitlesPhase.Running("Preparing…", 0);
@@ -424,20 +430,29 @@ sealed class SubtitlesModel
 
                 // 3. The draft.
                 var tracks = output.Captions;
-                var result = DraftSubtitleWriter.Write(project, projectTimeline, tracks.Sum(t => t.Cues.Count),
-                    draft => SubtitlePipeline.Apply(output, draft, original, replace, project.Folder));
+                var cueCount = tracks.Sum(t => t.Cues.Count);
+                byte[] Apply(byte[] draft) => SubtitlePipeline.Apply(output, draft, original, replace, project.Folder);
+                // Voice-over goes to a dubbed copy of the timeline; captions alone into the timeline itself.
+                DraftSubtitleWriter.Result result;
+                var target = project.Name;
+                if (dubName is not null && output.VoiceOver.Count > 0)
+                {
+                    result = DubTimeline.Create(project, projectTimeline, dubName, cueCount, Apply).Result;
+                    target = $"the new timeline {dubName}";
+                }
+                else result = DraftSubtitleWriter.Write(project, projectTimeline, cueCount, Apply);
                 draftWritten = true;
                 var srt = srtFolder is not null ? SubtitlePipeline.WriteSrt(tracks, srtFolder, baseName) : [];
                 var parts = new List<string>();
                 if (tracks.Count > 0) parts.Add($"{result.CueCount} captions ({string.Join(", ", tracks.Select(t => t.Language.Code))})");
                 if (output.VoiceOver.Count > 0) parts.Add($"voice-over ({string.Join(", ", output.VoiceOver.Select(t => t.Language.Code))})");
-                var summary = $"Added {string.Join(" and ", parts)} to {project.Name}";
+                var summary = $"Added {string.Join(" and ", parts)} to {target}";
                 ui.TryEnqueue(() =>
                 {
                     if (cancel != source) return;
                     Phase = new SubtitlesPhase.Done(result, summary, srt);
-                    // The export window shows the new captions too.
-                    Export.LoadTimeline();
+                    // The export window shows the new captions (or the new timeline) too.
+                    Export.RefreshProjects(selectOpen: false);
                     Finished?.Invoke();
                     RefreshDownloads();
                     Notify();

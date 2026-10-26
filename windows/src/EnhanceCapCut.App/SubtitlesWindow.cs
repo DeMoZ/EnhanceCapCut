@@ -47,7 +47,9 @@ sealed class SubtitlesWindow : Window
     bool updatingSlider;
     string voiceSignature = "";
     readonly Picker<string> audiblePicker = new();
-    readonly Segmented<OriginalAudio> originalAudio = new([(OriginalAudio.Keep, "Keep"), (OriginalAudio.Lower, "Lower"), (OriginalAudio.Mute, "Mute")]);
+    readonly Segmented<OriginalAudio> originalAudio = new([(OriginalAudio.Keep, "Keep"), (OriginalAudio.Lower, "Lower"), (OriginalAudio.Mute, "Mute all"),
+        (OriginalAudio.RemoveVocal, "Remove vocal")]);
+    readonly TextBlock dubTimelineText = Text.Caption("");
 
     // Download
     readonly FormSection downloadSection;
@@ -148,8 +150,9 @@ sealed class SubtitlesWindow : Window
             + "unmute them with the track's speaker button in CapCut.");
         audiblePicker.Picked += code => model.AudibleVoice = code;
         ToolTipService.SetToolTip(originalAudio, "While the voice-over speaks: leave the project's own sound as it is, lower it by "
-            + "15 dB, or silence it. Done with volume keyframes on the clips, which you can adjust in CapCut. (Replacing only the "
-            + "voice needs voice isolation, which the Mac version has.)");
+            + "15 dB, silence all of it, or turn on CapCut's Remove vocal on those clips, which CapCut then works out itself. The "
+            + "others are done with volume keyframes on the clips, which you can adjust in CapCut. (Replacing only the voice with "
+            + "our own track needs voice isolation, which the Mac version has.)");
         originalAudio.Picked += o => model.OriginalAudio = o;
         var openSettings = new HyperlinkButton { Content = "Open", FontSize = 12, Padding = new Thickness(2, 0, 2, 0) };
         openSettings.Click += (_, _) => Platform.OpenUri(WindowsVoices.SettingsUri);
@@ -322,6 +325,8 @@ sealed class SubtitlesWindow : Window
         updatingSlider = false;
         originalAudio.Select(model.OriginalAudio);
         audiblePicker.Set(dub.Select(l => (l.Code, l.Name)), model.EffectiveAudibleVoice ?? "");
+        dubTimelineText.Text = model.DubTimelineName is { } name
+            ? $"Goes to a new timeline, {name}. {export.SelectedTimeline?.Name ?? "The timeline"} stays as it is." : "";
 
         // The per-language rows depend on the installed voices: the section is rebuilt only when what they show changes.
         var signature = $"{model.CloneVoice}\n" + string.Join("\n", dub.Select(l => $"{l.Code}|{model.VoiceGender}|{model.VoiceID(l)}|"
@@ -349,6 +354,7 @@ sealed class SubtitlesWindow : Window
         }
         if (dub.Count > 1) voiceSection.Add("Heard", audiblePicker);
         voiceSection.Add("Original audio", originalAudio);
+        voiceSection.Add(dubTimelineText);
     }
 
     void AddVoiceRows(SubtitleLanguage language)

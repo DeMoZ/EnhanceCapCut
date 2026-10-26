@@ -29,13 +29,17 @@ public struct VoiceOverTrack {
 /// What happens to the project's own sound while the voice-over speaks.
 public enum OriginalAudio: String, CaseIterable, Identifiable, Sendable {
     /// `replace`: muted like `mute`, with the project's sound minus its voice (a background track) in its place.
-    case keep = "Keep", lower = "Lower", mute = "Mute", replace = "Replace voice"
+    /// `removeVocal`: CapCut's own "Remove vocal" on the clips the voice-over speaks over.
+    case keep = "Keep", lower = "Lower", mute = "Mute all", replace = "Replace voice", removeVocal = "Remove vocal"
     public var id: String { rawValue }
+
+    /// In the names of dubbed timelines: `keep`, `lower`, `muteall`, `replacevoice`, `removevocal`.
+    public var nameToken: String { rawValue.lowercased().replacingOccurrences(of: " ", with: "") }
 
     /// Gain applied while the voice speaks; nil = untouched.
     var duckGain: Double? {
         switch self {
-        case .keep: return nil
+        case .keep, .removeVocal: return nil
         case .lower: return DraftVoiceOverWriter.lowerGain
         case .mute, .replace: return 0
         }
@@ -44,32 +48,42 @@ public enum OriginalAudio: String, CaseIterable, Identifiable, Sendable {
 
 /// Adds voice-over to a CapCut draft: one audio track per language with a clip per spoken line
 /// (`materials.audios` of type `record`, like CapCut's own voiceovers; see docs/FORMAT.md), and
-/// optionally ducks the other audio with `KFTypeVolume` keyframes while the voice speaks.
+/// optionally ducks the other audio with `KFTypeVolume` keyframes while the voice speaks or turns on CapCut's
+/// "Remove vocal" on it.
 ///
 /// Like `DraftSubtitleWriter`, the draft is edited in place with `JSONScanner`: only the arrays we add
-/// to and the `common_keyframes` of ducked segments are rewritten.
+/// to, the `common_keyframes` and `extra_material_refs` of the segments we change and the vocal separations
+/// we turn on are rewritten.
 public enum DraftVoiceOverWriter {
     /// Name prefix of the tracks we create; a later run replaces tracks with this prefix.
     public static let trackNamePrefix = "EnhanceCapCut voice-over"
-    /// First block of the ids of the volume keyframe groups we add, so a later run can find and remove them.
-    static let keyframeIDPrefix = "ECC0D0CC-"
+    /// First block of the ids of the volume keyframe groups and vocal separations we add, so a later run can find
+    /// and undo them.
+    static let idPrefix = "ECC0D0CC-"
 
     /// "Lower": −15 dB while the voice speaks, as in SubDub.
     static let lowerGain = 0.178
     /// Ducking ramps: down before a line starts, back up after it ends (µs).
     public static let fadeDown: Int64 = 250_000
     public static let fadeUp: Int64 = 400_000
+    /// CapCut's "Remove vocal" refuses sources longer than this (µs).
+    static let maxVocalRemovalSource: Int64 = 600_000_000
 
-    /// Returns the draft with `tracks` appended as audio tracks. With `replacePrevious`, tracks and
-    /// ducking from an earlier run are removed first. Media paths inside `projectURL` are written with
+    /// Returns the draft with `tracks` appended as audio tracks. With `replacePrevious`, tracks,
+    /// ducking and vocal removal from an earlier run are removed first. Media paths inside `projectURL` are written with
     /// the draft's own project-folder placeholder when it has one, so they move with the project.
     public static func apply(_ tracks: [VoiceOverTrack], to draft: Data, original: OriginalAudio, replacePrevious: Bool,
                              projectURL: URL? = nil) throws -> Data {
         var data = draft
-        if replacePrevious { data = try removeDucking(data) }
+        if replacePrevious { data = try restoreOriginalAudio(data) }
         data = try addTracks(tracks, to: data, replacePrevious: replacePrevious, projectURL: projectURL)
-        if let gain = original.duckGain, let spoken = tracks.first(where: { $0.isAudible && !$0.isBackground }) {
-            data = try duck(data, speech: duckedRanges(spoken.lines), gain: gain)
+        guard let spoken = tracks.first(where: { $0.isAudible && !$0.isBackground }) else { return data }
+        let speech = duckedRanges(spoken.lines)
+        if let gain = original.duckGain {
+            data = try duck(data, speech: speech, gain: gain)
+        } else if original == .removeVocal {
+            let (removed, unsupported) = try removeVocal(data, speech: speech)
+            data = try duck(removed, speech: speech, gain: 0, only: unsupported)
         }
         return data
     }
@@ -88,9 +102,9 @@ public enum DraftVoiceOverWriter {
         return 0
     }
 
-    /// The draft without the voice-over and ducking of earlier runs: what speech recognition should hear.
+    /// The draft without the voice-over, ducking and vocal removal of earlier runs: what speech recognition should hear.
     public static func withoutVoiceOver(_ draft: Data) throws -> Data {
-        try addTracks([], to: removeDucking(draft), replacePrevious: true, projectURL: nil)
+        try addTracks([], to: restoreOriginalAudio(draft), replacePrevious: true, projectURL: nil)
     }
 
     // MARK: Tracks
@@ -214,18 +228,17 @@ public enum DraftVoiceOverWriter {
 
     // MARK: Ducking
 
-    /// Volume keyframes on every audible segment that overlaps `speech`: down to `gain` × its volume
-    /// while the voice speaks, back up in between. Segments that already have volume keyframes of
-    /// their own are left alone.
-    private static func duck(_ draft: Data, speech: [Range<Int64>], gain: Double) throws -> Data {
-        guard !speech.isEmpty else { return draft }
+    /// Volume keyframes on every audible segment that overlaps `speech` (only those with ids in `only`, when given):
+    /// down to `gain` × its volume while the voice speaks, back up in between. Segments that already have volume
+    /// keyframes of their own are left alone.
+    private static func duck(_ draft: Data, speech: [Range<Int64>], gain: Double, only: Set<String>? = nil) throws -> Data {
+        guard !speech.isEmpty, only?.isEmpty != true else { return draft }
         var edits = JSONEdits()
         let scanner = JSONScanner(draft)
         try forEachSegment(scanner) { track, segment, members in
-            guard let type = track["type"] as? String, type == "video" || type == "audio",
-                  ((track["attribute"] as? Int) ?? 0) & 1 == 0,
-                  (track["name"] as? String)?.hasPrefix(trackNamePrefix) != true else { return }
+            guard isOriginalSound(track) else { return }
             let parsed = scanner.object(segment) as? [String: Any] ?? [:]
+            if let only, !only.contains(parsed["id"] as? String ?? "") { return }
             let groups = parsed["common_keyframes"] as? [[String: Any]] ?? []
             guard !groups.contains(where: { $0["property_type"] as? String == "KFTypeVolume" }),
                   let range = parsed["target_timerange"] as? [String: Any],
@@ -248,7 +261,7 @@ public enum DraftVoiceOverWriter {
                 }
             }
             let group = JSONText.encode([
-                "id": keyframeIDPrefix + String(UUID().uuidString.dropFirst(keyframeIDPrefix.count)),
+                "id": ownID(),
                 "material_id": "", "property_type": "KFTypeVolume",
                 "keyframe_list": keyframes.map { k in
                     [
@@ -270,17 +283,131 @@ public enum DraftVoiceOverWriter {
         return edits.applied(to: scanner.bytes)
     }
 
-    /// Drops the volume keyframe groups an earlier run added.
-    private static func removeDucking(_ draft: Data) throws -> Data {
+    /// An audible video or audio track of the project itself, not one of ours.
+    private static func isOriginalSound(_ track: [String: Any]) -> Bool {
+        guard let type = track["type"] as? String, type == "video" || type == "audio" else { return false }
+        return ((track["attribute"] as? Int) ?? 0) & 1 == 0 && (track["name"] as? String)?.hasPrefix(trackNamePrefix) != true
+    }
+
+    private static func ownID() -> String { idPrefix + String(UUID().uuidString.dropFirst(idPrefix.count)) }
+
+    // MARK: Vocal removal
+
+    /// CapCut's "Remove vocal" (`vocal_separations` choice 1) on every audible segment that overlaps `speech`, whole:
+    /// CapCut separates a clip at a time. Its result is CapCut's to make (we can't write its `production_path`).
+    /// Returns the ids of the segments CapCut can't do it on (compound clips, its own music, reversed clips, sources
+    /// over 10 minutes, and clips set to "Keep vocal"), to be muted under the voice instead.
+    private static func removeVocal(_ draft: Data, speech: [Range<Int64>]) throws -> (Data, unsupported: Set<String>) {
+        let scanner = JSONScanner(draft)
+        let root = try scanner.root()
+        var separations: [String: (range: Range<Int>, material: [String: Any])] = [:]
+        var separationsArray: Range<Int>?
+        var combos = Set<String>()
+        var media: [String: [String: Any]] = [:]
+        let materials = try scanner.value("materials", in: root)
+        for (key, range) in try materials.map(scanner.members) ?? []
+        where ["vocal_separations", "drafts", "videos", "audios"].contains(key) && scanner.bytes[range.lowerBound] == UInt8(ascii: "[") {
+            if key == "vocal_separations" { separationsArray = range }
+            for element in try scanner.elements(range) {
+                guard let m = scanner.object(element) as? [String: Any], let id = m["id"] as? String else { continue }
+                switch key {
+                case "vocal_separations": separations[id] = (element, m)
+                case "drafts": combos.insert(id)
+                default: media[id] = m
+                }
+            }
+        }
+
+        var edits = JSONEdits()
+        var turnedOn = Set<String>()
+        var added: [String] = []
+        var unsupported = Set<String>()
+        try forEachSegment(scanner) { track, segment, members in
+            guard isOriginalSound(track) else { return }
+            let parsed = scanner.object(segment) as? [String: Any] ?? [:]
+            guard let range = parsed["target_timerange"] as? [String: Any],
+                  let start = (range["start"] as? NSNumber)?.int64Value,
+                  let length = (range["duration"] as? NSNumber)?.int64Value, length > 0,
+                  ((parsed["volume"] as? NSNumber)?.doubleValue ?? 1) > 0,
+                  speech.contains(where: { $0.upperBound > start && $0.lowerBound < start + length }) else { return }
+            let refs = parsed["extra_material_refs"] as? [String] ?? []
+            let separationID = refs.first { separations[$0] != nil }
+            let choice = separationID.flatMap { (separations[$0]?.material["choice"] as? NSNumber)?.intValue } ?? 0
+            if choice == 1 { return }
+            let isCompound = refs.contains(where: combos.contains)
+            let material = media[parsed["material_id"] as? String ?? ""] ?? [:]
+            let kind = material["type"] as? String
+            let supported = choice == 0 && (parsed["reverse"] as? Bool) != true
+                && (track["type"] as? String == "video" ? !isCompound && kind == "video" : isCompound || kind != "music")
+                && ((material["duration"] as? NSNumber)?.int64Value ?? 0) <= maxVocalRemovalSource
+            guard supported else {
+                if let id = parsed["id"] as? String { unsupported.insert(id) }
+                return
+            }
+
+            // One of ours (from an earlier run) is turned on again; anything else is replaced by one of ours, so a
+            // later run can find and undo it. The one replaced stays in the materials, unchanged.
+            var m = separationID.flatMap { separations[$0]?.material } ?? extraMaterials.first { $0.0 == "vocal_separations" }!.1
+            m["choice"] = 1
+            m["time_range"] = parsed["source_timerange"] ?? NSNull()
+            m["final_algorithm"] = "vocal_separate"
+            if let separationID, separationID.hasPrefix(idPrefix), let existing = separations[separationID] {
+                if !turnedOn.contains(separationID) { edits.replace(existing.range, with: JSONText.encode(m)) }
+                turnedOn.insert(separationID)
+                return
+            }
+            let id = ownID()
+            m["id"] = id
+            added.append(JSONText.encode(m))
+            let newRefs = separationID.map { old in refs.map { $0 == old ? id : $0 } } ?? refs + [id]
+            if let existing = members.first(where: { $0.key == "extra_material_refs" })?.value {
+                edits.replace(existing, with: JSONText.encode(newRefs))
+            } else {
+                let close = segment.upperBound - 1
+                edits.replace(close..<close, with: (members.isEmpty ? "" : ",") + "\"extra_material_refs\":" + JSONText.encode(newRefs))
+            }
+        }
+
+        if !added.isEmpty {
+            if let separationsArray {
+                let kept = try scanner.elements(separationsArray).map { String(decoding: scanner.bytes[$0], as: UTF8.self) }
+                edits.replace(separationsArray, with: "[" + (kept + added).joined(separator: ",") + "]")
+            } else if let materials {
+                let close = materials.upperBound - 1
+                let empty = try scanner.members(materials).isEmpty
+                edits.replace(close..<close, with: (empty ? "" : ",") + "\"vocal_separations\":[" + added.joined(separator: ",") + "]")
+            } else {
+                let close = root.upperBound - 1
+                edits.replace(close..<close, with: ",\"materials\":{\"vocal_separations\":[" + added.joined(separator: ",") + "]}")
+            }
+        }
+        return (edits.applied(to: scanner.bytes), unsupported)
+    }
+
+    // MARK: Undo
+
+    /// Drops the volume keyframe groups an earlier run added and turns its vocal removal back off.
+    private static func restoreOriginalAudio(_ draft: Data) throws -> Data {
         var edits = JSONEdits()
         var changed = false
         let scanner = JSONScanner(draft)
+        if let materials = try scanner.value("materials", in: try scanner.root()),
+           let separations = try scanner.value("vocal_separations", in: materials),
+           scanner.bytes[separations.lowerBound] == UInt8(ascii: "[") {
+            for element in try scanner.elements(separations) {
+                guard var m = scanner.object(element) as? [String: Any], (m["id"] as? String)?.hasPrefix(idPrefix) == true,
+                      (m["choice"] as? NSNumber)?.intValue != 0 else { continue }
+                m["choice"] = 0
+                changed = true
+                edits.replace(element, with: JSONText.encode(m))
+            }
+        }
         try forEachSegment(scanner) { _, _, members in
             guard let range = members.first(where: { $0.key == "common_keyframes" })?.value,
                   scanner.bytes[range.lowerBound] == UInt8(ascii: "[") else { return }
             let groups = try scanner.elements(range)
             let kept = groups.filter {
-                !((scanner.object($0) as? [String: Any])?["id"] as? String ?? "").hasPrefix(keyframeIDPrefix)
+                !((scanner.object($0) as? [String: Any])?["id"] as? String ?? "").hasPrefix(idPrefix)
             }
             guard kept.count != groups.count else { return }
             changed = true
