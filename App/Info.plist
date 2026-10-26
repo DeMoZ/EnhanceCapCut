@@ -17,15 +17,17 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.7.0</string>
+	<string>0.7.1</string>
 	<key>CFBundleVersion</key>
-	<string>11</string>
+	<string>12</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.video</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>15.0</string>
 	<key>SUFeedURL</key>
 	<string>https://github.com/DeMoZ/EnhanceCapCut/releases/latest/download/appcast.xml</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
 	<key>SUPublicEDKey</key>
 	<string>foJpQc9DrkRNxDc72MTND6gxTFo0kVWOnr4qc2NVSZE=</string>
 	<key>NSHighResolutionCapable</key>
