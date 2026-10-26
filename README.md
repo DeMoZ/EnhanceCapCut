@@ -25,7 +25,7 @@ AVFoundation, Core Image/Metal and VideoToolbox hardware encoders.
 > **System Settings ▸ Privacy & Security** and click **Open Anyway**.
 
 **Updates:** **EnhanceCapCut ▸ Check for Updates…** (or the link at the bottom of the export window) installs a newer
-release; the app also checks by itself once you allow it. Updates come through [Sparkle](https://sparkle-project.org)
+release; the app also checks by itself, at launch and once a day. Updates come through [Sparkle](https://sparkle-project.org)
 and are verified with the project's signing key. On Windows the same link downloads the new zip, checks it and
 restarts the app.
 
