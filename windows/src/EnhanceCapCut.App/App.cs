@@ -15,7 +15,8 @@ namespace EnhanceCapCut.App;
 ///
 /// Command line (for testing and scripting, like the macOS <c>--args -project … -autoExport YES</c>):
 /// <c>EnhanceCapCut.exe [--project &lt;name&gt;] [--auto-export] [--subtitles]</c> (the last one opens the subtitles window too);
-/// <c>--update-failed</c> is passed by the update script (<see cref="Updater"/>).
+/// <c>--update-failed</c> is passed by the update script (<see cref="Updater"/>); <c>--auto-update</c> installs a newer
+/// version without asking (CI's update test, with <c>ECC_UPDATES_URL</c>).
 /// </summary>
 sealed partial class App : Application, IXamlMetadataProvider
 {
@@ -78,6 +79,7 @@ sealed partial class App : Application, IXamlMetadataProvider
         if (args.Contains("--subtitles")) ShowSubtitlesWindow();
         // Started again by the update script: either the new version or, when files couldn't be replaced, the old one.
         if (args.Contains("--update-failed")) ui.TryEnqueue(async () => await updater.ReportFailedUpdate());
+        else if (args.Contains("--auto-update")) _ = updater.CheckUnattended();
         else _ = updater.CheckInBackground();
     }
 

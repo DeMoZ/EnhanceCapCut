@@ -73,7 +73,10 @@ the subtitle choices are kept in `%APPDATA%\EnhanceCapCut\app.json`. For testing
 latest release, and the app checks once a day at launch (a newer version then shows as "Update to x.y.z…"). Updating
 downloads the release zip, checks it against the SHA-256 GitHub publishes, quits, copies the new files over the app's
 folder with a small PowerShell script and starts it again (`Updater.cs`, `AppUpdates.cs`). The folder must be
-writable — keep the app outside Program Files. A local build (version 0.0.0) doesn't show the link.
+writable — keep the app outside Program Files. A local build (version 0.0.0) doesn't show the link. CI updates a
+published 0.0.1 to 0.0.2 served from localhost (`scripts/update-smoke.ps1`, with `ECC_UPDATES_URL` and the app's
+`--auto-update`, which installs without asking): once with a file held open, which must fail and restart the old
+version with `--update-failed`, and once for real.
 
 CI starts the published app on a demo project and keeps screenshots of both windows (the `windows-ui` artifact
 of the Windows workflow).
