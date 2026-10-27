@@ -175,6 +175,10 @@ Yes — `ecc` renders projects and adds subtitles from scripts. See [docs/CLI.md
 EnhanceCapCut is free. If it saves you time, the **♥ Donate** button next to **Export** shows the ways to support it.
 Bugs and ideas are welcome in [Issues](../../issues).
 
+## 📄 License
+
+[MIT](LICENSE): free to use, change, fork and build your own app on it.
+
 ## 🛠 For developers
 
 Build, test and release: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) · conventions: [CLAUDE.md](CLAUDE.md) ·
