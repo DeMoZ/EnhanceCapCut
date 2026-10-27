@@ -47,6 +47,7 @@ static class Theme
     public const string Waveform = "";
     public const string Up = "";
     public const string HeartFill = "\uEB52";
+    public const string Globe = "\uE774";
     public const string Down = "";
 
     public static FontIcon Icon(string glyph, double size = 14, Brush? foreground = null)

@@ -9,7 +9,8 @@ enum TranslationBrokerError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .noPrompt(let language):
-            return "macOS didn't start the download for \(language). Download it in System Settings ▸ General ▸ Language & Region ▸ Translation Languages, then try again."
+            return L("macOS didn't start the download for {0}. Download it in System Settings ▸ General ▸ Language & Region "
+                + "▸ Translation Languages, then try again.", language)
         }
     }
 }

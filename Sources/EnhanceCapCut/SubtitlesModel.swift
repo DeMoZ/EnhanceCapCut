@@ -213,10 +213,10 @@ final class SubtitlesModel: ObservableObject {
         let missing = missingModels
         var parts: [String] = []
         if missing.contains(where: { $0.folder == ModelStore.whisper.folder }) {
-            parts.append("Whisper speech recognition (\(ModelStore.whisper.approximateBytes / 1_000_000) MB)")
+            parts.append(L("Whisper speech recognition ({0} MB)", ModelStore.whisper.approximateBytes / 1_000_000))
         }
         let cloning = missing.filter { $0.folder == ModelStore.voiceCloning[0].folder }
-        if !cloning.isEmpty { parts.append("voice cloning (\(ModelStore.approximateBytes(cloning) / 1_000_000) MB)") }
+        if !cloning.isEmpty { parts.append(L("voice cloning ({0} MB)", ModelStore.approximateBytes(cloning) / 1_000_000)) }
         return parts.joined(separator: ", ")
     }
 
@@ -254,9 +254,9 @@ final class SubtitlesModel: ObservableObject {
         refreshProjectState()
         guard sourceLocales.isEmpty else { return }
         let locales = await Transcriber.supportedLocales()
-        let en = Locale(identifier: "en")
+        let ui = Locale(identifier: Localization.language.rawValue)
         sourceLocales = locales.sorted {
-            (en.localizedString(forIdentifier: $0.identifier) ?? "") < (en.localizedString(forIdentifier: $1.identifier) ?? "")
+            (ui.localizedString(forIdentifier: $0.identifier) ?? "") < (ui.localizedString(forIdentifier: $1.identifier) ?? "")
         }
         if !sourceLocales.contains(where: { $0.identifier(.bcp47) == sourceLocaleID }),
            let first = sourceLocales.first(where: { $0.language.languageCode?.identifier == "ru" }) ?? sourceLocales.first {
@@ -426,7 +426,8 @@ final class SubtitlesModel: ObservableObject {
         await refreshDownloads()
         if downloadError == nil, !notDownloaded.isEmpty {
             let names = notDownloaded.map(\.displayName).joined(separator: ", ")
-            downloadError = "\(names) not downloaded yet. In the system dialog click Download next to each language and wait until it finishes — or use Open Settings. This window updates automatically."
+            downloadError = L("{0} not downloaded yet. In the system dialog click Download next to each language and wait until it "
+                + "finishes — or use Open Settings. This window updates automatically.", names)
         }
     }
 
@@ -461,7 +462,7 @@ final class SubtitlesModel: ObservableObject {
             ? URL(fileURLWithPath: (export.settings.outputFolder as NSString).expandingTildeInPath) : nil
         let baseName = projectTimeline.isMain ? project.name : "\(project.name) \(projectTimeline.name)"
         let dubName = dubTimelineName
-        phase = .running(step: "Preparing…", fraction: 0)
+        phase = .running(step: L("Preparing…"), fraction: 0)
 
         task = Task {
             // The voice-over audio goes away with a failed run, unless the draft already points at it.
@@ -490,7 +491,7 @@ final class SubtitlesModel: ObservableObject {
                 if let dubName, !output.voiceOver.isEmpty {
                     result = try DubTimeline.create(project: project, source: projectTimeline, name: dubName,
                                                     cueCount: cueCount, transform: apply).1
-                    target = "the new timeline \(dubName)"
+                    target = L("the new timeline {0}", dubName)
                 } else {
                     result = try DraftSubtitleWriter.write(project: project, timeline: projectTimeline, cueCount: cueCount,
                                                            transform: apply)
@@ -499,12 +500,12 @@ final class SubtitlesModel: ObservableObject {
                 let srt = try srtFolder.map { try SubtitlePipeline.writeSRT(tracks, to: $0, baseName: baseName) } ?? []
                 var parts: [String] = []
                 if !tracks.isEmpty {
-                    parts.append("\(result.cueCount) captions (\(tracks.map(\.language.code).joined(separator: ", ")))")
+                    parts.append(L("{0} captions ({1})", result.cueCount, tracks.map(\.language.code).joined(separator: ", ")))
                 }
                 if !output.voiceOver.isEmpty {
-                    parts.append("voice-over (\(output.voiceOver.map(\.language.code).joined(separator: ", ")))")
+                    parts.append(L("voice-over ({0})", output.voiceOver.map(\.language.code).joined(separator: ", ")))
                 }
-                phase = .done(result, summary: "Added \(parts.joined(separator: " and ")) to \(target)", srt: srt)
+                phase = .done(result, summary: L("Added {0} to {1}", parts.joined(separator: L(" and ")), target), srt: srt)
                 // The export window shows the new captions (or the new timeline) too.
                 export.refreshProjects(selectOpen: false)
                 NSApp.requestUserAttention(.informationalRequest)

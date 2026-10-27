@@ -36,6 +36,10 @@ final class ExportModel: ObservableObject {
     var openSubtitles: (() -> Void)?
     /// Opens the "Support EnhanceCapCut" window (set by the app delegate).
     var openDonate: (() -> Void)?
+    /// Opens the "How to Use EnhanceCapCut" window (set by the app delegate).
+    var openGuide: (() -> Void)?
+    /// Switches the interface language, nil for the system's (set by the app delegate).
+    var setLanguage: ((Localization.Language?) -> Void)?
     /// An export finished (not one started by `-autoExport`); set by the app delegate.
     var exportFinished: (() -> Void)?
     /// Sparkle's "Check for Updates…" (nil outside the app bundle).
@@ -123,7 +127,7 @@ final class ExportModel: ObservableObject {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.canCreateDirectories = true
-        panel.prompt = "Choose"
+        panel.prompt = L("Choose")
         panel.directoryURL = URL(fileURLWithPath: (settings.outputFolder as NSString).expandingTildeInPath)
         if panel.runModal() == .OK, let url = panel.url { settings.outputFolder = url.path }
     }
@@ -132,10 +136,10 @@ final class ExportModel: ObservableObject {
         guard let timeline, let url = outputURL, !isExporting else { return }
         if FileManager.default.fileExists(atPath: url.path) {
             let alert = NSAlert()
-            alert.messageText = "\(url.lastPathComponent) already exists"
-            alert.informativeText = "Replace it?"
-            alert.addButton(withTitle: "Replace")
-            alert.addButton(withTitle: "Cancel")
+            alert.messageText = L("{0} already exists", url.lastPathComponent)
+            alert.informativeText = L("Replace it?")
+            alert.addButton(withTitle: L("Replace"))
+            alert.addButton(withTitle: L("Cancel"))
             guard alert.runModal() == .alertFirstButtonReturn else { return }
         }
         let exporter = Exporter(timeline: timeline, settings: settings, outputURL: url)

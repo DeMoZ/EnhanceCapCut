@@ -55,6 +55,8 @@ cp App/Info.plist "$app/Contents/Info.plist"
 cp App/AppIcon.icns "$app/Contents/Resources/" # made by scripts/make-icon.swift
 # Siri voice helper, run by the app through Xcode's Swift interpreter.
 cp Tools/SiriVoice/siri-voice.swift "$app/Contents/Resources/"
+# Interface translations (Localization.swift), shared with the Windows version.
+cp -R Localization "$app/Contents/Resources/"
 sign "$app/Contents/Frameworks/whisper.framework"
 sparkle="$app/Contents/Frameworks/Sparkle.framework/Versions/B"
 sign "$sparkle/XPCServices/Installer.xpc"

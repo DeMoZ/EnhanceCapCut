@@ -21,6 +21,9 @@ public sealed record SubtitleLanguage(string Code, string Name, string NativeNam
     /// <summary>Whisper's language code (ISO 639-1).</summary>
     public string Whisper => Code[..2];
 
+    /// <summary>The name in the interface language (<see cref="Localization"/>; every name is in the tables).</summary>
+    public string Title => Localization.L(Name);
+
     public static readonly IReadOnlyList<SubtitleLanguage> All =
     [
         new("ar", "Arabic", "العربية", "ar-SA", "arb_Arab"),

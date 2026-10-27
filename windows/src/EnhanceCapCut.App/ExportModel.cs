@@ -75,6 +75,10 @@ sealed class ExportModel(DispatcherQueue ui)
     public Action? OpenSubtitles { get; set; }
     /// <summary>Opens the "Support EnhanceCapCut" window (set by the app).</summary>
     public Action? OpenDonate { get; set; }
+    /// <summary>Opens the "How to Use EnhanceCapCut" window (set by the app).</summary>
+    public Action? OpenGuide { get; set; }
+    /// <summary>Switches the interface language, null for the system's (set by the app).</summary>
+    public Action<Localization.Language?>? SetLanguage { get; set; }
     /// <summary>"Check for Updates…" in the footer.</summary>
     public Updater? Updates { get; set; }
     /// <summary>The export finished while the window wasn't in front (set by the app).</summary>

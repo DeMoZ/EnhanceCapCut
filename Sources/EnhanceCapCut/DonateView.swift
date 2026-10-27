@@ -13,19 +13,19 @@ struct DonateView: View {
                 Section {
                     HStack {
                         ProgressView().controlSize(.small)
-                        Text("Loading the ways to donate…").foregroundStyle(.secondary)
+                        Text(L("Loading the ways to donate…")).foregroundStyle(.secondary)
                     }
                 }
             case .failed:
                 Section {
-                    Text("Couldn't load the ways to donate. Check your internet connection.")
-                    Button("Try Again") { model.load() }
+                    Text(L("Couldn't load the ways to donate. Check your internet connection."))
+                    Button(L("Try Again")) { model.load() }
                 }
             case let .loaded(info):
                 if let message = info.message?.resolved(for: model.languages) {
                     Section { Text(message) }
                 }
-                Section("Ways to donate") {
+                Section(L("Ways to donate")) {
                     ForEach(info.methods, id: \.id) { method in
                         if let title = method.title.resolved(for: model.languages) {
                             row(method, title: title)
@@ -43,9 +43,9 @@ struct DonateView: View {
         HStack(spacing: 12) {
             Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 56, height: 56)
             VStack(alignment: .leading, spacing: 2) {
-                Text("EnhanceCapCut").font(.title3.bold())
+                Text(L("EnhanceCapCut")).font(.title3.bold())
                 if !model.version.isEmpty {
-                    Text("Version \(model.version)").foregroundStyle(.secondary)
+                    Text(L("Version {0}", model.version)).foregroundStyle(.secondary)
                 }
                 Link("github.com/DeMoZ/EnhanceCapCut", destination: DonateModel.projectPage)
             }
@@ -61,7 +61,7 @@ struct DonateView: View {
                 }
             }
             Spacer()
-            Button("Donate…") { model.open(method) }
+            Button(L("Donate…")) { model.open(method) }
                 .help(method.url.absoluteString)
         }
     }

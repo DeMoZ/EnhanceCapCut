@@ -3,6 +3,7 @@ using System.Reflection;
 using EnhanceCapCut.Subtitles;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
+using static EnhanceCapCut.Draft.Localization;
 
 namespace EnhanceCapCut.App;
 
@@ -63,13 +64,13 @@ sealed class Updater(DispatcherQueue ui, Func<Window> owner, Func<Window, Task<b
         }
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException)
         {
-            await Platform.Ask(owner(), "Couldn't check for updates", e.Message, "OK", "", primaryIsDefault: true);
+            await Platform.Ask(owner(), L("Couldn't check for updates"), e.Message, L("OK"), "", primaryIsDefault: true);
             return;
         }
         if (release is null || !AppUpdates.IsNewer(release, current))
         {
             Set(null);
-            await Platform.Ask(owner(), "You're up to date", $"EnhanceCapCut {current} is the latest version.", "OK", "");
+            await Platform.Ask(owner(), L("You're up to date"), L("EnhanceCapCut {0} is the latest version.", current), L("OK"), "");
             return;
         }
         Set(release);
@@ -82,14 +83,15 @@ sealed class Updater(DispatcherQueue ui, Func<Window> owner, Func<Window, Task<b
         var folder = AppContext.BaseDirectory;
         if (!AppUpdates.CanWrite(folder))
         {
-            if (await Platform.Ask(window, $"EnhanceCapCut {release.Version} is available",
-                    $"You have {current}. This copy can't update itself in {folder}: download the new zip from the release page, "
-                    + "or move the EnhanceCapCut folder somewhere you can write (e.g. Documents).", "Open Release Page", "Later"))
+            if (await Platform.Ask(window, L("EnhanceCapCut {0} is available", release.Version),
+                    L("You have {0}. This copy can't update itself in {1}: download the new zip from the release page, "
+                        + "or move the EnhanceCapCut folder somewhere you can write (e.g. Documents).", current, folder),
+                    L("Open Release Page"), L("Later")))
                 Platform.OpenUri(release.PageUrl);
             return;
         }
-        if (!await Platform.Ask(window, $"EnhanceCapCut {release.Version} is available",
-                $"You have {current}. Download it and restart? What's new: {release.PageUrl}", "Update and Restart", "Later"))
+        if (!await Platform.Ask(window, L("EnhanceCapCut {0} is available", release.Version),
+                L("You have {0}. Download it and restart? What's new: {1}", current, release.PageUrl), L("Update and Restart"), L("Later")))
             return;
         if (!await confirmQuit(window)) return;
         await Install(release);
@@ -124,7 +126,7 @@ sealed class Updater(DispatcherQueue ui, Func<Window> owner, Func<Window, Task<b
         {
             Progress = null;
             Changed?.Invoke();
-            await Platform.Ask(owner(), "The update couldn't be downloaded", e.Message, "OK", "");
+            await Platform.Ask(owner(), L("The update couldn't be downloaded"), e.Message, L("OK"), "");
             return;
         }
 
@@ -137,9 +139,9 @@ sealed class Updater(DispatcherQueue ui, Func<Window> owner, Func<Window, Task<b
 
     /// <summary>Started again by the update script after a file couldn't be replaced.</summary>
     public async Task ReportFailedUpdate() =>
-        await Platform.Ask(owner(), "The update wasn't installed",
-            "Some files couldn't be replaced — is ecc.exe or another copy of EnhanceCapCut running? Close it and check for updates again.",
-            "OK", "");
+        await Platform.Ask(owner(), L("The update wasn't installed"),
+            L("Some files couldn't be replaced — is ecc.exe or another copy of EnhanceCapCut running? Close it and check for updates again."),
+            L("OK"), "");
 
     void Set(AppRelease? release)
     {

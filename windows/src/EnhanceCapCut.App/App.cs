@@ -5,12 +5,15 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Markup;
 using Microsoft.UI.Xaml.XamlTypeInfo;
 using Microsoft.Windows.AppLifecycle;
+using static EnhanceCapCut.Draft.Localization;
+using EnhanceCapCut.Draft;
 
 namespace EnhanceCapCut.App;
 
 /// <summary>
 /// The app: one instance, the export window on every launch (a second launch brings it back and re-detects the project
-/// open in CapCut, like the macOS Services entry), the subtitles and donate windows on demand, and the same questions as
+/// open in CapCut, like the macOS Services entry), the subtitles, donate and guide windows on demand (the guide also at the
+/// first launch), and the same questions as
 /// the macOS version before quitting during an export or a subtitles run.
 ///
 /// Command line (for testing and scripting, like the macOS <c>--args -project … -autoExport YES</c>):
@@ -28,7 +31,10 @@ sealed partial class App : Application, IXamlMetadataProvider
     SubtitlesWindow? subtitlesWindow;
     DonateModel? donate;
     DonateWindow? donateWindow;
+    GuideWindow? guideWindow;
     bool quitting;
+    /// <summary>The windows are being built again in another language: closing the old ones isn't quitting.</summary>
+    bool rebuilding;
 
     App(string[] args)
     {
@@ -69,10 +75,13 @@ sealed partial class App : Application, IXamlMetadataProvider
     protected override void OnLaunched(LaunchActivatedEventArgs e)
     {
         Resources.MergedDictionaries.Add(new XamlControlsResources());
+        Localization.Use(Localization.FromCode(Preferences.String("language")) ?? SystemLanguage);
         var ui = DispatcherQueue.GetForCurrentThread();
         model = new ExportModel(ui) { AutoExport = args.Contains("--auto-export") };
         model.OpenSubtitles = ShowSubtitlesWindow;
         model.OpenDonate = ShowDonateWindow;
+        model.OpenGuide = ShowGuideWindow;
+        model.SetLanguage = SetLanguage;
         model.Finished = () =>
         {
             if (exportWindow is not null) Platform.Flash(exportWindow);
@@ -84,6 +93,7 @@ sealed partial class App : Application, IXamlMetadataProvider
         AppInstance.GetCurrent().Activated += (_, _) => ui.TryEnqueue(ShowExportWindow);
         ShowExportWindow();
         if (args.Contains("--subtitles")) ShowSubtitlesWindow();
+        if (!model.AutoExport) ShowGuideOnFirstLaunch();
         // Started again by the update script: either the new version or, when files couldn't be replaced, the old one.
         if (args.Contains("--update-failed")) ui.TryEnqueue(async () => await updater.ReportFailedUpdate());
         else if (args.Contains("--auto-update")) _ = updater.CheckUnattended();
@@ -140,6 +150,53 @@ sealed partial class App : Application, IXamlMetadataProvider
         Bring(donateWindow);
     }
 
+    /// <summary>Shows the "How to Use EnhanceCapCut" window.</summary>
+    void ShowGuideWindow()
+    {
+        if (guideWindow is null)
+        {
+            guideWindow = new GuideWindow();
+            HandleClose(guideWindow);
+        }
+        Bring(guideWindow);
+    }
+
+    /// <summary>The guide opens by itself once, at the first launch (as on the Mac).</summary>
+    void ShowGuideOnFirstLaunch()
+    {
+        if (Preferences.Bool("guideShown")) return;
+        Preferences.Set("guideShown", true);
+        ShowGuideWindow();
+    }
+
+    /// <summary>
+    /// Switches the interface to <paramref name="choice"/> (null: the system's language) right away, as on the Mac: the
+    /// open windows are built again in the new language — the new ones first, since closing the last window quits.
+    /// </summary>
+    void SetLanguage(Localization.Language? choice)
+    {
+        Preferences.Set("language", choice?.Code() ?? "system");
+        var language = choice ?? SystemLanguage;
+        if (language == Localization.Current) return;
+        Localization.Use(language);
+        Window?[] old = [exportWindow, subtitlesWindow, donateWindow, guideWindow];
+        var shown = old.Select(w => w is not null && w.AppWindow.IsVisible).ToArray();
+        exportWindow = null;
+        subtitlesWindow = null;
+        donateWindow = null;
+        guideWindow = null;
+        if (shown[1]) ShowSubtitlesWindow();
+        if (shown[2]) ShowDonateWindow();
+        if (shown[3]) ShowGuideWindow();
+        ShowExportWindow();
+        rebuilding = true;
+        foreach (var window in old) window?.Close();
+        rebuilding = false;
+    }
+
+    static Localization.Language SystemLanguage =>
+        Localization.System(global::Windows.System.UserProfile.GlobalizationPreferences.Languages);
+
     /// <summary>After the first export of each day, offers to donate (as on the Mac).</summary>
     void OfferDonationOncePerDay()
     {
@@ -162,9 +219,9 @@ sealed partial class App : Application, IXamlMetadataProvider
     /// </summary>
     void HandleClose(Window window) => window.AppWindow.Closing += async (sender, e) =>
     {
-        if (quitting) return;
+        if (quitting || rebuilding) return;
         e.Cancel = true;
-        var others = new Window?[] { exportWindow, subtitlesWindow, donateWindow }.Where(w => w is not null && w != window && w.AppWindow.IsVisible);
+        var others = new Window?[] { exportWindow, subtitlesWindow, donateWindow, guideWindow }.Where(w => w is not null && w != window && w.AppWindow.IsVisible);
         if (others.Any())
         {
             sender.Hide();
@@ -177,13 +234,13 @@ sealed partial class App : Application, IXamlMetadataProvider
     {
         if (subtitles?.IsRunning == true)
         {
-            if (!await Platform.Ask(window, "Subtitles are being created", "Quitting cancels them.", "Quit", "Keep Working", primaryIsDefault: false))
+            if (!await Platform.Ask(window, L("Subtitles are being created"), L("Quitting cancels them."), L("Quit"), L("Keep Working"), primaryIsDefault: false))
                 return false;
             subtitles.Cancel();
         }
         if (model?.IsExporting == true)
         {
-            if (!await Platform.Ask(window, "An export is in progress", "Quitting cancels it.", "Quit", "Keep Exporting", primaryIsDefault: false))
+            if (!await Platform.Ask(window, L("An export is in progress"), L("Quitting cancels it."), L("Quit"), L("Keep Exporting"), primaryIsDefault: false))
                 return false;
             model.Cancel();
         }
@@ -195,6 +252,7 @@ sealed partial class App : Application, IXamlMetadataProvider
         quitting = true;
         subtitlesWindow?.Close();
         donateWindow?.Close();
+        guideWindow?.Close();
         exportWindow?.Close();
         Exit();
     }

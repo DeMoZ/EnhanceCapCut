@@ -172,10 +172,10 @@ public enum RenderError: LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case let .noVideoTrack(url): return "No video track in \(url.lastPathComponent)"
-        case let .cannotRead(url): return "Cannot read \(url.lastPathComponent)"
-        case let .writerFailed(message): return "Writing the video failed: \(message)"
-        case .cancelled: return "Export cancelled"
+        case let .noVideoTrack(url): return L("No video track in {0}", url.lastPathComponent)
+        case let .cannotRead(url): return L("Cannot read {0}", url.lastPathComponent)
+        case let .writerFailed(message): return L("Writing the video failed: {0}", message)
+        case .cancelled: return L("Export cancelled")
         case let .ffmpeg(message): return "ffmpeg: \(message)"
         }
     }

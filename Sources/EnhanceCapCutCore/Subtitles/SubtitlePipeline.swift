@@ -73,14 +73,14 @@ public final class SubtitlePipeline {
         var models = cloning ? ModelStore.voiceCloning : []
         if (options.engine == .whisper || cloning) && !ModelStore.isDownloaded(ModelStore.whisper) { models.append(ModelStore.whisper) }
         if !ModelStore.isDownloaded(models) {
-            try await ModelStore.ensure(models) { p in report("Downloading models (one time)…", 0.15 * p) }
+            try await ModelStore.ensure(models) { p in report(L("Downloading models (one time)…"), 0.15 * p) }
         }
 
         // 1. Audio: the timeline's mix, as the viewer hears it.
-        report("Mixing timeline audio…", 0)
+        report(L("Mixing timeline audio…"), 0)
         let audioURL = work.appendingPathComponent("mix.caf")
         try await AudioRenderer.render(timeline, to: audioURL, isCancelled: { self.cancelled || Task.isCancelled }) { p in
-            report("Mixing timeline audio…", 0.15 * p)
+            report(L("Mixing timeline audio…"), 0.15 * p)
         }
         try checkCancelled()
 
@@ -112,7 +112,7 @@ public final class SubtitlePipeline {
         }
         let translating = options.captions ? targets : dubbing
         for (i, target) in translating.enumerated() {
-            report("Translating: \(target.displayName)…",
+            report(L("Translating: {0}…", target.displayName),
                    speechEnd + (translateEnd - speechEnd) * Double(i) / Double(translating.count))
             let translated = try await translator.translate(cues.map(\.text), from: options.sourceLocale.language, to: target)
             try checkCancelled()
@@ -133,22 +133,22 @@ public final class SubtitlePipeline {
             // The original voice alone: what cloned lines copy.
             var cloner: VoiceCloner?, checker: WhisperChecker?, originalVoice: [Float] = []
             if cloning {
-                report("Isolating the original voice…", translateEnd)
+                report(L("Isolating the original voice…"), translateEnd)
                 let voiceURL = work.appendingPathComponent("voice.wav")
                 try await VoiceEffectsRenderer.render(audioURL, effects: VoiceEffects(separation: .keepVoice), to: voiceURL)
                 originalVoice = try MonoAudio.read(voiceURL, sampleRate: VoiceCloner.sampleRate)
                 try checkCancelled()
-                report("Loading the voice cloning model…", translateEnd)
+                report(L("Loading the voice cloning model…"), translateEnd)
                 cloner = try VoiceCloner()
                 checker = try WhisperChecker()
             }
             for (i, language) in dubbing.enumerated() {
                 let base = translateEnd + (1 - translateEnd) * Double(i) / Double(dubbing.count)
-                report("Voicing: \(language.displayName)…", base)
+                report(L("Voicing: {0}…", language.displayName), base)
                 let url = folder.appendingPathComponent("\(language.code).wav")
                 let voice = options.voices[language.code].flatMap { $0.isEmpty ? nil : $0 }
                 let languageProgress: (Double) -> Void = { p in
-                    report("Voicing: \(language.displayName)…", base + (1 - translateEnd) * p / Double(dubbing.count))
+                    report(L("Voicing: {0}…", language.displayName), base + (1 - translateEnd) * p / Double(dubbing.count))
                 }
                 let lines: [ClosedRange<Double>]
                 if voice == Dubber.clonedVoiceID, let cloner {
@@ -170,7 +170,7 @@ public final class SubtitlePipeline {
 
             // The project's sound without its voice, faded in where the original is muted under the voice-over.
             if options.background {
-                report("Separating the background…", 0.99)
+                report(L("Separating the background…"), 0.99)
                 let backgroundURL = work.appendingPathComponent("background-full.wav")
                 try await VoiceEffectsRenderer.render(audioURL, effects: VoiceEffects(separation: .removeVoice), to: backgroundURL)
                 try checkCancelled()
@@ -185,7 +185,7 @@ public final class SubtitlePipeline {
                                                 lines: lines, isAudible: true, isBackground: true))
             }
         }
-        report("Done", 1)
+        report(L("Done"), 1)
         return Output(captions: tracks, voiceOver: voiceOver)
     }
 

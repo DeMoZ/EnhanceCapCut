@@ -1,7 +1,8 @@
 # EnhanceCapCut — conventions
 
-macOS app that renders the CapCut project open in the editor with our own renderer. See README.md for
-usage, docs/PLAN.md for the roadmap, docs/FORMAT.md for what we know about CapCut drafts.
+macOS app that renders the CapCut project open in the editor with our own renderer. See README.md (the
+landing page), docs/USER-GUIDE.md and docs/CLI.md for usage, docs/DEVELOPMENT.md for building and releases,
+docs/PLAN.md for the roadmap, docs/FORMAT.md for what we know about CapCut drafts.
 
 ## Language
 
@@ -22,6 +23,17 @@ usage, docs/PLAN.md for the roadmap, docs/FORMAT.md for what we know about CapCu
   `swift build -c release --product ecc && .build/release/ecc render <project> --from 10 --duration 5 -o /tmp/x.mp4`.
 - The author's CapCut exports are in `/Volumes/NVME_4TB/VideoFromCapCut/` — the reference for visual
   calibration (text size, positions, colours).
+
+## Interface language
+
+- The UI is in English and Russian. Every user-visible text is written in English and wrapped in `L("…")` (Swift:
+  `EnhanceCapCutCore/Localization`; C#: `using static EnhanceCapCut.Draft.Localization;`), with `{0}`, `{1}` for
+  values. The key must be a literal (or literals joined with `+`) so the tests can find it.
+- Translations live in `Localization/ru.json` (English text → Russian), one file for both apps. A new or changed text
+  gets its entry there; `swift test` / `dotnet test` fail on a key without a translation, and the Swift tests on entries
+  no code uses any more.
+- Until an app picks a language, `L` returns English: the CLIs and `ecc info` output stay English.
+- Don't build sentences from pieces (gender words, plurals): write one key per variant.
 
 ## Code layout and style
 

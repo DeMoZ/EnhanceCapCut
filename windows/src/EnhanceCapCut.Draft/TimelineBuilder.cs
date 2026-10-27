@@ -1,4 +1,5 @@
 using System.Globalization;
+using static EnhanceCapCut.Draft.Localization;
 
 namespace EnhanceCapCut.Draft;
 
@@ -75,7 +76,7 @@ public static class TimelineBuilder
                             ? (VoiceEffects.SeparationMode)separation.Choice : VoiceEffects.SeparationMode.None;
                         voice = voice with { Separation = mode };
                         if (mode == VoiceEffects.SeparationMode.None && separation.Choice != 0)
-                            Note("Audio", $"vocal separation mode {separation.Choice}");
+                            Note(L("Audio"), $"vocal separation mode {separation.Choice}");
                     }
                     if (First(refs, denoises) is { IsDenoise: true } denoise)
                         voice = voice with { Denoise = Math.Clamp(denoise.Rate, 0, 1) };
@@ -93,7 +94,7 @@ public static class TimelineBuilder
                     void ReportAll()
                     {
                         ReportRefs(refs, generic);
-                        if (filterIssue is not null) Note("Audio effect", filterIssue);
+                        if (filterIssue is not null) Note(L("Audio effect"), filterIssue);
                     }
                     if (track.Type != "audio") ReportAll();
 
@@ -127,7 +128,7 @@ public static class TimelineBuilder
                                     }
                                     else
                                     {
-                                        Note("Reverse playback", "reversed clip without CapCut's reversed copy (rendered forward)");
+                                        Note(L("Reverse playback"), L("reversed clip without CapCut's reversed copy (rendered forward)"));
                                         timeMap = Mirrored(timeMap, video.Duration);
                                     }
                                 }
@@ -143,12 +144,12 @@ public static class TimelineBuilder
                             }
                             if (content is null) continue;
                             ReportKeyframes(segment);
-                            if (segment.IsLoop) Note("Playback", "loop");
+                            if (segment.IsLoop) Note(L("Playback"), L("loop"));
                             if (video is not null) ReportVideo(video);
                             if (isMain && First(refs, canvases) is { } canvas
                                 && canvas.Type is not ("canvas_color" or "canvas_blur" or "canvas_image"))
                             {
-                                Note("Canvas", canvas.Type);
+                                Note(L("Canvas"), canvas.Type);
                             }
 
                             var layer = new VisualLayer(segment.Id, content, trackIndex, segment.RenderIndex, isMain,
@@ -197,13 +198,13 @@ public static class TimelineBuilder
                         {
                             if (track.IsHidden || !segment.Visible || texts.GetValueOrDefault(segment.MaterialId) is not { } text
                                 || TextContent.Parse(text.Content) is not { } parsed || string.IsNullOrWhiteSpace(parsed.Text)) continue;
-                            if (text.Typesetting != 0) Note("Text", "vertical typesetting (rendered horizontally)");
-                            if (text.CurveEnabled) Note("Text", "curved text (rendered straight)");
-                            if (parsed.Styles.Any(s => s.Strokes.Count > 1)) Note("Text", "multiple outlines (first one rendered)");
+                            if (text.Typesetting != 0) Note(L("Text"), L("vertical typesetting (rendered horizontally)"));
+                            if (text.CurveEnabled) Note(L("Text"), L("curved text (rendered straight)"));
+                            if (parsed.Styles.Any(s => s.Strokes.Count > 1)) Note(L("Text"), L("multiple outlines (first one rendered)"));
                             if (parsed.Styles.Any(s => !string.IsNullOrEmpty(s.EffectStylePath))
                                 && !refs.Any(r => generic.TryGetValue(r, out var g) && g.Item.Type == "text_effect"))
                             {
-                                Note("Text effect", "word art");
+                                Note(L("Text effect"), L("word art"));
                             }
                             ReportKeyframes(segment);
                             var layer = new VisualLayer(segment.Id, new TextContentLayer(new TextLayerSpec(text, parsed)),
@@ -396,20 +397,20 @@ public static class TimelineBuilder
                 else
                     names.Add(type.StartsWith("KFType", StringComparison.Ordinal) ? type[6..] : type);
             }
-            foreach (var name in names.Order(StringComparer.Ordinal)) Note("Keyframes", name);
+            foreach (var name in names.Order(StringComparer.Ordinal)) Note(L("Keyframes"), name);
         }
 
         /// <summary>Per-clip processing stored on the video material itself.</summary>
         void ReportVideo(VideoMaterial video)
         {
-            if (video.Type != "video" && video.Type != "photo") Note("Media", $"{video.Type} clip");
-            if (video.StableLevel > 0) Note("Stabilization", $"level {video.StableLevel}");
-            if (video.MattingFlag != 0) Note("Remove background", $"cutout mode {video.MattingFlag}");
-            if (video.BeautyMode) Note("Beauty / makeup", "retouch");
+            if (video.Type != "video" && video.Type != "photo") Note(L("Media"), $"{video.Type} clip");
+            if (video.StableLevel > 0) Note(L("Stabilization"), $"level {video.StableLevel}");
+            if (video.MattingFlag != 0) Note(L("Remove background"), $"cutout mode {video.MattingFlag}");
+            if (video.BeautyMode) Note(L("Beauty / makeup"), L("retouch"));
             // AI-generated images are already baked into the material's file.
             foreach (var algorithm in video.Algorithms.Distinct().Order(StringComparer.Ordinal))
             {
-                if (!algorithm.StartsWith("AigcTypeGen", StringComparison.Ordinal)) Note("AI processing", algorithm);
+                if (!algorithm.StartsWith("AigcTypeGen", StringComparison.Ordinal)) Note(L("AI processing"), algorithm);
             }
         }
 
@@ -428,28 +429,28 @@ public static class TimelineBuilder
             var name = item.Name.Length == 0 ? item.Type : item.Name;
             switch (key)
             {
-                case "transitions": Note("Transition", name); break;
-                case "video_effects": Note("Video effect", name); break;
-                case "stickers": Note("Sticker", name); break;
-                case "common_mask" or "masks": Note("Mask", name); break;
-                case "hsl": Note("HSL color", "color adjustment"); break;
-                case "manual_deformations": Note("Manual deformation", "body/face reshape"); break;
-                case "chromas": Note("Chroma key", "chroma key"); break;
+                case "transitions": Note(L("Transition"), name); break;
+                case "video_effects": Note(L("Video effect"), name); break;
+                case "stickers": Note(L("Sticker"), name); break;
+                case "common_mask" or "masks": Note(L("Mask"), name); break;
+                case "hsl": Note(L("HSL color"), L("color adjustment")); break;
+                case "manual_deformations": Note(L("Manual deformation"), L("body/face reshape")); break;
+                case "chromas": Note(L("Chroma key"), L("chroma key")); break;
                 case "material_animations":
-                    foreach (var animation in item.AnimationNames) Note("Animation", animation);
+                    foreach (var animation in item.AnimationNames) Note(L("Animation"), animation);
                     break;
                 case "effects":
                     var t = item.Type;
-                    if (t == "filter") Note("Filter", name);
-                    else if (t == "text_effect") Note("Text effect", name);
-                    else if (t == "text_shape") { if (item.Name.Length > 0) Note("Text shape", item.Name); }
-                    else if (t is "color_correct" or "smart_color_adjust") Note("Color adjustment", t.Replace('_', ' '));
+                    if (t == "filter") Note(L("Filter"), name);
+                    else if (t == "text_effect") Note(L("Text effect"), name);
+                    else if (t == "text_shape") { if (item.Name.Length > 0) Note(L("Text shape"), item.Name); }
+                    else if (t is "color_correct" or "smart_color_adjust") Note(L("Color adjustment"), t.Replace('_', ' '));
                     else if (t.Contains("makeup") || t.Contains("beauty") || t == "figure" || t.Contains("face"))
-                        Note("Beauty / makeup", name);
-                    else Note("Effect", name);
+                        Note(L("Beauty / makeup"), name);
+                    else Note(L("Effect"), name);
                     break;
                 default:
-                    Note("Other", key + (item.Type.Length == 0 ? "" : $" ({item.Type})"));
+                    Note(L("Other"), key + (item.Type.Length == 0 ? "" : $" ({item.Type})"));
                     break;
             }
         }

@@ -21,9 +21,9 @@ public enum TranscriberError: LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .unsupportedLocale(let l): return "macOS can't transcribe \(l) speech."
-        case .nothingRecognised: return "No speech recognized. Check the spoken language and audio level."
-        case .modelFailed(let path): return "Whisper couldn't run the model at \(path). Delete it to download it again."
+        case .unsupportedLocale(let l): return L("macOS can't transcribe {0} speech.", l)
+        case .nothingRecognised: return L("No speech recognized. Check the spoken language and audio level.")
+        case .modelFailed(let path): return L("Whisper couldn't run the model at {0}. Delete it to download it again.", path)
         }
     }
 }
@@ -66,13 +66,13 @@ public enum Transcriber {
 
         let module = makeModule()
         if await AssetInventory.status(forModules: [module]) != .installed {
-            status("Downloading speech model (one time)…")
+            status(L("Downloading speech model (one time)…"))
             _ = try? await AssetInventory.reserve(locale: speechLocale ?? dictationLocale!)
             if let request = try await AssetInventory.assetInstallationRequest(supporting: [module]) {
                 try await request.downloadAndInstall()
             }
         }
-        status("Transcribing…")
+        status(L("Transcribing…"))
 
         var words: [TimedWord] = []
         if speechLocale != nil {

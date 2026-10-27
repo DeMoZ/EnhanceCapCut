@@ -4,6 +4,13 @@ namespace EnhanceCapCut.Subtitles;
 
 public enum VoiceGender { Female, Male }
 
+public static class VoiceGenderTitles
+{
+    /// <summary>"Female" or "Male" in the interface language.</summary>
+    public static string Title(this VoiceGender gender) =>
+        gender == VoiceGender.Female ? EnhanceCapCut.Draft.Localization.L("Female") : EnhanceCapCut.Draft.Localization.L("Male");
+}
+
 /// <summary>A system voice that can speak a subtitle language.</summary>
 /// <param name="Id">The engine's voice id.</param>
 /// <param name="Language">BCP 47, e.g. "en-US".</param>

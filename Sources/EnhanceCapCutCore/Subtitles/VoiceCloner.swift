@@ -7,8 +7,8 @@ public enum VoiceClonerError: LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .badModel(let file): return "The voice cloning model is damaged (\(file)). Delete its folder in the models folder and try again."
-        case .runFailed(let what): return "Voice cloning failed: \(what)"
+        case .badModel(let file): return L("The voice cloning model is damaged ({0}). Delete its folder in the models folder and try again.", file)
+        case .runFailed(let what): return L("Voice cloning failed: {0}", what)
         }
     }
 }

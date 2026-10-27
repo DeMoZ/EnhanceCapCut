@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
+using static EnhanceCapCut.Draft.Localization;
 
 namespace EnhanceCapCut.App;
 
@@ -15,7 +16,7 @@ sealed class DonateWindow : Window
     public DonateWindow(DonateModel model)
     {
         this.model = model;
-        Title = "Support EnhanceCapCut";
+        Title = L("Support EnhanceCapCut");
 
         // Icon, name, version and the project page, as in the macOS window.
         var about = form.Section();
@@ -24,7 +25,7 @@ sealed class DonateWindow : Window
         var info = new StackPanel { Spacing = 2, Children = { name } };
         if (Updater.Current is { } version)
         {
-            var versionText = Text.Body($"Version {version}");
+            var versionText = Text.Body(L("Version {0}", version));
             versionText.Foreground = Theme.Secondary;
             info.Children.Add(versionText);
         }
@@ -35,23 +36,24 @@ sealed class DonateWindow : Window
         about.Add(Text.IconAndText(icon, info, 12));
 
         loadingSection = form.Section();
-        var loadingText = Text.Body("Loading the ways to donate…");
+        var loadingText = Text.Body(L("Loading the ways to donate…"));
         loadingText.Foreground = Theme.Secondary;
         loadingSection.Add(ExportWindow.Row(new ProgressRing { IsActive = true, Width = 16, Height = 16 }, loadingText));
 
         failedSection = form.Section();
-        failedSection.Add(Text.Body("Couldn't load the ways to donate. Check your internet connection."));
-        var retry = new Button { Content = "Try Again" };
+        failedSection.Add(Text.Body(L("Couldn't load the ways to donate. Check your internet connection.")));
+        var retry = new Button { Content = L("Try Again") };
         retry.Click += (_, _) => model.Load();
         failedSection.Add(retry);
 
         messageSection = form.Section();
         messageSection.Add(messageText);
-        methodsSection = form.Section("Ways to donate");
+        methodsSection = form.Section(L("Ways to donate"));
 
         Content = new Grid { Background = Theme.Resource("SolidBackgroundFillColorBaseBrush"), Children = { form } };
         Platform.SetUpFrame(this, "window.donate", 440, 440, 400, 360);
         model.Changed += Update;
+        Closed += (_, _) => model.Changed -= Update;
         Update();
     }
 
@@ -70,7 +72,7 @@ sealed class DonateWindow : Window
             if (method.Title.Resolved(model.Languages) is not { } title) continue;
             var text = new StackPanel { Spacing = 2, Children = { Text.Body(title) } };
             if (method.Description?.Resolved(model.Languages) is { } description) text.Children.Add(Text.Caption(description));
-            var donate = new Button { Content = "Donate…" };
+            var donate = new Button { Content = L("Donate…") };
             ToolTipService.SetToolTip(donate, method.Url.AbsoluteUri);
             donate.Click += (_, _) => DonateModel.Open(method);
             methodsSection.Add(ExportWindow.Spread(text, donate));

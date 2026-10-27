@@ -144,7 +144,7 @@ public enum DraftLoader {
 
         public var errorDescription: String? {
             switch self {
-            case let .unreadable(url, error): return "Cannot read \(url.path): \(error.localizedDescription)"
+            case let .unreadable(url, error): return L("Cannot read {0}: {1}", url.path, error.localizedDescription)
             }
         }
     }

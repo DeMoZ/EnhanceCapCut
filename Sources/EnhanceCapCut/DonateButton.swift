@@ -1,3 +1,4 @@
+import EnhanceCapCutCore
 import SwiftUI
 
 /// "♥ Donate" next to the Export button. Now and then it plays one short effect to catch the eye — a double heartbeat,
@@ -33,13 +34,13 @@ struct DonateButton: View {
         KeyframeAnimator(initialValue: Values(), trigger: trigger) { values in
             Button(action: action) {
                 Label {
-                    Text("Donate")
+                    Text(L("Donate"))
                 } icon: {
                     Image(systemName: "heart.fill").foregroundStyle(.pink)
                 }
                 .rotationEffect(.degrees(values.angle), anchor: .top)
             }
-            .help("Support EnhanceCapCut")
+            .help(L("Support EnhanceCapCut"))
             .shadow(color: .pink.opacity(0.9 * values.glow), radius: Self.glowRadius * values.glow)
             .scaleEffect(values.scale)
         } keyframes: { _ in

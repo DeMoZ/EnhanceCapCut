@@ -33,6 +33,16 @@ public enum OriginalAudio: String, CaseIterable, Identifiable, Sendable {
     case keep = "Keep", lower = "Lower", mute = "Mute all", replace = "Replace voice", removeVocal = "Remove vocal"
     public var id: String { rawValue }
 
+    public var title: String {
+        switch self {
+        case .keep: L("Keep")
+        case .lower: L("Lower")
+        case .mute: L("Mute all")
+        case .replace: L("Replace voice")
+        case .removeVocal: L("Remove vocal")
+        }
+    }
+
     /// In the names of dubbed timelines: `keep`, `lower`, `muteall`, `replacevoice`, `removevocal`.
     public var nameToken: String { rawValue.lowercased().replacingOccurrences(of: " ", with: "") }
 

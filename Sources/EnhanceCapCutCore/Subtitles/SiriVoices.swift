@@ -7,8 +7,8 @@ public enum SiriVoicesError: LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .unavailable: return "Siri voices need Xcode installed."
-        case .failed(let m): return "Siri voice failed: \(m)"
+        case .unavailable: return L("Siri voices need Xcode installed.")
+        case .failed(let m): return L("Siri voice failed: {0}", m)
         }
     }
 }
