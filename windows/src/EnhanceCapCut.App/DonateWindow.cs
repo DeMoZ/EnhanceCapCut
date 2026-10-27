@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media.Imaging;
 
 namespace EnhanceCapCut.App;
 
@@ -16,7 +17,7 @@ sealed class DonateWindow : Window
         this.model = model;
         Title = "Support EnhanceCapCut";
 
-        // Name, version and the project page, as in the macOS window (which also shows the icon).
+        // Icon, name, version and the project page, as in the macOS window.
         var about = form.Section();
         var name = Text.Headline("EnhanceCapCut");
         name.FontSize = 20;
@@ -30,7 +31,8 @@ sealed class DonateWindow : Window
         var page = new HyperlinkButton { Content = "github.com/DeMoZ/EnhanceCapCut", Padding = new Thickness(0) };
         page.Click += (_, _) => Platform.OpenUri(DonateModel.ProjectPage);
         info.Children.Add(page);
-        about.Add(info);
+        var icon = new Image { Source = new BitmapImage(new Uri(Platform.IconPath)) { DecodePixelWidth = 112 }, Width = 56, Height = 56, VerticalAlignment = VerticalAlignment.Center };
+        about.Add(Text.IconAndText(icon, info, 12));
 
         loadingSection = form.Section();
         var loadingText = Text.Body("Loading the ways to donate…");

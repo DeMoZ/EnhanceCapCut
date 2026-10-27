@@ -8,6 +8,8 @@
 	<string>EnhanceCapCut</string>
 	<key>CFBundleExecutable</key>
 	<string>EnhanceCapCut</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>dev.enhancecapcut.EnhanceCapCut</string>
 	<key>CFBundleInfoDictionaryVersion</key>

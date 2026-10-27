@@ -17,6 +17,8 @@
     <!-- Generates resources.pri, where an unpackaged app finds the WinUI control themes. -->
     <EnableMsixTooling>true</EnableMsixTooling>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Made by scripts/make-icon.swift. Embedded for Explorer and shipped next to the exe for the window frames. -->
+    <ApplicationIcon>EnhanceCapCut.ico</ApplicationIcon>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
     <!-- Releases pass -p:Version=<x.y.z>; a local build is 0.0.0, which the updater treats as a development build. -->
@@ -39,6 +41,10 @@
 
   <ItemGroup Condition="!$([MSBuild]::IsOSPlatform('Windows'))">
     <PackageReference Include="Microsoft.WindowsAppSDK.Runtime" Version="1.8.260921001" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="EnhanceCapCut.ico" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

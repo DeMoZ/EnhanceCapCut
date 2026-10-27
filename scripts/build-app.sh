@@ -52,6 +52,7 @@ for exe in "$app/Contents/MacOS/EnhanceCapCut" "$app/Contents/MacOS/ecc"; do
   install_name_tool -add_rpath @executable_path/../Frameworks "$exe" 2>/dev/null || true
 done
 cp App/Info.plist "$app/Contents/Info.plist"
+cp App/AppIcon.icns "$app/Contents/Resources/" # made by scripts/make-icon.swift
 # Siri voice helper, run by the app through Xcode's Swift interpreter.
 cp Tools/SiriVoice/siri-voice.swift "$app/Contents/Resources/"
 sign "$app/Contents/Frameworks/whisper.framework"

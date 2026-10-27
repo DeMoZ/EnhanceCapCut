@@ -37,13 +37,18 @@ static partial class Platform
 
     public static double Scale(Window window) => GetDpiForWindow(Handle(window)) / 96.0;
 
+    /// <summary>The app icon (made by <c>scripts/make-icon.swift</c>), shipped next to the exe.</summary>
+    public static string IconPath => Path.Combine(AppContext.BaseDirectory, "EnhanceCapCut.ico");
+
     /// <summary>
-    /// Sizes and places a window: the frame saved under <paramref name="key"/> when it still fits a display, else
+    /// Gives a window the app icon and sizes and places it: the frame saved under <paramref name="key"/> when it still fits a display, else
     /// <paramref name="width"/> × <paramref name="height"/> (DIPs) centred. Moves and resizes are saved again.
     /// </summary>
     public static void SetUpFrame(Window window, string key, int width, int height, int minWidth, int minHeight)
     {
         var appWindow = window.AppWindow;
+        // The title bar, the taskbar button and Alt+Tab show the window's icon, which isn't the exe's by default.
+        if (File.Exists(IconPath)) appWindow.SetIcon(IconPath);
         var scale = Scale(window);
         if (appWindow.Presenter is OverlappedPresenter presenter)
         {

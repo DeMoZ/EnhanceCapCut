@@ -13,6 +13,10 @@
     <ProjectReference Include="..\EnhanceCapCut.Subtitles\EnhanceCapCut.Subtitles.csproj" />
   </ItemGroup>
 
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-windows10.0.19041.0'">
+    <ApplicationIcon>..\EnhanceCapCut.App\EnhanceCapCut.ico</ApplicationIcon>
+  </PropertyGroup>
+
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-windows10.0.19041.0'">
     <ProjectReference Include="..\EnhanceCapCut.Windows\EnhanceCapCut.Windows.csproj" />
   </ItemGroup>
