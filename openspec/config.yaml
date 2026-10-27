@@ -9,7 +9,8 @@ context: |
   Every new or changed UI text goes through L("…") with a Russian entry in Localization/ru.json; one key per
   variant, no sentences built from pieces.
   Draft fields are read leniently: unknown, missing or mistyped fields never fail a draft. New CapCut features
-  start by being listed in TimelineBuilder.report.
+  start by being listed in TimelineBuilder.report. Implementing a CapCut feature includes removing it from the
+  "Not rendered yet" list in README.md (see CLAUDE.md) and closing its capcut-feature issue.
   Never copy CapCut shaders, Lua, LUTs, fonts or other resources into the repo; re-implement behaviour.
   Reading the user's cached resources at render time is fine. No patching or injecting into CapCut.
   Renderer changes are verified on real projects with the ecc CLI against the author's CapCut exports

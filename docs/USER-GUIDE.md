@@ -50,8 +50,8 @@ too. On Windows: `EnhanceCapCut.exe [--project <name>] [--auto-export] [--subtit
 
 **What is rendered:** cuts, overlays, speed (incl. curves), transforms and keyframes, canvas backgrounds, photos,
 compound clips, texts and captions, and the audio mix (incl. "Isolate voice" — keep or remove vocal — "Reduce noise",
-"Enhance voice" and voice filters such as "Booming"). CapCut effects, filters, transitions, stickers and text
-animations are not yet. See [PLAN.md](PLAN.md).
+"Enhance voice" and voice filters such as "Booming"). What isn't rendered yet is listed under **Not rendered yet** in
+the [README](../README.md); see also [PLAN.md](PLAN.md).
 
 ## Subtitles and voice-over
 

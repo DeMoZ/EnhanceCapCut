@@ -35,6 +35,15 @@ docs/PLAN.md for the roadmap, docs/FORMAT.md for what we know about CapCut draft
 - Until an app picks a language, `L` returns English: the CLIs and `ecc info` output stay English.
 - Don't build sentences from pieces (gender words, plurals): write one key per variant.
 
+## Not rendered yet
+
+- `README.md` has a **Not rendered yet** list near the top: every CapCut feature the renderer doesn't reproduce, each
+  with its GitHub issue (label `capcut-feature`, board https://github.com/users/DeMoZ/projects/3).
+- When a feature is implemented (on both platforms), in the same change remove it from that list, from the FAQ /
+  `docs/USER-GUIDE.md` wording and from the examples in the in-app guide (`GuideView.swift`, `GuideWindow.cs`,
+  `ru.json`) if it's named there, update `docs/PLAN.md`, and close its issue. A newly found unsupported feature gets
+  an issue and a line in the list.
+
 ## Code layout and style
 
 - `EnhanceCapCutCore/Draft`: `Decodable` models. Read every field leniently (`AnyKey` container helpers
