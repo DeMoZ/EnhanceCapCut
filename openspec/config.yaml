@@ -1,0 +1,47 @@
+schema: spec-driven
+
+context: |
+  Write all artifacts in English (the author chats in Russian; the repo stays English).
+  The product ships on macOS (Swift) and Windows (C#, windows/). Designs and tasks cover both:
+  - draft parsing, TimelineBuilder, subtitles segmentation, DraftSubtitleWriter and DraftVoiceOverWriter
+    change in Swift and C# together; `ecc info` output of both CLIs stays identical;
+  - a UI change to ExportView/SubtitlesView lands in the macOS window and its WinUI mirror with the same texts.
+  Every new or changed UI text goes through L("…") with a Russian entry in Localization/ru.json; one key per
+  variant, no sentences built from pieces.
+  Draft fields are read leniently: unknown, missing or mistyped fields never fail a draft. New CapCut features
+  start by being listed in TimelineBuilder.report.
+  Never copy CapCut shaders, Lua, LUTs, fonts or other resources into the repo; re-implement behaviour.
+  Reading the user's cached resources at render time is fine. No patching or injecting into CapCut.
+  Renderer changes are verified on real projects with the ecc CLI against the author's CapCut exports
+  (/Volumes/NVME_4TB/VideoFromCapCut/), not only by unit tests.
+
+# Project context (optional)
+# Add only constraints that should guide OpenSpec artifacts and workflows.
+# Include constraints an agent cannot infer by reading the code.
+# Keep general project documentation and discoverable codebase facts out.
+# Example:
+#   context: |
+#     Designs and tasks must cover Windows, macOS, and Linux
+#     Write all artifacts in Spanish
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always state what is out of scope
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+# This is separate from artifact rules above.
+# Example:
+#   operations:
+#     apply:
+#       guidance:
+#         - Keep test summaries concise
+#     archive:
+#       guidance:
+#         - Summarize the archive outcome before finishing
