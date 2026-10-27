@@ -38,6 +38,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.servicesProvider = services
         NSUpdateDynamicServices()
         showExportWindow()
+        // `--args -subtitles YES` opens the subtitles window too (as `--subtitles` on Windows; for screenshots).
+        if UserDefaults.standard.bool(forKey: "subtitles") { showSubtitlesWindow() }
         showGuideOnFirstLaunch()
     }
 

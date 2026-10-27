@@ -1,7 +1,8 @@
 # EnhanceCapCut — conventions
 
-macOS app that renders the CapCut project open in the editor with our own renderer. See README.md for
-usage, docs/PLAN.md for the roadmap, docs/FORMAT.md for what we know about CapCut drafts.
+macOS app that renders the CapCut project open in the editor with our own renderer. See README.md (the
+landing page), docs/USER-GUIDE.md and docs/CLI.md for usage, docs/DEVELOPMENT.md for building and releases,
+docs/PLAN.md for the roadmap, docs/FORMAT.md for what we know about CapCut drafts.
 
 ## Language
 

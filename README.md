@@ -1,230 +1,184 @@
+<div align="center">
+
+<img src="docs/images/icon.png" width="128" alt="EnhanceCapCut icon">
+
 # EnhanceCapCut
 
-Export the CapCut project you're editing with **your own export settings**, without CapCut's exporter.
+**Your CapCut project, exported your way — and dubbed into any language, without leaving CapCut.**
 
-EnhanceCapCut is a small macOS app that appears in the system **Services** menu. While editing in
-CapCut, choose **CapCut → Services → Export with EnhanceCapCut** (or press your hotkey): a window opens
-with the currently open project, you pick the parameters, press **Export**, and the finished video lands
-in your folder. Rendering is done by EnhanceCapCut itself from the project file (`draft_info.json`, or
-`draft_content.json` in CapCut for Windows) using
-AVFoundation, Core Image/Metal and VideoToolbox hardware encoders.
+[![Latest release](https://img.shields.io/github/v/release/DeMoZ/EnhanceCapCut?label=download&color=8f6bff)](../../releases/latest)
+![macOS 15+](https://img.shields.io/badge/macOS-15%2B-3dd6ff?logo=apple&logoColor=white)
+![Windows 10/11](https://img.shields.io/badge/Windows-10%20%2F%2011-3dd6ff?logo=windows&logoColor=white)
+![Free](https://img.shields.io/badge/price-free-ff4fa3)
+![English · Русский](https://img.shields.io/badge/UI-English%20·%20Русский-555)
 
-> Status: milestone 1. Cuts, overlays, speed (incl. curves), transforms and keyframes, canvas
-> backgrounds, photos, compound clips, texts and captions, and the audio mix (incl. "Isolate voice" —
-> keep or remove vocal — "Reduce noise", "Enhance voice" and voice filters such as "Booming") are rendered. CapCut effects,
-> filters, transitions, stickers and text animations are not yet — the export window lists which of
-> them your project uses. See [docs/PLAN.md](docs/PLAN.md).
+[**Download**](../../releases/latest) · [Full guide](docs/USER-GUIDE.md) · [Command line](docs/CLI.md) · [Русский текст](docs/PROMO.ru.md)
 
-## Install
+</div>
 
-1. Download `EnhanceCapCut-x.y.z.pkg` from [Releases](../../releases) and open it. The app goes to
-   `/Applications`.
-2. Follow *Enable the Services entry and a hotkey* below.
+<br>
 
-> If macOS says the installer is from an unidentified developer, open
-> **System Settings ▸ Privacy & Security** and click **Open Anyway**.
+EnhanceCapCut is a small free app that works **next to CapCut** on Mac and Windows. You keep editing in CapCut;
+with one click EnhanceCapCut opens the project you're working on and
 
-**Updates:** **EnhanceCapCut ▸ Check for Updates…** (or the link at the bottom of the export window) installs a newer
-release; the app also checks by itself, at launch and once a day. Updates come through [Sparkle](https://sparkle-project.org)
-and are verified with the project's signing key. On Windows the same link downloads the new zip, checks it and
-restarts the app.
+- **exports it with your own settings** — up to 4K, HEVC 10-bit or ProRes, exact quality or bitrate, loudness ready
+  for YouTube, Instagram and TikTok;
+- **adds subtitles in other languages and a voice-over back into the CapCut project** — transcribed, translated and
+  spoken on your computer, even in the speaker's own voice.
 
-## Requirements
+<p align="center">
+  <img src="docs/images/how-it-works.svg" width="860" alt="CapCut project → EnhanceCapCut → video, subtitles, voice-over">
+</p>
 
-- macOS 15 or later, Apple Silicon recommended (hardware HEVC/ProRes encoding).
-- Xcode 16+ command line tools (Swift 6 toolchain) to build.
-- Optional: `ffmpeg` (`brew install ffmpeg`) for loudness normalization.
+## ✨ What you get
 
-## Build from source
+<table>
+<tr>
+<td width="50%" valign="top">
 
-```sh
-scripts/build-app.sh --install
-```
+### 🎬 Export your way
+Resolution up to **4K**, frame rate, **H.264, HEVC 8/10-bit, ProRes 422 / HQ**, constant quality or an exact
+bitrate. Switch the aspect ratio (9:16, 1:1, 16:9) and the canvas is laid out again, like in CapCut.
 
-This builds `build/EnhanceCapCut.app`, copies it to `~/Applications`, registers it with Launch Services
-and refreshes the Services menu. Without `--install` it only builds.
+### 🔊 Sound ready to publish
+**Loudness normalization** to −14 LUFS (or any target): no more one video too quiet and the next one too loud.
 
-The app icon is drawn by `swift scripts/make-icon.swift`, which writes `App/AppIcon.icns` and the Windows
-`EnhanceCapCut.ico`; run it again after changing the drawing and commit both files.
+### 🧭 No surprises
+Before you export, the window lists the CapCut features your project uses that aren't rendered yet, and any media
+files missing on disk.
 
-### Release installer
+</td>
+<td width="50%" valign="top">
 
-```sh
-scripts/build-app.sh --pkg
-```
+### 💬 Subtitles in 20+ languages
+Speech is transcribed, translated and added to your project as **CapCut caption tracks** — one per language, styled
+like your captions, editable in CapCut. `.srt` files too.
 
-Builds a universal (Apple Silicon + Intel) app and `build/EnhanceCapCut-<version>.pkg`, which installs
-into `/Applications` and refreshes the Services menu.
+### 🎙 Voice-over
+A voice for every language, previewed with ▶. Keep, lower or mute the original sound — or **remove just the
+voice**, so the music and ambience stay. The dub goes to a **new timeline**; the original stays untouched.
 
-Releases are built by GitHub Actions (`.github/workflows/release.yml`) for both platforms: bump
-`CFBundleShortVersionString` and `CFBundleVersion` in `App/Info.plist` (the version of the Windows build too),
-put the release notes in `docs/releases/v<version>.md`, merge, then push a tag:
+### 🧬 Your own voice, any language
+**Clone the original voice**: each line is spoken in the speaker's voice, with their intonation, in 20 languages —
+only with the consent of the people speaking.
 
-```sh
-git tag v0.3.0 origin/main && git push origin v0.3.0
-```
+</td>
+</tr>
+</table>
 
-The workflow builds the macOS `.pkg` and the Windows `EnhanceCapCut-<version>-windows-x64.zip` (self-contained
-`EnhanceCapCut.exe` and `ecc.exe`) and publishes the release with both, plus `appcast.xml`: the Mac app's update feed
-(`scripts/appcast.sh`), signed with the EdDSA key in the `SPARKLE_PRIVATE_KEY` secret. Its public half is
-`SUPublicEDKey` in `App/Info.plist`; a copy of the private key is in the maintainer's login keychain (account
-`EnhanceCapCut`, Sparkle's `generate_keys`). The Windows app reads the latest release from the GitHub API and checks
-the zip against GitHub's SHA-256. CI builds are unsigned.
+🔒 **Private and offline** — speech recognition, translation and voices run on your Mac or PC; your video is never
+uploaded. 🛟 **Safe** — every project is backed up before it's changed. 🌐 **English and Russian** interface.
 
-Signed and notarized installer (requires an Apple Developer ID):
+## 📸 Screenshots
 
-```sh
-xcrun notarytool store-credentials enhancecapcut --apple-id you@example.com --team-id TEAMID
-DEV_ID_APP="Developer ID Application: Your Name (TEAMID)" \
-DEV_ID_INSTALLER="Developer ID Installer: Your Name (TEAMID)" \
-NOTARY_PROFILE=enhancecapcut scripts/build-app.sh --pkg
-```
+<table>
+<tr>
+<th>Export (Mac)</th>
+<th>Subtitles &amp; voice-over (Mac)</th>
+</tr>
+<tr>
+<td><img src="docs/images/mac-export.png" alt="Export window on the Mac"></td>
+<td><img src="docs/images/mac-subtitles.png" alt="Subtitles and voice-over window on the Mac"></td>
+</tr>
+<tr>
+<th>Export (Windows)</th>
+<th>Subtitles &amp; voice-over (Windows)</th>
+</tr>
+<tr>
+<td><img src="docs/images/windows-export.png" alt="Export window on Windows"></td>
+<td><img src="docs/images/windows-subtitles.png" alt="Subtitles and voice-over window on Windows"></td>
+</tr>
+<tr>
+<th>На русском: экспорт</th>
+<th>На русском: встроенная справка</th>
+</tr>
+<tr>
+<td><img src="docs/images/mac-export-ru.png" alt="Окно экспорта на русском"></td>
+<td><img src="docs/images/mac-guide-ru.png" alt="Встроенная справка на русском"></td>
+</tr>
+</table>
 
-## Enable the Services entry and a hotkey
+## 🚀 Get started
 
-1. Launch EnhanceCapCut once (this registers the service).
-2. Open **System Settings → Keyboard → Keyboard Shortcuts… → Services → General** and make sure
-   **Export with EnhanceCapCut** is checked.
-3. To assign a hotkey, double-click the right side of that row and press the shortcut
-   (e.g. ⌃⌥⌘E). Pick one CapCut doesn't use.
-4. In CapCut, the entry is in **CapCut → Services**. If it doesn't show up, log out and back in, or run
-   `/System/Library/CoreServices/pbs -update`.
+### Mac
 
-## How to use
+1. Download `EnhanceCapCut-x.y.z.pkg` from [**Releases**](../../releases/latest) and open it. The app goes to
+   `/Applications`. *(If macOS says the installer is from an unidentified developer, open **System Settings ▸ Privacy
+   & Security** and click **Open Anyway**.)*
+2. Launch EnhanceCapCut once, then in **System Settings ▸ Keyboard ▸ Keyboard Shortcuts… ▸ Services ▸ General** make
+   sure **Export with EnhanceCapCut** is checked — and give it a hotkey, e.g. ⌃⌥⌘E.
+3. While editing in CapCut, choose **CapCut ▸ Services ▸ Export with EnhanceCapCut** (or press the hotkey). Pick the
+   settings, click **Export**.
 
-The app has a built-in guide: **Help ▸ EnhanceCapCut Help** (⌘?) or the **How to Use** link at the bottom of the
-export window (on Windows, the same link). It opens by itself at the first launch. Texts for presentations and promo
-videos are in [docs/PROMO.md](docs/PROMO.md) (Russian: [docs/PROMO.ru.md](docs/PROMO.ru.md)).
+### Windows
 
-**Interface language:** English or Russian, the system's by default; the 🌐 menu at the bottom of the export window
-switches it right away (both platforms). The `ecc` CLI always speaks English.
+1. Download `EnhanceCapCut-x.y.z-windows-x64.zip` from [**Releases**](../../releases/latest) and unpack it to a folder
+   you can write to (e.g. Documents — not Program Files, so updates can replace it).
+2. Start `EnhanceCapCut.exe` *(if SmartScreen warns, click **More info ▸ Run anyway**)* and pin it to the taskbar.
+3. While editing in CapCut, click the pinned icon: the export window opens with the project you're working on.
 
-## Export window
+**Subtitles and voice-over:** close the project in CapCut (back to its home screen), click **Subtitles &
+Voice-over…** in the export window, choose languages and voices, click **Create** — then open the project in CapCut
+again. The app's built-in guide (**How to Use**, at the bottom of the export window) walks through every step; the
+[full guide](docs/USER-GUIDE.md) has all the details.
 
-| Setting | Options |
-| --- | --- |
-| Timeline | Shown when the project has several timelines; the main one is preselected. Other timelines add their name to `{project}` |
-| Aspect ratio | From project, 9:16, 1:1, 16:9 (the canvas is re-laid out like CapCut's ratio switch) |
-| Resolution | From project, 720p, 1080p, 1440p, 4K (short side) |
-| Frame rate | From project, 24, 25, 30, 60 |
-| Codec | H.264, HEVC 8-bit, HEVC 10-bit, ProRes 422, ProRes 422 HQ |
-| Rate control | Constant quality (0–100, CRF-like) or bitrate in Mbit/s |
-| Captions | Burn in CapCut auto-captions or leave them out |
-| Loudness | Normalize to a LUFS target (EBU R128, two-pass ffmpeg `loudnorm`) |
-| Output | Folder and file name template: `{project} {date} {time} {res} {codec} {fps}` |
+Updates install from **Check for Updates…**; the app also checks once a day.
 
-Settings are remembered between exports. Before exporting, the window lists CapCut features in the project
-that won't be rendered yet and media files that are missing on disk.
+## ❓ FAQ
 
-The project shown is the one open in CapCut (CapCut keeps a `.locked` file in it); you can pick any other
-project from the list.
+<details>
+<summary><b>Does it change CapCut or need a CapCut account?</b></summary>
 
-For scripting, the app accepts `open ~/Applications/EnhanceCapCut.app --args -project <name> -autoExport YES`
-(preselect a project and export immediately with the saved settings).
+No. EnhanceCapCut doesn't patch or inject anything into CapCut. It reads the project files CapCut saves on your disk,
+renders them with its own engine, and — for subtitles and voice-over — writes new tracks into the project, after a
+backup.
+</details>
 
-Changing the aspect ratio re-lays out the canvas the way CapCut's ratio switch does: clips are fitted to the
-new canvas and positions stay relative to it, so texts placed near each other can overlap.
+<details>
+<summary><b>Will the export look exactly like CapCut's?</b></summary>
 
-## Subtitles and voice-over
+Cuts, overlays, speed (incl. curves), transforms and keyframes, canvas backgrounds, photos, compound clips, texts and
+captions and the audio mix (incl. CapCut's voice isolation, noise reduction and voice filters) are rendered. CapCut
+effects, filters, transitions, stickers and text animations are not yet — the export window tells you when your
+project uses them. See the [roadmap](docs/PLAN.md).
+</details>
 
-**Subtitles & Voice-over…** in the export window (or **Window ▸ Subtitles & Voice-over**, ⌘U) transcribes the
-speech of the selected timeline, translates it and adds the result **to the CapCut project itself** as
-caption tracks and/or voice-over audio tracks: open the project in CapCut and they are there, editable like
-CapCut's own auto-captions and voiceovers.
-Everything runs offline with Apple Translation (macOS 26 or later); the logic is the one of SubDub, the Final
-Cut Pro version. **Speech recognition** is either Apple's, built into macOS, or Whisper large-v3-turbo (the same as
-on Windows): Whisper catches more words in noisy dialogue, and its model is downloaded once (574 MB, into
-`~/Library/Application Support/EnhanceCapCut/Models`). The CLI takes `--engine apple|whisper`.
+<details>
+<summary><b>Is my video uploaded anywhere?</b></summary>
 
-1. Close the project in CapCut (back to the home screen). CapCut overwrites a project that is open when it saves.
-2. Choose **Subtitles**, **Voice-over** or both. Pick the spoken language, keep or drop the original-language
-   subtitles, choose languages to translate into.
-3. Each language becomes its own caption track. Pick which one is **shown on screen**; the others are added
-   hidden (show them with the track's eye button in CapCut).
-4. For voice-over: pick a female or male voice for each translation (▶ previews it), which language is
-   **heard** (the other voice-over tracks are added muted: unmute them with the track's speaker button), and
-   what happens to the **original audio** while the voice speaks: keep, lower by 15 dB, **mute all**, **replace
-   voice** (the sound is muted and a track with it minus the voice plays instead, so music and ambience stay), or
-   **remove vocal** (CapCut's own "Remove vocal" is turned on for the clips under the voice-over; CapCut separates
-   them itself. Clips it can't do that on — compound clips, CapCut music, reversed clips, sources over 10 minutes —
-   are muted instead).
-   Or turn on **Clone the original voice** to dub in the speaker's own voice instead (below).
-5. Click **Create**, then open the project in CapCut. With voice-over, the result goes to a **new timeline** — a copy
-   of the selected one named `<project>_dub_<languages>_<original audio>_<n>` (e.g. `Trip_dub_en_muteall_1`) — and the
-   selected timeline stays as it is; subtitles alone go into the selected timeline. Pick the timeline to dub from in
-   the window's **Timeline** list (it follows the main window's choice).
+No. Speech recognition, translation and voices run on your computer (Apple's on-device models or Whisper on the Mac;
+Whisper, NLLB and Windows voices on Windows). The models are downloaded once, the first time they're needed. The
+internet is used only for that, for updates and for the list of ways to donate.
+</details>
 
-The style and position are copied from captions already in the timeline; otherwise CapCut's default caption
-look is used. Running again replaces the tracks added before (your own captions stay). The project file is
-backed up first to `~/Library/Application Support/EnhanceCapCut/Backups/<project>/<time>/`, and `.srt`
-files can be saved to the export folder too. The first time a language is used, macOS downloads its speech
-or translation model once. On Windows the same window uses Whisper, NLLB and Windows voices (see
-[windows/README.md](windows/README.md#the-app)).
+<details>
+<summary><b>What do I need?</b></summary>
 
-Voice-over: each translated line is spoken by an on-device Apple voice and sped up just enough (at most 1.35×)
-to fit before the next line. The audio is saved inside the project folder (`EnhanceCapCut/voiceover <time>/`),
-each line becomes its own clip, so lines can be moved or trimmed in CapCut. The original sound is lowered with
-volume keyframes on its clips, adjustable in CapCut. Apple's default voices are compact; for better quality
-download *Enhanced* or *Premium* voices in System Settings ▸ Accessibility ▸ Read & Speak (the window's **Open**
-button). **Siri voices** are offered too when Xcode is installed: macOS lets only Apple-signed programs use them,
-so the app speaks them through Xcode's Swift interpreter (`Tools/SiriVoice/siri-voice.swift`).
+macOS 15 or later (Apple Silicon recommended; subtitles and voice-over need macOS 26), or Windows 10/11 x64. On the
+Mac, loudness normalization needs `ffmpeg` (`brew install ffmpeg`); on Windows it's built in.
+</details>
 
-**Clone the original voice** dubs in the voice of the person speaking, with the intonation and emotion of each
-line: every translated line is spoken by [Chatterbox Multilingual](https://huggingface.co/ResembleAI/chatterbox)
-V3 (Resemble AI, MIT; the ONNX export runs in ONNX Runtime on this Mac) from a reference that is the original speech
-at that line, taken from the timeline with Apple's voice isolation. Each line is read back with Whisper and made
-again when it came out garbled; lines that run long are sped up (at most 1.35×) without changing the pitch.
-**Expressiveness** (0.5 = like the original) makes the delivery calmer or more dramatic. It speaks Arabic, Danish,
-Dutch, English, Finnish, French, German, Greek, Hindi, Italian, Korean, Malay, Norwegian, Polish, Portuguese,
-Russian, Spanish, Swahili, Swedish and Turkish; other languages fall back to the chosen system voice. The model is
-downloaded once (1.55 GB, plus Whisper's 574 MB for the check), and a line takes about twice its length to make on
-an M1. **Use it only for your own voice or people who agreed to have their voice cloned**: the window asks you to
-confirm their consent before every run. Best with "Replace voice" or "Remove vocal", so the original speech doesn't play underneath.
+<details>
+<summary><b>Can I clone anyone's voice?</b></summary>
 
-## Command line
+Only your own, or the voice of people who agreed to it. The app asks you to confirm their consent before every run.
+</details>
 
-The `ecc` tool (built next to the app, also inside the bundle at `Contents/MacOS/ecc`) uses the same renderer:
+<details>
+<summary><b>Is there a command line?</b></summary>
 
-```sh
-ecc list                                   # projects, * = open in CapCut
-ecc info ChiangMaiMarkets                   # what will be rendered, unsupported features, missing media
-ecc render 1014 -o ~/Movies/1014.mp4 --codec hevc10 --quality 70
-ecc render KohChangFisherman --timeline 2 # one of several timelines, by number or name
-ecc render 1014 --from 10 --duration 5 --codec prores422 -o /tmp/test.mov
-ecc voice clip.mov -o voice.wav --keep-voice # audition the voice processing on one file
-ecc subtitles DurianDick --language ru-RU --translate en,th --show en --srt ~/Movies   # add captions to the project
-ecc subtitles DurianDick --language ru-RU --voice en,th --hear en --no-captions        # voice-over only
-ecc subtitles ATV --language ru-RU --translate en --voice en=clone --consent --original replace   # dub in the speaker's voice
-ecc clone reference.wav --language en --text "Hello there." -o hello.wav   # audition voice cloning
-ecc voices th                              # installed voices for a language, with their ids
-```
+Yes — `ecc` renders projects and adds subtitles from scripts. See [docs/CLI.md](docs/CLI.md).
+</details>
 
-Options: `--codec h264|hevc|hevc10|prores422|prores422HQ`, `--quality 0-100`, `--bitrate Mbps`,
-`--fps N`, `--aspect project|9:16|1:1|16:9`, `--height 720|1080|1440|2160`, `--lufs -14`,
-`--no-subtitles`, `--from s`, `--duration s`, `--timeline name|number`. Without a project argument the open project is used;
-unspecified options fall back to the app's saved settings. `ecc voice` takes `--keep-voice`,
-`--remove-voice`, `--denoise 0.85`, `--enhance 75` (the ambient sound level) and/or
-`--filter <id>` with `--strength 1` (a voice filter by its CapCut resource id or cached effect folder).
-Voice filters are read from CapCut's own effect cache, so a filter renders only after CapCut has
-downloaded it (i.e. it has been used or previewed in CapCut on this Mac).
-`ecc subtitles` takes `--language` (spoken, e.g. `ru-RU`), `--translate en,th`, `--no-original`, `--show <code>`
-(the visible track), `--keep-previous` (don't replace earlier tracks), `--srt <folder>` and `--draft out.json`
-(write the changed draft there instead of into the project), `--no-captions`, `--voice en,th` (voice-over
-languages; `th=<voice id>` picks a voice from `ecc voices`, Siri voices as `siri:<id>`, `en=clone` the cloned
-original voice, which needs `--consent` to confirm the speakers agreed, and takes `--exaggeration 0.5`),
-`--hear <code>` (the audible voice-over track) and `--original keep|lower|mute|replace|remove` (default `lower`).
-Translation languages must already be downloaded (the app's window can download them).
+## ❤️ Support
 
-## Development
+EnhanceCapCut is free. If it saves you time, the **♥ Donate** button next to **Export** shows the ways to support it.
+Bugs and ideas are welcome in [Issues](../../issues).
 
-```sh
-swift build                 # debug build of everything
-swift test                  # unit tests
-swift run ecc info 1014     # try the renderer
-```
+## 🛠 For developers
 
-Layout: `Sources/EnhanceCapCutCore` (draft model, timeline, renderer, exporter), `Sources/EnhanceCapCut`
-(app, Services provider, SwiftUI window), `Sources/ecc` (CLI), `App/Info.plist` (bundle + `NSServices`),
-`docs/` (roadmap and format notes), `windows/` (the Windows version in C#/.NET, see its README). See [CLAUDE.md](CLAUDE.md) for conventions.
+Build, test and release: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) · conventions: [CLAUDE.md](CLAUDE.md) ·
+Windows version: [windows/README.md](windows/README.md) · CapCut's project format: [docs/FORMAT.md](docs/FORMAT.md).
 
-No CapCut resources (shaders, Lua, LUTs, fonts) and no user media or project files are part of this repo.
+<sub>EnhanceCapCut is an independent app and is not affiliated with CapCut or ByteDance. No CapCut resources (shaders,
+Lua, LUTs, fonts) and no user media or project files are part of this repo.</sub>
