@@ -43,7 +43,7 @@ with one click EnhanceCapCut opens the project you're working on and
 > - voice filters other than Booming, Live House and Old Hollywood ([#48](../../issues/48)); on Windows, all voice
 >   processing — isolate voice, reduce noise, enhance voice ([#49](../../issues/49)).
 >
-> Progress: [all of them as issues](../../issues?q=label%3Acapcut-feature).
+> Progress: [the board](https://github.com/users/DeMoZ/projects/3) · [the issues](../../issues?q=label%3Acapcut-feature).
 
 <p align="center">
   <img src="docs/images/how-it-works.svg" width="860" alt="CapCut project → EnhanceCapCut → video, subtitles, voice-over">
