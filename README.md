@@ -44,6 +44,9 @@ scripts/build-app.sh --install
 This builds `build/EnhanceCapCut.app`, copies it to `~/Applications`, registers it with Launch Services
 and refreshes the Services menu. Without `--install` it only builds.
 
+The app icon is drawn by `swift scripts/make-icon.swift`, which writes `App/AppIcon.icns` and the Windows
+`EnhanceCapCut.ico`; run it again after changing the drawing and commit both files.
+
 ### Release installer
 
 ```sh
