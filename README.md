@@ -90,6 +90,12 @@ NOTARY_PROFILE=enhancecapcut scripts/build-app.sh --pkg
 4. In CapCut, the entry is in **CapCut → Services**. If it doesn't show up, log out and back in, or run
    `/System/Library/CoreServices/pbs -update`.
 
+## How to use
+
+The app has a built-in guide: **Help ▸ EnhanceCapCut Help** (⌘?) or the **How to Use** link at the bottom of the
+export window (on Windows, the same link). It opens by itself at the first launch. Texts for presentations and promo
+videos are in [docs/PROMO.md](docs/PROMO.md).
+
 ## Export window
 
 | Setting | Options |

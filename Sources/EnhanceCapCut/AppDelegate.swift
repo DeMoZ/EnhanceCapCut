@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var subtitlesModel: AnyObject?
     private var donateWindow: NSWindow?
     private let donateModel = DonateModel()
+    private var guideWindow: NSWindow?
     private let model = ExportModel()
     private let services = ServiceProvider()
     /// Sparkle, only in the app bundle (a `swift run` build has no Info.plist feed to check).
@@ -26,6 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         services.onInvoke = { [weak self] in self?.showExportWindow() }
         model.openSubtitles = { [weak self] in self?.showSubtitlesWindow() }
         model.openDonate = { [weak self] in self?.showDonateWindow() }
+        model.openGuide = { [weak self] in self?.showGuideWindow() }
         model.exportFinished = { [weak self] in self?.offerDonationOncePerDay() }
         if let updater {
             model.checkForUpdates = { updater.checkForUpdates(nil) }
@@ -33,6 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.servicesProvider = services
         NSUpdateDynamicServices()
         showExportWindow()
+        showGuideOnFirstLaunch()
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -128,6 +131,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         donateWindow?.makeKeyAndOrderFront(nil)
     }
 
+    /// Shows the "How to Use EnhanceCapCut" window (`GuideView`).
+    func showGuideWindow() {
+        if guideWindow == nil {
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 640),
+                                  styleMask: [.titled, .closable, .miniaturizable, .resizable],
+                                  backing: .buffered, defer: false)
+            window.title = "How to Use EnhanceCapCut"
+            window.isReleasedWhenClosed = false
+            window.contentView = NSHostingView(rootView: GuideView())
+            window.setFrameAutosaveName("GuideWindow")
+            window.center()
+            guideWindow = window
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        guideWindow?.makeKeyAndOrderFront(nil)
+    }
+
+    /// The guide opens by itself once, at the first launch (as on Windows); not for `-autoExport` runs.
+    private func showGuideOnFirstLaunch() {
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: "guideShown"), !defaults.bool(forKey: "autoExport") else { return }
+        defaults.set(true, forKey: "guideShown")
+        showGuideWindow()
+    }
+
     /// After the first export of each day, offers to donate (as on Windows).
     private func offerDonationOncePerDay() {
         let today = Date().formatted(Date.ISO8601FormatStyle(timeZone: .current).year().month().day())
@@ -181,11 +209,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         windowItem.submenu = windowMenu
         NSApp.windowsMenu = windowMenu
         main.addItem(windowItem)
+
+        let helpItem = NSMenuItem()
+        let helpMenu = NSMenu(title: "Help")
+        helpMenu.addItem(withTitle: "EnhanceCapCut Help", action: #selector(showGuideAction), keyEquivalent: "?").target = self
+        helpItem.submenu = helpMenu
+        NSApp.helpMenu = helpMenu
+        main.addItem(helpItem)
         return main
     }
 
     @objc private func showWindowAction() { showExportWindow() }
     @objc private func showSubtitlesAction() { showSubtitlesWindow() }
+    @objc private func showGuideAction() { showGuideWindow() }
     @objc private func showDonateAction() { showDonateWindow() }
     @objc private func showAboutAction() { showDonateWindow(title: "About EnhanceCapCut") }
 

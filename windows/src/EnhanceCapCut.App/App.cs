@@ -10,7 +10,8 @@ namespace EnhanceCapCut.App;
 
 /// <summary>
 /// The app: one instance, the export window on every launch (a second launch brings it back and re-detects the project
-/// open in CapCut, like the macOS Services entry), the subtitles and donate windows on demand, and the same questions as
+/// open in CapCut, like the macOS Services entry), the subtitles, donate and guide windows on demand (the guide also at the
+/// first launch), and the same questions as
 /// the macOS version before quitting during an export or a subtitles run.
 ///
 /// Command line (for testing and scripting, like the macOS <c>--args -project … -autoExport YES</c>):
@@ -28,6 +29,7 @@ sealed partial class App : Application, IXamlMetadataProvider
     SubtitlesWindow? subtitlesWindow;
     DonateModel? donate;
     DonateWindow? donateWindow;
+    GuideWindow? guideWindow;
     bool quitting;
 
     App(string[] args)
@@ -73,6 +75,7 @@ sealed partial class App : Application, IXamlMetadataProvider
         model = new ExportModel(ui) { AutoExport = args.Contains("--auto-export") };
         model.OpenSubtitles = ShowSubtitlesWindow;
         model.OpenDonate = ShowDonateWindow;
+        model.OpenGuide = ShowGuideWindow;
         model.Finished = () =>
         {
             if (exportWindow is not null) Platform.Flash(exportWindow);
@@ -84,6 +87,7 @@ sealed partial class App : Application, IXamlMetadataProvider
         AppInstance.GetCurrent().Activated += (_, _) => ui.TryEnqueue(ShowExportWindow);
         ShowExportWindow();
         if (args.Contains("--subtitles")) ShowSubtitlesWindow();
+        if (!model.AutoExport) ShowGuideOnFirstLaunch();
         // Started again by the update script: either the new version or, when files couldn't be replaced, the old one.
         if (args.Contains("--update-failed")) ui.TryEnqueue(async () => await updater.ReportFailedUpdate());
         else if (args.Contains("--auto-update")) _ = updater.CheckUnattended();
@@ -140,6 +144,25 @@ sealed partial class App : Application, IXamlMetadataProvider
         Bring(donateWindow);
     }
 
+    /// <summary>Shows the "How to Use EnhanceCapCut" window.</summary>
+    void ShowGuideWindow()
+    {
+        if (guideWindow is null)
+        {
+            guideWindow = new GuideWindow();
+            HandleClose(guideWindow);
+        }
+        Bring(guideWindow);
+    }
+
+    /// <summary>The guide opens by itself once, at the first launch (as on the Mac).</summary>
+    void ShowGuideOnFirstLaunch()
+    {
+        if (Preferences.Bool("guideShown")) return;
+        Preferences.Set("guideShown", true);
+        ShowGuideWindow();
+    }
+
     /// <summary>After the first export of each day, offers to donate (as on the Mac).</summary>
     void OfferDonationOncePerDay()
     {
@@ -164,7 +187,7 @@ sealed partial class App : Application, IXamlMetadataProvider
     {
         if (quitting) return;
         e.Cancel = true;
-        var others = new Window?[] { exportWindow, subtitlesWindow, donateWindow }.Where(w => w is not null && w != window && w.AppWindow.IsVisible);
+        var others = new Window?[] { exportWindow, subtitlesWindow, donateWindow, guideWindow }.Where(w => w is not null && w != window && w.AppWindow.IsVisible);
         if (others.Any())
         {
             sender.Hide();
@@ -195,6 +218,7 @@ sealed partial class App : Application, IXamlMetadataProvider
         quitting = true;
         subtitlesWindow?.Close();
         donateWindow?.Close();
+        guideWindow?.Close();
         exportWindow?.Close();
         Exit();
     }

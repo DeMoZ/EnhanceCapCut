@@ -36,6 +36,8 @@ final class ExportModel: ObservableObject {
     var openSubtitles: (() -> Void)?
     /// Opens the "Support EnhanceCapCut" window (set by the app delegate).
     var openDonate: (() -> Void)?
+    /// Opens the "How to Use EnhanceCapCut" window (set by the app delegate).
+    var openGuide: (() -> Void)?
     /// An export finished (not one started by `-autoExport`); set by the app delegate.
     var exportFinished: (() -> Void)?
     /// Sparkle's "Check for Updates…" (nil outside the app bundle).

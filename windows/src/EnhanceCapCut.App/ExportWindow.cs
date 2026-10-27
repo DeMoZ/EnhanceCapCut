@@ -63,7 +63,9 @@ sealed class ExportWindow : Window
     readonly Button revealButton = new() { Content = "Show in Explorer" };
     readonly StackPanel exportingView, finishedView;
     readonly Grid idleView, failedView;
-    // "Version 0.6.0 · Check for Updates…" (as on the Mac), or the update found / its download; only in a release build.
+    // "How to Use · Version 0.6.0 · Check for Updates…" (as on the Mac): the version and the update found / its download
+    // only in a release build.
+    readonly HyperlinkButton guideLink = new() { Content = "How to Use", FontSize = 12, Padding = new Thickness(2, 0, 2, 0) };
     readonly StackPanel footerLinks = new() { Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
     readonly StackPanel updatesView = new() { Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
     readonly TextBlock versionText = Text.Caption();
@@ -163,6 +165,8 @@ sealed class ExportWindow : Window
         updatesView.Children.Add(updatesLink);
         updatesLink.Click += async (_, _) => { if (model.Updates is { } u) await u.Check(); };
         donateButton.Click += (_, _) => model.OpenDonate?.Invoke();
+        guideLink.Click += (_, _) => model.OpenGuide?.Invoke();
+        footerLinks.Children.Add(guideLink);
         footerLinks.Children.Add(updatesView);
         idleView = Spread(footerLinks, idleButtons);
 
@@ -328,7 +332,7 @@ sealed class ExportWindow : Window
         var updater = model.Updates;
         updatesView.Visibility = updater is not null && Updater.Current is not null ? Visibility.Visible : Visibility.Collapsed;
         if (updater is null || Updater.Current is not { } current) return;
-        versionText.Text = $"Version {current} ·";
+        versionText.Text = $"· Version {current} ·";
         if (updater.Progress is { } p)
         {
             updatesLink.Content = $"Downloading the update… {p:P0}";

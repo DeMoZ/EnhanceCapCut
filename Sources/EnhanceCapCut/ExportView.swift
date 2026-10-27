@@ -238,16 +238,16 @@ struct ExportView: View {
         }
     }
 
-    /// "Version 0.6.0 · Check for Updates…", as in the Windows version (none outside the app bundle).
-    @ViewBuilder
+    /// "How to Use · Version 0.6.0 · Check for Updates…", as in the Windows version (no version outside the app bundle).
     private var footerLinks: some View {
-        if let check = model.checkForUpdates {
-            HStack(spacing: 4) {
-                Text("Version \(model.version) ·").foregroundStyle(.secondary)
+        HStack(spacing: 4) {
+            Button("How to Use") { model.openGuide?() }.buttonStyle(.link)
+            if let check = model.checkForUpdates {
+                Text("· Version \(model.version) ·").foregroundStyle(.secondary)
                 Button("Check for Updates…", action: check).buttonStyle(.link)
             }
-            .font(.caption)
         }
+        .font(.caption)
     }
 
     private var exportButtons: some View {
