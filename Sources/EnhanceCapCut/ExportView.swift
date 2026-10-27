@@ -218,7 +218,7 @@ struct ExportView: View {
                         .lineLimit(1).truncationMode(.middle)
                     Spacer()
                     Button("Show in Finder") { model.revealOutput(url) }
-                    exportButton
+                    exportButtons
                 }
                 ForEach(warnings, id: \.self) { Text($0).font(.caption).foregroundStyle(.orange) }
             }
@@ -227,28 +227,34 @@ struct ExportView: View {
                 Image(systemName: "xmark.octagon.fill").foregroundStyle(.red)
                 Text(message).font(.callout).lineLimit(3)
                 Spacer()
-                exportButton
+                exportButtons
             }
         case .idle:
             HStack {
                 footerLinks
                 Spacer()
-                exportButton
+                exportButtons
             }
         }
     }
 
-    /// "Version 0.6.0 · Check for Updates… · Donate…", as in the Windows version (no version part outside the app bundle).
+    /// "Version 0.6.0 · Check for Updates…", as in the Windows version (none outside the app bundle).
+    @ViewBuilder
     private var footerLinks: some View {
-        HStack(spacing: 4) {
-            if let check = model.checkForUpdates {
+        if let check = model.checkForUpdates {
+            HStack(spacing: 4) {
                 Text("Version \(model.version) ·").foregroundStyle(.secondary)
                 Button("Check for Updates…", action: check).buttonStyle(.link)
-                Text("·").foregroundStyle(.secondary)
             }
-            Button("Donate…") { model.openDonate?() }.buttonStyle(.link)
+            .font(.caption)
         }
-        .font(.caption)
+    }
+
+    private var exportButtons: some View {
+        HStack {
+            DonateButton { model.openDonate?() }
+            exportButton
+        }
     }
 
     private var exportButton: some View {

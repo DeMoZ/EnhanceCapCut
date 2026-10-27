@@ -18,10 +18,12 @@ namespace EnhanceCapCut.App;
 /// <summary>Colours and icons shared by the windows.</summary>
 static class Theme
 {
-    // The macOS system colours the windows use for status (systemGreen, systemOrange, systemRed).
+    // The macOS system colours the windows use for status (systemGreen, systemOrange, systemRed) and the Donate heart
+    // (systemPink).
     public static readonly SolidColorBrush Green = new(Color.FromArgb(255, 0x34, 0xC7, 0x59));
     public static readonly SolidColorBrush Orange = new(Color.FromArgb(255, 0xFF, 0x95, 0x00));
     public static readonly SolidColorBrush Red = new(Color.FromArgb(255, 0xFF, 0x3B, 0x30));
+    public static readonly SolidColorBrush Pink = new(Color.FromArgb(255, 0xFF, 0x2D, 0x55));
 
     public static Brush Resource(string key) => (Brush)Application.Current.Resources[key];
     public static Brush Primary => Resource("TextFillColorPrimaryBrush");
@@ -44,6 +46,7 @@ static class Theme
     public const string Captions = "";
     public const string Waveform = "";
     public const string Up = "";
+    public const string HeartFill = "\uEB52";
     public const string Down = "";
 
     public static FontIcon Icon(string glyph, double size = 14, Brush? foreground = null)

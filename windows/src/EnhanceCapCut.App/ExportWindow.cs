@@ -55,6 +55,7 @@ sealed class ExportWindow : Window
 
     // Footer
     readonly Button exportButton = new() { Content = "Export", Style = (Style)Application.Current.Resources["AccentButtonStyle"] };
+    readonly DonateButton donateButton = new();
     readonly ProgressBar progressBar = new() { Maximum = 1 };
     readonly TextBlock progressText = Text.Callout();
     readonly StackPanel warningsPanel = new() { Spacing = 2 };
@@ -62,16 +63,14 @@ sealed class ExportWindow : Window
     readonly Button revealButton = new() { Content = "Show in Explorer" };
     readonly StackPanel exportingView, finishedView;
     readonly Grid idleView, failedView;
-    // "Version 0.6.0 · Check for Updates… · Donate…" (as on the Mac), or the update found / its download; the version
-    // part only in a release build.
+    // "Version 0.6.0 · Check for Updates…" (as on the Mac), or the update found / its download; only in a release build.
     readonly StackPanel footerLinks = new() { Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
     readonly StackPanel updatesView = new() { Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
     readonly TextBlock versionText = Text.Caption();
     readonly HyperlinkButton updatesLink = new() { FontSize = 12, Padding = new Thickness(2, 0, 2, 0) };
-    readonly HyperlinkButton donateLink = new() { Content = "Donate…", FontSize = 12, Padding = new Thickness(2, 0, 2, 0) };
     readonly StackPanel finishedButtons = new() { Orientation = Orientation.Horizontal, Spacing = 8 };
-    readonly StackPanel failedButtons = new() { Orientation = Orientation.Horizontal };
-    readonly StackPanel idleButtons = new() { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+    readonly StackPanel failedButtons = new() { Orientation = Orientation.Horizontal, Spacing = 8 };
+    readonly StackPanel idleButtons = new() { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right };
 
     public ExportWindow(ExportModel model)
     {
@@ -163,10 +162,8 @@ sealed class ExportWindow : Window
         updatesView.Children.Add(versionText);
         updatesView.Children.Add(updatesLink);
         updatesLink.Click += async (_, _) => { if (model.Updates is { } u) await u.Check(); };
-        updatesView.Children.Add(Text.Caption("·"));
-        donateLink.Click += (_, _) => model.OpenDonate?.Invoke();
+        donateButton.Click += (_, _) => model.OpenDonate?.Invoke();
         footerLinks.Children.Add(updatesView);
-        footerLinks.Children.Add(donateLink);
         idleView = Spread(footerLinks, idleButtons);
 
         var root = new Grid { Background = Theme.Resource("SolidBackgroundFillColorBaseBrush") };
@@ -346,13 +343,16 @@ sealed class ExportWindow : Window
 
     Panel? buttonHost;
 
-    /// <summary>Puts <paramref name="view"/> in the footer, with the Export button (there's one, for its Enter key) in <paramref name="buttons"/>.</summary>
+    /// <summary>Puts <paramref name="view"/> in the footer, with the Donate and Export buttons (there's one Export button, for
+    /// its Enter key) in <paramref name="buttons"/>.</summary>
     void Show(UIElement view, Panel? buttons)
     {
         // Parent isn't set before the window is shown: the button's place is tracked here.
         if (buttons is not null && buttonHost != buttons)
         {
+            buttonHost?.Children.Remove(donateButton);
             buttonHost?.Children.Remove(exportButton);
+            buttons.Children.Add(donateButton);
             buttons.Children.Add(exportButton);
             buttonHost = buttons;
         }
