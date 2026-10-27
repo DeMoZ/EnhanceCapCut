@@ -18,3 +18,6 @@ draft_content.json
 # .NET (Windows version)
 bin/
 obj/
+
+# ONNX Runtime profiling output
+onnxruntime_profile_*.json
