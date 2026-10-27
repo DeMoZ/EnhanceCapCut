@@ -62,10 +62,13 @@ sealed class ExportWindow : Window
     readonly Button revealButton = new() { Content = "Show in Explorer" };
     readonly StackPanel exportingView, finishedView;
     readonly Grid idleView, failedView;
-    // "Version 0.6.0 · Check for Updates…" (as on the Mac), or the update found / its download.
+    // "Version 0.6.0 · Check for Updates… · Donate…" (as on the Mac), or the update found / its download; the version
+    // part only in a release build.
+    readonly StackPanel footerLinks = new() { Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
     readonly StackPanel updatesView = new() { Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
     readonly TextBlock versionText = Text.Caption();
     readonly HyperlinkButton updatesLink = new() { FontSize = 12, Padding = new Thickness(2, 0, 2, 0) };
+    readonly HyperlinkButton donateLink = new() { Content = "Donate…", FontSize = 12, Padding = new Thickness(2, 0, 2, 0) };
     readonly StackPanel finishedButtons = new() { Orientation = Orientation.Horizontal, Spacing = 8 };
     readonly StackPanel failedButtons = new() { Orientation = Orientation.Horizontal };
     readonly StackPanel idleButtons = new() { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
@@ -160,7 +163,11 @@ sealed class ExportWindow : Window
         updatesView.Children.Add(versionText);
         updatesView.Children.Add(updatesLink);
         updatesLink.Click += async (_, _) => { if (model.Updates is { } u) await u.Check(); };
-        idleView = Spread(updatesView, idleButtons);
+        updatesView.Children.Add(Text.Caption("·"));
+        donateLink.Click += (_, _) => model.OpenDonate?.Invoke();
+        footerLinks.Children.Add(updatesView);
+        footerLinks.Children.Add(donateLink);
+        idleView = Spread(footerLinks, idleButtons);
 
         var root = new Grid { Background = Theme.Resource("SolidBackgroundFillColorBaseBrush") };
         root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });

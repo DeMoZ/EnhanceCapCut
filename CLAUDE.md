@@ -32,6 +32,9 @@ usage, docs/PLAN.md for the roadmap, docs/FORMAT.md for what we know about CapCu
 - `EnhanceCapCutCore/Render`: decoding (`FrameSource`), compositing (`FrameCompositor`, Core Image),
   text (`TextRasterizer`, Core Text), audio (`AudioRenderer`).
 - `EnhanceCapCutCore/Export`: settings and the `Exporter` pipeline (audio → loudnorm → frames → AVAssetWriter).
+- `EnhanceCapCutCore/Donations`: the "Support EnhanceCapCut" window's ways to donate, downloaded from the public
+  `DeMoZ/donations` repo (`enhancecapcut.json`, localized texts; the format is in that repo's README). Never hardcode
+  donation links in the app. C# twin: `EnhanceCapCut.Subtitles/Donations.cs`.
 - Times are `Int64` microseconds like in the draft; convert to `CMTime` at AVFoundation boundaries.
 - Swift 6 toolchain in Swift 5 language mode; the app target is `@MainActor`, the core is plain classes.
 - Keep calibration constants named and documented where they're defined (see `TextRasterizer`).
