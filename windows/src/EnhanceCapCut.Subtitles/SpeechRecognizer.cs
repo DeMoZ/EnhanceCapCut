@@ -1,5 +1,6 @@
 using EnhanceCapCut.Draft;
 using Whisper.net;
+using static EnhanceCapCut.Draft.Localization;
 
 namespace EnhanceCapCut.Subtitles;
 
@@ -79,7 +80,7 @@ public static class SpeechRecognizer
         if (Environment.GetEnvironmentVariable("ECC_DEBUG_WORDS") is { Length: > 0 })
             foreach (var w in words) Console.Error.WriteLine($"{w.Start:0.00}-{w.End:0.00} {w.Text}");
         progress?.Invoke(1);
-        if (words.Count == 0) throw new InvalidOperationException("No speech recognized. Check the spoken language and audio level.");
+        if (words.Count == 0) throw new InvalidOperationException(L("No speech recognized. Check the spoken language and audio level."));
         return words;
     }
 

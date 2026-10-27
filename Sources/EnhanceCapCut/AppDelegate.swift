@@ -1,4 +1,5 @@
 import AppKit
+import EnhanceCapCutCore
 import Sparkle
 import SwiftUI
 
@@ -23,11 +24,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.terminate(nil)
             return
         }
+        Localization.use(Localization.choice ?? .system())
         NSApp.mainMenu = makeMenu()
         services.onInvoke = { [weak self] in self?.showExportWindow() }
         model.openSubtitles = { [weak self] in self?.showSubtitlesWindow() }
         model.openDonate = { [weak self] in self?.showDonateWindow() }
         model.openGuide = { [weak self] in self?.showGuideWindow() }
+        model.setLanguage = { [weak self] in self?.setLanguage($0) }
         model.exportFinished = { [weak self] in self?.offerDonationOncePerDay() }
         if let updater {
             model.checkForUpdates = { updater.checkForUpdates(nil) }
@@ -46,19 +49,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         if #available(macOS 26, *), let subtitles = subtitlesModel as? SubtitlesModel, subtitles.isRunning {
             let alert = NSAlert()
-            alert.messageText = "Subtitles are being created"
-            alert.informativeText = "Quitting cancels them."
-            alert.addButton(withTitle: "Keep Working")
-            alert.addButton(withTitle: "Quit")
+            alert.messageText = L("Subtitles are being created")
+            alert.informativeText = L("Quitting cancels them.")
+            alert.addButton(withTitle: L("Keep Working"))
+            alert.addButton(withTitle: L("Quit"))
             guard alert.runModal() == .alertSecondButtonReturn else { return .terminateCancel }
             subtitles.cancel()
         }
         guard model.isExporting else { return .terminateNow }
         let alert = NSAlert()
-        alert.messageText = "An export is in progress"
-        alert.informativeText = "Quitting cancels it."
-        alert.addButton(withTitle: "Keep Exporting")
-        alert.addButton(withTitle: "Quit")
+        alert.messageText = L("An export is in progress")
+        alert.informativeText = L("Quitting cancels it.")
+        alert.addButton(withTitle: L("Keep Exporting"))
+        alert.addButton(withTitle: L("Quit"))
         if alert.runModal() == .alertSecondButtonReturn {
             model.cancel()
             return .terminateNow
@@ -80,7 +83,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 560, height: 760),
                                   styleMask: [.titled, .closable, .miniaturizable, .resizable],
                                   backing: .buffered, defer: false)
-            window.title = "Export with EnhanceCapCut"
+            window.title = L("Export with EnhanceCapCut")
             window.isReleasedWhenClosed = false
             window.contentView = NSHostingView(rootView: ExportView(model: model))
             window.setFrameAutosaveName("ExportWindow")
@@ -100,7 +103,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 720),
                                   styleMask: [.titled, .closable, .miniaturizable, .resizable],
                                   backing: .buffered, defer: false)
-            window.title = "Subtitles & Voice-over"
+            window.title = L("Subtitles & Voice-over")
             window.isReleasedWhenClosed = false
             window.contentView = NSHostingView(rootView: SubtitlesView(model: subtitles))
             window.setFrameAutosaveName("SubtitlesWindow")
@@ -114,7 +117,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Shows the "Support EnhanceCapCut" window (app info and the ways to donate, downloaded again); it's also the
     /// About window.
-    func showDonateWindow(title: String = "Support EnhanceCapCut") {
+    func showDonateWindow(title: String = L("Support EnhanceCapCut")) {
         if donateWindow == nil {
             let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 440, height: 440),
                                   styleMask: [.titled, .closable, .miniaturizable, .resizable],
@@ -137,7 +140,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 640),
                                   styleMask: [.titled, .closable, .miniaturizable, .resizable],
                                   backing: .buffered, defer: false)
-            window.title = "How to Use EnhanceCapCut"
+            window.title = L("How to Use EnhanceCapCut")
             window.isReleasedWhenClosed = false
             window.contentView = NSHostingView(rootView: GuideView())
             window.setFrameAutosaveName("GuideWindow")
@@ -156,6 +159,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         showGuideWindow()
     }
 
+    /// Switches the interface to `choice` (nil: the system's language) right away: the menu and the open windows are
+    /// built again in the new language. Texts a window already worked out (a finished run's summary) stay as they were.
+    func setLanguage(_ choice: Localization.Language?) {
+        Localization.choice = choice
+        let language = choice ?? .system()
+        guard language != Localization.language else { return }
+        Localization.use(language)
+        NSApp.mainMenu = makeMenu()
+        window?.title = L("Export with EnhanceCapCut")
+        window?.contentView = NSHostingView(rootView: ExportView(model: model))
+        if #available(macOS 26, *), let subtitles = subtitlesModel as? SubtitlesModel {
+            subtitlesWindow?.title = L("Subtitles & Voice-over")
+            subtitlesWindow?.contentView = NSHostingView(rootView: SubtitlesView(model: subtitles))
+        }
+        donateWindow?.title = L("Support EnhanceCapCut")
+        donateWindow?.contentView = NSHostingView(rootView: DonateView(model: donateModel))
+        guideWindow?.title = L("How to Use EnhanceCapCut")
+        guideWindow?.contentView = NSHostingView(rootView: GuideView())
+        // The "Not rendered yet" list is worked out with the timeline: read it again in the new language.
+        if !model.isExporting { model.refreshProjects(selectOpen: false) }
+    }
+
     /// After the first export of each day, offers to donate (as on Windows).
     private func offerDonationOncePerDay() {
         let today = Date().formatted(Date.ISO8601FormatStyle(timeZone: .current).year().month().day())
@@ -168,51 +193,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let main = NSMenu()
         let appItem = NSMenuItem()
         let appMenu = NSMenu()
-        appMenu.addItem(withTitle: "About EnhanceCapCut", action: #selector(showAboutAction), keyEquivalent: "").target = self
+        appMenu.addItem(withTitle: L("About EnhanceCapCut"), action: #selector(showAboutAction), keyEquivalent: "").target = self
         if let updater {
-            appMenu.addItem(withTitle: "Check for Updates…", action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)),
+            appMenu.addItem(withTitle: L("Check for Updates…"), action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)),
                             keyEquivalent: "").target = updater
         }
-        appMenu.addItem(withTitle: "Donate…", action: #selector(showDonateAction), keyEquivalent: "").target = self
+        appMenu.addItem(withTitle: L("Donate…"), action: #selector(showDonateAction), keyEquivalent: "").target = self
         appMenu.addItem(.separator())
-        let servicesItem = NSMenuItem(title: "Services", action: nil, keyEquivalent: "")
+        let servicesItem = NSMenuItem(title: L("Services"), action: nil, keyEquivalent: "")
         let servicesMenu = NSMenu()
         servicesItem.submenu = servicesMenu
         NSApp.servicesMenu = servicesMenu
         appMenu.addItem(servicesItem)
         appMenu.addItem(.separator())
-        appMenu.addItem(withTitle: "Hide EnhanceCapCut", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
-        appMenu.addItem(withTitle: "Quit EnhanceCapCut", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: L("Hide EnhanceCapCut"), action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        appMenu.addItem(withTitle: L("Quit EnhanceCapCut"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appItem.submenu = appMenu
         main.addItem(appItem)
 
         let editItem = NSMenuItem()
-        let edit = NSMenu(title: "Edit")
-        edit.addItem(withTitle: "Undo", action: Selector(("undo:")), keyEquivalent: "z")
-        edit.addItem(withTitle: "Redo", action: Selector(("redo:")), keyEquivalent: "Z")
+        let edit = NSMenu(title: L("Edit"))
+        edit.addItem(withTitle: L("Undo"), action: Selector(("undo:")), keyEquivalent: "z")
+        edit.addItem(withTitle: L("Redo"), action: Selector(("redo:")), keyEquivalent: "Z")
         edit.addItem(.separator())
-        edit.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
-        edit.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
-        edit.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
-        edit.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+        edit.addItem(withTitle: L("Cut"), action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        edit.addItem(withTitle: L("Copy"), action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        edit.addItem(withTitle: L("Paste"), action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        edit.addItem(withTitle: L("Select All"), action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
         editItem.submenu = edit
         main.addItem(editItem)
 
         let windowItem = NSMenuItem()
-        let windowMenu = NSMenu(title: "Window")
-        windowMenu.addItem(withTitle: "Export Window", action: #selector(showWindowAction), keyEquivalent: "e").target = self
+        let windowMenu = NSMenu(title: L("Window"))
+        windowMenu.addItem(withTitle: L("Export Window"), action: #selector(showWindowAction), keyEquivalent: "e").target = self
         if #available(macOS 26, *) {
-            windowMenu.addItem(withTitle: "Subtitles & Voice-over", action: #selector(showSubtitlesAction), keyEquivalent: "u").target = self
+            windowMenu.addItem(withTitle: L("Subtitles & Voice-over"), action: #selector(showSubtitlesAction), keyEquivalent: "u").target = self
         }
-        windowMenu.addItem(withTitle: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
-        windowMenu.addItem(withTitle: "Minimize", action: #selector(NSWindow.miniaturize(_:)), keyEquivalent: "m")
+        windowMenu.addItem(withTitle: L("Close"), action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        windowMenu.addItem(withTitle: L("Minimize"), action: #selector(NSWindow.miniaturize(_:)), keyEquivalent: "m")
         windowItem.submenu = windowMenu
         NSApp.windowsMenu = windowMenu
         main.addItem(windowItem)
 
         let helpItem = NSMenuItem()
-        let helpMenu = NSMenu(title: "Help")
-        helpMenu.addItem(withTitle: "EnhanceCapCut Help", action: #selector(showGuideAction), keyEquivalent: "?").target = self
+        let helpMenu = NSMenu(title: L("Help"))
+        helpMenu.addItem(withTitle: L("EnhanceCapCut Help"), action: #selector(showGuideAction), keyEquivalent: "?").target = self
         helpItem.submenu = helpMenu
         NSApp.helpMenu = helpMenu
         main.addItem(helpItem)
@@ -223,7 +248,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func showSubtitlesAction() { showSubtitlesWindow() }
     @objc private func showGuideAction() { showGuideWindow() }
     @objc private func showDonateAction() { showDonateWindow() }
-    @objc private func showAboutAction() { showDonateWindow(title: "About EnhanceCapCut") }
+    @objc private func showAboutAction() { showDonateWindow(title: L("About EnhanceCapCut")) }
 
     /// Keeps a single instance when two copies are installed (e.g. ~/Applications and /Applications):
     /// both can answer the Services entry and show their own export window. Older copies are asked to

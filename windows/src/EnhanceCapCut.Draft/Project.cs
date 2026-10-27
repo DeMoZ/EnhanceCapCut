@@ -141,7 +141,7 @@ public static class ProjectLocator
 public static class DraftLoader
 {
     public sealed class LoadException(string path, Exception inner)
-        : Exception($"Cannot read {path}: {inner.Message}", inner);
+        : Exception(Localization.L("Cannot read {0}: {1}", path, inner.Message), inner);
 
     public static Draft Load(string draftPath)
     {

@@ -94,7 +94,10 @@ NOTARY_PROFILE=enhancecapcut scripts/build-app.sh --pkg
 
 The app has a built-in guide: **Help ▸ EnhanceCapCut Help** (⌘?) or the **How to Use** link at the bottom of the
 export window (on Windows, the same link). It opens by itself at the first launch. Texts for presentations and promo
-videos are in [docs/PROMO.md](docs/PROMO.md).
+videos are in [docs/PROMO.md](docs/PROMO.md) (Russian: [docs/PROMO.ru.md](docs/PROMO.ru.md)).
+
+**Interface language:** English or Russian, the system's by default; the 🌐 menu at the bottom of the export window
+switches it right away (both platforms). The `ecc` CLI always speaks English.
 
 ## Export window
 

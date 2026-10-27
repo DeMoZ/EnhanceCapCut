@@ -33,8 +33,8 @@ public enum DraftSubtitleError: LocalizedError {
     public var errorDescription: String? {
         switch self {
         case let .projectOpen(name):
-            return "\(name) is open in CapCut. Close the project (back to CapCut's home screen) and try again — "
-                + "otherwise CapCut overwrites the subtitles when it saves."
+            return L("{0} is open in CapCut. Close the project (back to CapCut's home screen) and try again — "
+                + "otherwise CapCut overwrites the subtitles when it saves.", name)
         case .noTracks: return "The draft has no tracks list."
         }
     }

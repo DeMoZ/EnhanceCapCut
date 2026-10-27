@@ -3,6 +3,7 @@ import AVFoundation
 public enum VoiceGender: String, CaseIterable, Identifiable, Sendable {
     case female = "Female", male = "Male"
     public var id: String { rawValue }
+    public var title: String { self == .female ? L("Female") : L("Male") }
 }
 
 /// A system voice that can speak a subtitle language.
@@ -67,7 +68,7 @@ public enum DubberError: LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .noVoice(let l): return "No system voice is installed for \(l). Add one in System Settings ▸ Accessibility ▸ Read & Speak (ⓘ next to System voice)."
+        case .noVoice(let l): return L("No system voice is installed for {0}. Add one in System Settings ▸ Accessibility ▸ Read & Speak (ⓘ next to System voice).", l)
         }
     }
 }

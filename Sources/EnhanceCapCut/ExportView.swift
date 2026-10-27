@@ -25,11 +25,11 @@ struct ExportView: View {
     // MARK: Sections
 
     private var projectSection: some View {
-        Section("Project") {
+        Section(L("Project")) {
             HStack {
-                Picker("CapCut project", selection: $model.selectedProjectURL) {
+                Picker(L("CapCut project"), selection: $model.selectedProjectURL) {
                     ForEach(model.displayedProjects) { project in
-                        Text(project.isOpen ? "\(project.name)  — open in CapCut" : project.name)
+                        Text(project.isOpen ? L("{0}  — open in CapCut", project.name) : project.name)
                             .tag(Optional(project.url))
                     }
                 }
@@ -39,37 +39,37 @@ struct ExportView: View {
                     Image(systemName: "textformat.abc")
                 }
                 .toggleStyle(.button)
-                .help(model.sortProjectsByName ? "Sorted by name. Click for CapCut's order"
-                    : "In CapCut's order. Click to sort by name")
+                .help(model.sortProjectsByName ? L("Sorted by name. Click for CapCut's order")
+                    : L("In CapCut's order. Click to sort by name"))
                 Button {
                     model.refreshProjects(selectOpen: true)
                 } label: {
                     Image(systemName: "arrow.clockwise")
                 }
-                .help("Re-detect the project open in CapCut")
+                .help(L("Re-detect the project open in CapCut"))
             }
             if model.timelines.count > 1 {
-                Picker("Timeline", selection: $model.selectedTimelineID) {
+                Picker(L("Timeline"), selection: $model.selectedTimelineID) {
                     ForEach(model.timelines) { timeline in
-                        Text(timeline.isMain ? "\(timeline.name)  — main" : timeline.name).tag(Optional(timeline.id))
+                        Text(timeline.isMain ? L("{0}  — main", timeline.name) : timeline.name).tag(Optional(timeline.id))
                     }
                 }
             }
             if let timeline = model.timeline {
-                LabeledContent("Canvas", value: "\(Int(timeline.canvasSize.width))×\(Int(timeline.canvasSize.height)), "
-                    + "\(format(timeline.fps)) fps, \(duration(timeline.duration))")
+                LabeledContent(L("Canvas"), value: L("{0}×{1}, {2} fps, {3}", Int(timeline.canvasSize.width),
+                                                   Int(timeline.canvasSize.height), format(timeline.fps), duration(timeline.duration)))
             } else if let error = model.loadError {
                 Text(error).foregroundStyle(.red)
             } else if model.selectedProject != nil {
                 ProgressView().controlSize(.small)
             } else {
-                Text("No CapCut projects found in ~/Movies/CapCut.").foregroundStyle(.secondary)
+                Text(L("No CapCut projects found in ~/Movies/CapCut.")).foregroundStyle(.secondary)
             }
-            LabeledContent("Subtitles") {
-                Button("Subtitles & Voice-over…") { model.openSubtitles?() }
+            LabeledContent(L("Subtitles")) {
+                Button(L("Subtitles & Voice-over…")) { model.openSubtitles?() }
                     .disabled(model.selectedProject == nil || !Self.subtitlesAvailable)
-                    .help(Self.subtitlesAvailable ? "Transcribe and translate the speech and add it to the project as captions"
-                        : "Needs macOS 26 or later")
+                    .help(Self.subtitlesAvailable ? L("Transcribe and translate the speech and add it to the project as captions")
+                        : L("Needs macOS 26 or later"))
             }
         }
     }
@@ -80,86 +80,86 @@ struct ExportView: View {
     }
 
     private var videoSection: some View {
-        Section("Video") {
-            Picker("Aspect ratio", selection: $model.settings.aspect) {
+        Section(L("Video")) {
+            Picker(L("Aspect ratio"), selection: $model.settings.aspect) {
                 ForEach(ExportSettings.Aspect.allCases) { Text($0.title).tag($0) }
             }
-            Picker("Resolution", selection: $model.settings.resolution) {
+            Picker(L("Resolution"), selection: $model.settings.resolution) {
                 ForEach(ExportSettings.Resolution.allCases) { Text($0.title).tag($0) }
             }
             if let size = model.outputSize {
-                LabeledContent("Output size", value: "\(Int(size.width))×\(Int(size.height))")
+                LabeledContent(L("Output size"), value: "\(Int(size.width))×\(Int(size.height))")
             }
-            Picker("Frame rate", selection: $model.settings.frameRate) {
-                Text(model.timeline.map { "From project (\(format($0.fps)))" } ?? "From project").tag(0.0)
+            Picker(L("Frame rate"), selection: $model.settings.frameRate) {
+                Text(model.timeline.map { L("From project ({0})", format($0.fps)) } ?? L("From project")).tag(0.0)
                 ForEach([24.0, 25, 30, 60], id: \.self) { Text(format($0)).tag($0) }
             }
-            Picker("Codec", selection: $model.settings.codec) {
+            Picker(L("Codec"), selection: $model.settings.codec) {
                 ForEach(ExportSettings.Codec.allCases) { Text($0.title).tag($0) }
             }
             if !model.settings.codec.isProRes {
-                Picker("Rate control", selection: $model.settings.rateControl) {
-                    Text("Constant quality").tag(ExportSettings.RateControl.quality)
-                    Text("Bitrate").tag(ExportSettings.RateControl.bitrate)
+                Picker(L("Rate control"), selection: $model.settings.rateControl) {
+                    Text(L("Constant quality")).tag(ExportSettings.RateControl.quality)
+                    Text(L("Bitrate")).tag(ExportSettings.RateControl.bitrate)
                 }
                 .pickerStyle(.segmented)
                 if model.settings.rateControl == .quality {
-                    LabeledContent("Quality") {
+                    LabeledContent(L("Quality")) {
                         HStack {
                             Slider(value: $model.settings.quality, in: 0...100)
                             Text("\(Int(model.settings.quality))").monospacedDigit().frame(width: 32, alignment: .trailing)
                         }
                     }
                 } else {
-                    LabeledContent("Bitrate") {
+                    LabeledContent(L("Bitrate")) {
                         HStack {
                             TextField("", value: $model.settings.bitrateMbps, format: .number)
                                 .frame(width: 70)
-                            Text("Mbit/s")
+                            Text(L("Mbit/s"))
                         }
                     }
                 }
             }
             if model.timeline?.hasSubtitles == true {
-                Toggle("Burn in captions (auto-subtitles)", isOn: $model.settings.burnInSubtitles)
+                Toggle(L("Burn in captions (auto-subtitles)"), isOn: $model.settings.burnInSubtitles)
             }
         }
     }
 
     private var audioSection: some View {
-        Section("Audio") {
-            Toggle("Normalize loudness", isOn: $model.settings.normalizeLoudness)
+        Section(L("Audio")) {
+            Toggle(L("Normalize loudness"), isOn: $model.settings.normalizeLoudness)
                 .disabled(!model.ffmpegAvailable)
             if model.settings.normalizeLoudness {
-                LabeledContent("Target") {
+                LabeledContent(L("Target")) {
                     HStack {
                         TextField("", value: $model.settings.targetLUFS, format: .number).frame(width: 60)
-                        Text("LUFS")
+                        Text(L("LUFS"))
                         Stepper("", value: $model.settings.targetLUFS, in: -40...(-5), step: 1).labelsHidden()
                     }
                 }
             }
             if !model.ffmpegAvailable {
-                Text("Loudness normalization needs ffmpeg (brew install ffmpeg).")
+                Text(L("Loudness normalization needs ffmpeg (brew install ffmpeg)."))
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
     }
 
     private var outputSection: some View {
-        Section("Output") {
-            LabeledContent("Folder") {
+        Section(L("Output")) {
+            LabeledContent(L("Folder")) {
                 HStack {
                     Text((model.settings.outputFolder as NSString).abbreviatingWithTildeInPath)
                         .lineLimit(1).truncationMode(.middle)
-                    Button("Choose…") { model.chooseOutputFolder() }
+                    Button(L("Choose…")) { model.chooseOutputFolder() }
                 }
             }
-            TextField("File name", text: $model.settings.fileNameTemplate)
-            Text("Tokens: {project} {date} {time} {res} {codec} {fps}")
+            TextField(L("File name"), text: $model.settings.fileNameTemplate)
+            Text(L("Tokens: {project} {date} {time} {res} {codec} {fps}"))
                 .font(.caption).foregroundStyle(.secondary)
             if let url = model.outputURL {
-                LabeledContent("Will save as", value: url.lastPathComponent)
+                LabeledContent(L("Will save as"), value: url.lastPathComponent)
             }
         }
     }
@@ -177,20 +177,20 @@ struct ExportView: View {
                 }
                 if !report.missingFiles.isEmpty {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Missing media (rendered empty)").font(.headline).foregroundStyle(.red)
+                        Text(L("Missing media (rendered empty)")).font(.headline).foregroundStyle(.red)
                         ForEach(report.missingFiles.prefix(12), id: \.self) { file in
                             Text(file).font(.caption).lineLimit(1).truncationMode(.middle)
                         }
                         if report.missingFiles.count > 12 {
-                            Text("…and \(report.missingFiles.count - 12) more").font(.caption).foregroundStyle(.secondary)
+                            Text(L("…and {0} more", report.missingFiles.count - 12)).font(.caption).foregroundStyle(.secondary)
                         }
                     }
                 }
             } header: {
-                Label("Not rendered yet", systemImage: "exclamationmark.triangle")
+                Label(L("Not rendered yet"), systemImage: "exclamationmark.triangle")
             } footer: {
-                Text("These CapCut features are in the project but this version doesn't reproduce them; "
-                    + "the export will look different where they're used.")
+                Text(L("These CapCut features are in the project but this version doesn't reproduce them; "
+                    + "the export will look different where they're used."))
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -207,17 +207,17 @@ struct ExportView: View {
                 HStack {
                     Text(progressText(progress)).font(.callout).monospacedDigit()
                     Spacer()
-                    Button("Cancel") { model.cancel() }
+                    Button(L("Cancel")) { model.cancel() }
                 }
             }
         case let .finished(url, warnings, seconds):
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                    Text("Exported \(url.lastPathComponent) in \(duration(Int64(seconds * 1_000_000)))")
+                    Text(L("Exported {0} in {1}", url.lastPathComponent, duration(Int64(seconds * 1_000_000))))
                         .lineLimit(1).truncationMode(.middle)
                     Spacer()
-                    Button("Show in Finder") { model.revealOutput(url) }
+                    Button(L("Show in Finder")) { model.revealOutput(url) }
                     exportButtons
                 }
                 ForEach(warnings, id: \.self) { Text($0).font(.caption).foregroundStyle(.orange) }
@@ -238,16 +238,34 @@ struct ExportView: View {
         }
     }
 
-    /// "How to Use · Version 0.6.0 · Check for Updates…", as in the Windows version (no version outside the app bundle).
+    /// "🌐 Language · How to Use · Version 0.6.0 · Check for Updates…", as in the Windows version (no version outside the
+    /// app bundle).
     private var footerLinks: some View {
         HStack(spacing: 4) {
-            Button("How to Use") { model.openGuide?() }.buttonStyle(.link)
+            languageMenu
+            Button(L("How to Use")) { model.openGuide?() }.buttonStyle(.link)
             if let check = model.checkForUpdates {
-                Text("· Version \(model.version) ·").foregroundStyle(.secondary)
-                Button("Check for Updates…", action: check).buttonStyle(.link)
+                Text("· " + L("Version {0}", model.version) + " ·").foregroundStyle(.secondary)
+                Button(L("Check for Updates…"), action: check).buttonStyle(.link)
             }
         }
         .font(.caption)
+    }
+
+    /// The interface language: the system's, or one of ours by its own name.
+    private var languageMenu: some View {
+        Menu {
+            Button(L("System Language")) { model.setLanguage?(nil) }
+            Divider()
+            ForEach(Localization.Language.allCases) { language in
+                Button(language.nativeName) { model.setLanguage?(language) }
+            }
+        } label: {
+            Label(Localization.language.nativeName, systemImage: "globe")
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .help(L("Interface language"))
     }
 
     private var exportButtons: some View {
@@ -258,7 +276,7 @@ struct ExportView: View {
     }
 
     private var exportButton: some View {
-        Button("Export") { model.startExport() }
+        Button(L("Export")) { model.startExport() }
             .keyboardShortcut(.defaultAction)
             .disabled(model.timeline == nil || model.outputURL == nil)
     }
@@ -272,14 +290,14 @@ struct ExportView: View {
     }
 
     private func progressText(_ progress: ExportProgress?) -> String {
-        guard let p = progress else { return "Preparing…" }
-        var text = p.phase.rawValue
+        guard let p = progress else { return L("Preparing…") }
+        var text = p.phase.title
         if p.phase == .video {
-            text += " — frame \(p.framesDone) of \(p.framesTotal)"
+            text += L(" — frame {0} of {1}", p.framesDone, p.framesTotal)
         }
         if p.fraction > 0.12 {
             let remaining = p.elapsed / p.fraction * (1 - p.fraction)
-            text += ", about \(duration(Int64(remaining * 1_000_000))) left"
+            text += L(", about {0} left", duration(Int64(remaining * 1_000_000)))
         }
         return text
     }

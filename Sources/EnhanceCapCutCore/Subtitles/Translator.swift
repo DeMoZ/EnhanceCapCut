@@ -21,8 +21,7 @@ public struct SubtitleLanguage: Identifiable, Hashable, Sendable {
         case ("en", _, "GB"): code = "en-GB"
         default: code = lang
         }
-        let en = Locale(identifier: "en")
-        let name = en.localizedString(forIdentifier: code) ?? code
+        let name = Locale(identifier: Localization.language.rawValue).localizedString(forIdentifier: code) ?? code
         displayName = name.prefix(1).uppercased() + name.dropFirst()
     }
 
@@ -38,8 +37,8 @@ public enum TranslatorError: LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .unsupportedPair(let a, let b): return "Apple Translation doesn't support \(a) → \(b)."
-        case .notInstalled(let l): return "\(l) isn't downloaded for offline translation."
+        case .unsupportedPair(let a, let b): return L("Apple Translation doesn't support {0} → {1}.", a, b)
+        case .notInstalled(let l): return L("{0} isn't downloaded for offline translation.", l)
         }
     }
 }

@@ -60,7 +60,7 @@ private struct Builder {
                 var voice = VoiceEffects()
                 if let choice = refs.lazy.compactMap({ separations[$0] }).first?.choice {
                     voice.separation = VoiceEffects.Separation(rawValue: choice) ?? .none
-                    if voice.separation == .none, choice != 0 { note("Audio", "vocal separation mode \(choice)") }
+                    if voice.separation == .none, choice != 0 { note(L("Audio"), "vocal separation mode \(choice)") }
                 }
                 if let denoise = refs.lazy.compactMap({ denoises[$0] }).first, denoise.isDenoise {
                     voice.denoise = min(max(denoise.rate, 0), 1)
@@ -79,7 +79,7 @@ private struct Builder {
                 }
                 func reportAll() {
                     reportRefs(refs, generic: generic)
-                    if let filterIssue { note("Audio effect", filterIssue) }
+                    if let filterIssue { note(L("Audio effect"), filterIssue) }
                 }
                 if track.type != "audio" { reportAll() }
 
@@ -105,7 +105,7 @@ private struct Builder {
                                fm.fileExists(atPath: url.path) {
                                 path = video.reversePath
                             } else {
-                                note("Reverse playback", "reversed clip without CapCut's reversed copy (rendered forward)")
+                                note(L("Reverse playback"), L("reversed clip without CapCut's reversed copy (rendered forward)"))
                                 timeMap = mirrored(timeMap, mediaDuration: video.duration)
                             }
                         }
@@ -118,11 +118,11 @@ private struct Builder {
                     }
                     guard let content else { continue }
                     reportKeyframes(segment)
-                    if segment.isLoop { note("Playback", "loop") }
+                    if segment.isLoop { note(L("Playback"), L("loop")) }
                     if let video { reportVideo(video) }
                     if isMain, let canvas = refs.lazy.compactMap({ canvases[$0] }).first,
                        !["canvas_color", "canvas_blur", "canvas_image"].contains(canvas.type) {
-                        note("Canvas", canvas.type)
+                        note(L("Canvas"), canvas.type)
                     }
 
                     let layer = VisualLayer(
@@ -171,12 +171,12 @@ private struct Builder {
                     guard !track.isHidden, segment.visible, let text = texts[segment.materialId],
                           let parsed = TextContent.parse(text.content),
                           !parsed.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { continue }
-                    if text.typesetting != 0 { note("Text", "vertical typesetting (rendered horizontally)") }
-                    if text.curveEnabled { note("Text", "curved text (rendered straight)") }
-                    if parsed.styles.contains(where: { $0.strokes.count > 1 }) { note("Text", "multiple outlines (first one rendered)") }
+                    if text.typesetting != 0 { note(L("Text"), L("vertical typesetting (rendered horizontally)")) }
+                    if text.curveEnabled { note(L("Text"), L("curved text (rendered straight)")) }
+                    if parsed.styles.contains(where: { $0.strokes.count > 1 }) { note(L("Text"), L("multiple outlines (first one rendered)")) }
                     if parsed.styles.contains(where: { !($0.effectStylePath ?? "").isEmpty }),
                        !refs.contains(where: { generic[$0]?.1.type == "text_effect" }) {
-                        note("Text effect", "word art")
+                        note(L("Text effect"), L("word art"))
                     }
                     reportKeyframes(segment)
                     let layer = VisualLayer(
@@ -339,18 +339,18 @@ private struct Builder {
                 names.insert(type.hasPrefix("KFType") ? String(type.dropFirst(6)) : type)
             }
         }
-        for name in names.sorted() { note("Keyframes", name) }
+        for name in names.sorted() { note(L("Keyframes"), name) }
     }
 
     /// Per-clip processing stored on the video material itself.
     mutating func reportVideo(_ video: VideoMaterial) {
-        if video.type != "video", video.type != "photo" { note("Media", "\(video.type) clip") }
-        if video.stableLevel > 0 { note("Stabilization", "level \(video.stableLevel)") }
-        if video.mattingFlag != 0 { note("Remove background", "cutout mode \(video.mattingFlag)") }
-        if video.beautyMode { note("Beauty / makeup", "retouch") }
+        if video.type != "video", video.type != "photo" { note(L("Media"), "\(video.type) clip") }
+        if video.stableLevel > 0 { note(L("Stabilization"), "level \(video.stableLevel)") }
+        if video.mattingFlag != 0 { note(L("Remove background"), "cutout mode \(video.mattingFlag)") }
+        if video.beautyMode { note(L("Beauty / makeup"), L("retouch")) }
         // AI-generated images are already baked into the material's file.
         for algorithm in Set(video.algorithms).sorted() where !algorithm.hasPrefix("AigcTypeGen") {
-            note("AI processing", algorithm)
+            note(L("AI processing"), algorithm)
         }
     }
 
@@ -366,27 +366,27 @@ private struct Builder {
         guard !Builder.ignored.contains(key) else { return }
         let name = item.name.isEmpty ? item.type : item.name
         switch key {
-        case "transitions": note("Transition", name)
-        case "video_effects": note("Video effect", name)
-        case "stickers": note("Sticker", name)
-        case "common_mask", "masks": note("Mask", name)
-        case "hsl": note("HSL color", "color adjustment")
-        case "manual_deformations": note("Manual deformation", "body/face reshape")
-        case "chromas": note("Chroma key", "chroma key")
+        case "transitions": note(L("Transition"), name)
+        case "video_effects": note(L("Video effect"), name)
+        case "stickers": note(L("Sticker"), name)
+        case "common_mask", "masks": note(L("Mask"), name)
+        case "hsl": note(L("HSL color"), L("color adjustment"))
+        case "manual_deformations": note(L("Manual deformation"), L("body/face reshape"))
+        case "chromas": note(L("Chroma key"), L("chroma key"))
         case "material_animations":
-            for animation in item.animationNames { note("Animation", animation) }
+            for animation in item.animationNames { note(L("Animation"), animation) }
         case "effects":
             switch item.type {
-            case "filter": note("Filter", name)
-            case "text_effect": note("Text effect", name)
-            case "text_shape": if !item.name.isEmpty { note("Text shape", item.name) }
-            case "color_correct", "smart_color_adjust": note("Color adjustment", item.type.replacingOccurrences(of: "_", with: " "))
+            case "filter": note(L("Filter"), name)
+            case "text_effect": note(L("Text effect"), name)
+            case "text_shape": if !item.name.isEmpty { note(L("Text shape"), item.name) }
+            case "color_correct", "smart_color_adjust": note(L("Color adjustment"), item.type.replacingOccurrences(of: "_", with: " "))
             case let t where t.contains("makeup") || t.contains("beauty") || t == "figure" || t.contains("face"):
-                note("Beauty / makeup", name)
-            default: note("Effect", name)
+                note(L("Beauty / makeup"), name)
+            default: note(L("Effect"), name)
             }
         default:
-            note("Other", key + (item.type.isEmpty ? "" : " (\(item.type))"))
+            note(L("Other"), key + (item.type.isEmpty ? "" : " (\(item.type))"))
         }
     }
 }

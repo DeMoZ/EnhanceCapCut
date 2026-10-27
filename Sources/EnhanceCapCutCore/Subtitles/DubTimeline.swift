@@ -15,8 +15,8 @@ public enum DubTimeline {
         public var errorDescription: String? {
             switch self {
             case let .noTimelineList(name):
-                return "\(name) is from an older CapCut that keeps a single timeline. Open it in CapCut once, "
-                    + "close it, and try again."
+                return L("{0} is from an older CapCut that keeps a single timeline. Open it in CapCut once, "
+                    + "close it, and try again.", name)
             }
         }
     }

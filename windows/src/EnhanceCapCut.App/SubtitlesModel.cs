@@ -3,6 +3,7 @@ using EnhanceCapCut.Render;
 using EnhanceCapCut.Subtitles;
 using EnhanceCapCut.Windows;
 using Microsoft.UI.Dispatching;
+using static EnhanceCapCut.Draft.Localization;
 
 namespace EnhanceCapCut.App;
 
@@ -170,7 +171,7 @@ sealed class SubtitlesModel
     public SubtitleLanguage SourceLanguage => SubtitleLanguage.Find(SourceCode) ?? SubtitleLanguage.All[0];
 
     /// <summary>Spoken languages, by name (every language both Whisper and NLLB handle).</summary>
-    public IEnumerable<SubtitleLanguage> SourceLanguages => SubtitleLanguage.All.OrderBy(l => l.Name, StringComparer.Ordinal);
+    public IEnumerable<SubtitleLanguage> SourceLanguages => SubtitleLanguage.All.OrderBy(l => l.Title, StringComparer.CurrentCulture);
     public IEnumerable<SubtitleLanguage> TargetLanguages => SubtitleLanguage.All.Where(l => l.Code != SourceLanguage.Code);
 
     /// <summary>Selected targets in display order, without the source language itself.</summary>
@@ -318,8 +319,12 @@ sealed class SubtitlesModel
     {
         var bytes = g.Sum(f => f.ApproximateBytes);
         var size = bytes >= 1_000_000_000 ? $"{bytes / 1e9:0.0} GB" : $"{bytes / 1e6:0} MB";
-        var name = g.Key switch { "whisper" => "Whisper speech recognition", "nllb" => "NLLB-200 translation", _ => "voice cloning" };
-        return $"{name} ({size})";
+        return g.Key switch
+        {
+            "whisper" => L("Whisper speech recognition ({0})", size),
+            "nllb" => L("NLLB-200 translation ({0})", size),
+            _ => L("voice cloning ({0})", size),
+        };
     }));
 
     public async Task DownloadMissing()
@@ -392,7 +397,7 @@ sealed class SubtitlesModel
         var dubName = DubTimelineName;
         var source = new CancellationTokenSource();
         cancel = source;
-        Phase = new SubtitlesPhase.Running("Preparing…", 0);
+        Phase = new SubtitlesPhase.Running(L("Preparing…"), 0);
         Notify();
 
         void Report(string step, double fraction) => ui.TryEnqueue(() =>
@@ -414,9 +419,9 @@ sealed class SubtitlesModel
             try
             {
                 // 1. Audio: the timeline's mix as the viewer hears it, without voice-over of earlier runs.
-                Report("Mixing timeline audio…", 0);
+                Report(L("Mixing timeline audio…"), 0);
                 var timeline = SubtitlePipeline.SpeechTimeline(project, projectTimeline);
-                var mix = AudioMixer.Mix(timeline, new MfAudioDecoder(), [], p => Report("Mixing timeline audio…", 0.1 * p), source.Token);
+                var mix = AudioMixer.Mix(timeline, new MfAudioDecoder(), [], p => Report(L("Mixing timeline audio…"), 0.1 * p), source.Token);
                 var audio = AudioInput.ToMono16k(mix, 2, AudioMixer.SampleRate);
                 // What cloned voices copy (no voice isolation on Windows yet: the mix itself).
                 var originalVoice = voices.ContainsValue(Dubber.ClonedVoiceId)
@@ -438,15 +443,15 @@ sealed class SubtitlesModel
                 if (dubName is not null && output.VoiceOver.Count > 0)
                 {
                     result = DubTimeline.Create(project, projectTimeline, dubName, cueCount, Apply).Result;
-                    target = $"the new timeline {dubName}";
+                    target = L("the new timeline {0}", dubName);
                 }
                 else result = DraftSubtitleWriter.Write(project, projectTimeline, cueCount, Apply);
                 draftWritten = true;
                 var srt = srtFolder is not null ? SubtitlePipeline.WriteSrt(tracks, srtFolder, baseName) : [];
                 var parts = new List<string>();
-                if (tracks.Count > 0) parts.Add($"{result.CueCount} captions ({string.Join(", ", tracks.Select(t => t.Language.Code))})");
-                if (output.VoiceOver.Count > 0) parts.Add($"voice-over ({string.Join(", ", output.VoiceOver.Select(t => t.Language.Code))})");
-                var summary = $"Added {string.Join(" and ", parts)} to {target}";
+                if (tracks.Count > 0) parts.Add(L("{0} captions ({1})", result.CueCount, string.Join(", ", tracks.Select(t => t.Language.Code))));
+                if (output.VoiceOver.Count > 0) parts.Add(L("voice-over ({0})", string.Join(", ", output.VoiceOver.Select(t => t.Language.Code))));
+                var summary = L("Added {0} to {1}", string.Join(L(" and "), parts), target);
                 ui.TryEnqueue(() =>
                 {
                     if (cancel != source) return;

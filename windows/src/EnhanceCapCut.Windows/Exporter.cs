@@ -11,10 +11,10 @@ public sealed record ExportProgress(ExportProgress.Phases Phase, double Fraction
 
     public string PhaseTitle => Phase switch
     {
-        Phases.Audio => "Mixing audio",
-        Phases.Loudness => "Normalizing loudness",
-        Phases.Video => "Rendering video",
-        _ => "Finishing",
+        Phases.Audio => EnhanceCapCut.Draft.Localization.L("Mixing audio"),
+        Phases.Loudness => EnhanceCapCut.Draft.Localization.L("Normalizing loudness"),
+        Phases.Video => EnhanceCapCut.Draft.Localization.L("Rendering video"),
+        _ => EnhanceCapCut.Draft.Localization.L("Finishing"),
     };
 }
 

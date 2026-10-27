@@ -6,7 +6,7 @@ public struct ExportSettings: Codable, Equatable {
     public enum Aspect: String, Codable, CaseIterable, Identifiable {
         case project, portrait = "9:16", square = "1:1", landscape = "16:9"
         public var id: String { rawValue }
-        public var title: String { self == .project ? "From project" : rawValue }
+        public var title: String { self == .project ? L("From project") : rawValue }
     }
 
     public enum Resolution: Int, Codable, CaseIterable, Identifiable {
@@ -16,7 +16,7 @@ public struct ExportSettings: Codable, Equatable {
         public var id: Int { rawValue }
         public var title: String {
             switch self {
-            case .project: return "From project"
+            case .project: return L("From project")
             case .p2160: return "4K (2160p)"
             default: return "\(rawValue)p"
             }

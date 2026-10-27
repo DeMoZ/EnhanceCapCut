@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Windows.Foundation;
 using Windows.UI.ViewManagement;
+using static EnhanceCapCut.Draft.Localization;
 
 namespace EnhanceCapCut.App;
 
@@ -44,10 +45,10 @@ sealed class DonateButton : Grid
             Spacing = 6,
             RenderTransform = rotation,
             RenderTransformOrigin = new Point(0.5, 0),
-            Children = { Theme.Icon(Theme.HeartFill, 12, Theme.Pink), new TextBlock { Text = "Donate" } },
+            Children = { Theme.Icon(Theme.HeartFill, 12, Theme.Pink), new TextBlock { Text = L("Donate") } },
         };
         var button = new Button { Content = label };
-        ToolTipService.SetToolTip(button, "Support EnhanceCapCut");
+        ToolTipService.SetToolTip(button, L("Support EnhanceCapCut"));
         button.Click += (s, e) => Click?.Invoke(s, e);
         RenderTransform = scale;
         RenderTransformOrigin = new Point(0.5, 0.5);

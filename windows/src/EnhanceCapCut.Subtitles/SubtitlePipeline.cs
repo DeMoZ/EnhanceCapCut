@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using EnhanceCapCut.Draft;
+using static EnhanceCapCut.Draft.Localization;
 
 namespace EnhanceCapCut.Subtitles;
 
@@ -63,11 +64,11 @@ public static class SubtitlePipeline
         // 1. Models (downloaded once).
         var models = RequiredModels(options);
         if (!ModelStore.IsDownloaded(models))
-            await ModelStore.EnsureAsync(models, p => report("Downloading models (one time)…", 0.15 * p), cancel);
+            await ModelStore.EnsureAsync(models, p => report(L("Downloading models (one time)…"), 0.15 * p), cancel);
 
         // 2. Speech
         var words = await SpeechRecognizer.TranscribeAsync(audio, options.Source,
-            p => report("Transcribing…", 0.15 + (speechEnd - 0.15) * p), cancel);
+            p => report(L("Transcribing…"), 0.15 + (speechEnd - 0.15) * p), cancel);
         var cues = Segmenter.Cues(words, options.Source.Code);
 
         // 3. Translations
@@ -83,7 +84,7 @@ public static class SubtitlePipeline
                 var target = translating[i];
                 var baseFraction = speechEnd + (translateEnd - speechEnd) * i / translating.Count;
                 var translated = translator.Translate(cues.Select(c => c.Text).ToList(), options.Source, target,
-                    p => report($"Translating: {target.Name}…", baseFraction + (translateEnd - speechEnd) * p / translating.Count), cancel);
+                    p => report(L("Translating: {0}…", target.Title), baseFraction + (translateEnd - speechEnd) * p / translating.Count), cancel);
                 spoken[target.Code] = cues.Zip(translated, (c, t) => c with { Text = t }).ToList();
                 if (!options.Captions) continue;
                 var wrapped = cues.Zip(translated, (c, t) => c with { Text = LineWrapper.Wrap(t, target.Code) }).ToList();
@@ -102,7 +103,7 @@ public static class SubtitlePipeline
             WhisperChecker? checker = null;
             if (cloning)
             {
-                report("Loading the voice cloning model…", translateEnd);
+                report(L("Loading the voice cloning model…"), translateEnd);
                 originalVoice ??= AudioInput.Resample(audio, AudioInput.SampleRate, VoiceCloner.SampleRate);
                 cloner = new VoiceCloner();
                 checker = new WhisperChecker();
@@ -113,9 +114,9 @@ public static class SubtitlePipeline
             {
                 var language = dubbing[i];
                 var baseFraction = translateEnd + (1 - translateEnd) * i / dubbing.Count;
-                report($"Voicing: {language.Name}…", baseFraction);
+                report(L("Voicing: {0}…", language.Title), baseFraction);
                 var path = Path.Combine(folder, $"{language.Code}.wav");
-                void Progress(double p) => report($"Voicing: {language.Name}…", baseFraction + (1 - translateEnd) * p / dubbing.Count);
+                void Progress(double p) => report(L("Voicing: {0}…", language.Title), baseFraction + (1 - translateEnd) * p / dubbing.Count);
                 List<(double Start, double End)> lines;
                 if (options.Voices[language.Code] == Dubber.ClonedVoiceId)
                 {
@@ -135,7 +136,7 @@ public static class SubtitlePipeline
             var audible = voiceOver.FindIndex(t => t.Language.Code == options.AudibleVoice);
             voiceOver[Math.Max(audible, 0)] = voiceOver[Math.Max(audible, 0)] with { IsAudible = true };
         }
-        report("Done", 1);
+        report(L("Done"), 1);
         return new Output(tracks, voiceOver);
     }
 
@@ -177,4 +178,4 @@ public static class SubtitlePipeline
 }
 
 public sealed class NoVoiceException(SubtitleLanguage language) : Exception(
-    $"No Windows voice is installed for {language.Name}. Add one in Settings ▸ Time & language ▸ Speech (Add voices).");
+    L("No Windows voice is installed for {0}. Add one in Settings ▸ Time & language ▸ Speech (Add voices).", language.Title));

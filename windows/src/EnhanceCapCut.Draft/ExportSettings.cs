@@ -44,10 +44,10 @@ public sealed class ExportSettings
         [VideoCodec.H264] = "h264", [VideoCodec.Hevc] = "hevc", [VideoCodec.Hevc10] = "hevc10",
     };
 
-    public static string Title(AspectRatio a) => a == AspectRatio.Project ? "From project" : AspectNames[a];
+    public static string Title(AspectRatio a) => a == AspectRatio.Project ? Localization.L("From project") : AspectNames[a];
     public static string Title(Resolution r) => r switch
     {
-        Resolution.Project => "From project",
+        Resolution.Project => Localization.L("From project"),
         Resolution.P2160 => "4K (2160p)",
         _ => $"{(int)r}p",
     };

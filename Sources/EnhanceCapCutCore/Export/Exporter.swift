@@ -3,7 +3,18 @@ import CoreImage
 import VideoToolbox
 
 public struct ExportProgress: Sendable {
-    public enum Phase: String, Sendable { case audio = "Mixing audio", loudness = "Normalizing loudness", video = "Rendering video", finishing = "Finishing" }
+    public enum Phase: String, Sendable {
+        case audio = "Mixing audio", loudness = "Normalizing loudness", video = "Rendering video", finishing = "Finishing"
+
+        public var title: String {
+            switch self {
+            case .audio: L("Mixing audio")
+            case .loudness: L("Normalizing loudness")
+            case .video: L("Rendering video")
+            case .finishing: L("Finishing")
+            }
+        }
+    }
     public var phase: Phase
     /// 0...1 over the whole export.
     public var fraction: Double

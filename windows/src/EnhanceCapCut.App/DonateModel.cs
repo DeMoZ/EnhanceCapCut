@@ -1,3 +1,4 @@
+using EnhanceCapCut.Draft;
 using EnhanceCapCut.Subtitles;
 
 namespace EnhanceCapCut.App;
@@ -21,8 +22,10 @@ sealed class DonateModel
     public event Action? Changed;
     bool loading;
 
-    /// <summary>The user's language order in Windows settings, for the texts of the file.</summary>
-    public IReadOnlyList<string> Languages { get; } = global::Windows.System.UserProfile.GlobalizationPreferences.Languages.ToList();
+    /// <summary>The languages for the texts of the file: the interface language first, then the user's order in Windows
+    /// settings.</summary>
+    public IReadOnlyList<string> Languages =>
+        [Localization.Current.Code(), .. global::Windows.System.UserProfile.GlobalizationPreferences.Languages];
 
     public async void Load()
     {

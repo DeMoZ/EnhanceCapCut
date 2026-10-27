@@ -15,8 +15,8 @@ final class DonateModel: ObservableObject {
     @Published private(set) var state: State = .loading
     private var loading = false
 
-    /// The UI language order of the system, for the texts of the file.
-    let languages = Locale.preferredLanguages
+    /// The languages for the texts of the file: the interface language first, then the system's.
+    var languages: [String] { [Localization.language.rawValue] + Locale.preferredLanguages }
     /// "0.6.0" from the bundle; empty for a `swift run` build.
     let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
     static let projectPage = URL(string: "https://github.com/DeMoZ/EnhanceCapCut")!

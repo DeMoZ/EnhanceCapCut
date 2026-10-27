@@ -5,7 +5,8 @@ says, then ready cuts of 15, 30 and 60 seconds. The in-app guide (Help ▸ Enhan
 in the export window) is the same story told as instructions: `Sources/EnhanceCapCut/GuideView.swift`,
 `windows/src/EnhanceCapCut.App/GuideWindow.cs`.
 
-Keep the claims in line with the app (see "Claims" at the end): when a feature changes, update this file too.
+Keep the claims in line with the app (see "Claims" at the end): when a feature changes, update this file too, and its
+Russian version, [PROMO.ru.md](PROMO.ru.md).
 
 ## The idea in one line
 
@@ -117,7 +118,13 @@ Each slide: the title, the text on screen, what the video shows, and the narrati
 - **Narration:** "Before it changes a project, EnhanceCapCut backs it up. Run it again, and it replaces what it added
   before, while your own captions stay."
 
-### 13. Get it
+### 13. In English and Russian
+
+- **On screen:** The interface in English and Russian.
+- **Show:** the 🌐 menu at the bottom of the export window; switching the language, the window changes at once.
+- **Narration:** "The interface and the guide speak English and Russian, switched with one click."
+
+### 14. Get it
 
 - **On screen:** macOS 15+ · Windows 10/11 · github.com/DeMoZ/EnhanceCapCut
 - **Show:** the Releases page; the installer.
@@ -181,7 +188,8 @@ Record these once and cut every version from them:
    Create, the progress, "Open the project in CapCut to see the result".
 5. CapCut after the run: caption tracks (one shown, others hidden), the new dub timeline, playback.
 6. One spoken line: the original, then the dub in two languages, with the cloned voice.
-7. The app's icon, the GitHub Releases page.
+7. The 🌐 menu and switching the interface language.
+8. The app's icon, the GitHub Releases page.
 
 Use your own footage and your own voice for the cloning shots, or people who agreed to it.
 
@@ -200,6 +208,7 @@ What the texts above say and where it holds, so the promo stays truthful:
   Translation covers 24 languages.
 - **"Replace voice"** (keep music and ambience, drop the speech) is Mac only; Windows offers "Remove vocal" through
   CapCut.
+- **Interface language:** English and Russian on both platforms; the system's language by default.
 - **Free:** the app is free to download from GitHub Releases; donations are voluntary. Don't call it open source:
   the repo has no licence.
 - **Voice cloning consent:** always mention it when cloning is shown.
