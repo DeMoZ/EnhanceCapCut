@@ -106,7 +106,11 @@ Usage counts from the author's 69 projects drive the order of the later mileston
 - [x] Reverse playback via `reverse_path` (CapCut's pre-rendered reversed media).
 - `Resources/audioAlg` audio results (vocal separation, voice enhancement) turned out to be obfuscated —
   see FORMAT.md; voice processing is done by us instead (see "Voice processing", milestone 7).
-- Matting / background removal masks (`matting.path`, `mask_video_path`) as alpha.
+- [x] "Remove background" (`matting`): CapCut's mask frames in the project folder applied as the clip's alpha,
+      auto and custom cutouts, also on compound clips, "Invert"; compound clips are transparent where empty. Open:
+      edge expansion, feather and the outline stroke (reported); `mask_video_path` (cloud cutout, never seen); our own
+      segmentation (Apple Vision / an ONNX model) when CapCut's result is missing; checking CapCut for Windows
+      writes the same folders.
 
 ## Milestone 5 — remaining effects by usage frequency
 

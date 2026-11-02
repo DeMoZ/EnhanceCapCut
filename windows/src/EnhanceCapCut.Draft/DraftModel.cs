@@ -284,6 +284,37 @@ public sealed class Crop
     };
 }
 
+/// <summary>
+/// A video material's "Remove background" (<c>matting</c>). CapCut stores its result as raw mask frames in the project
+/// folder (see FORMAT.md).
+/// </summary>
+public sealed class Matting
+{
+    /// <summary>0 = off, 1 = custom cutout (subject picked with the brush), 3 = auto cutout.</summary>
+    public int Flag { get; set; }
+    /// <summary>The folder with the results, usually <c>##_draftpath_placeholder_…_##/matting/&lt;hash&gt;</c>.</summary>
+    public string Path { get; set; } = "";
+    /// <summary>The custom cutout's result folder inside <see cref="Path"/>.</summary>
+    public string CustomId { get; set; } = "";
+    /// <summary>"Invert".</summary>
+    public bool Reverse { get; set; }
+    public double Expansion { get; set; }
+    public double Feather { get; set; }
+    /// <summary>The outline drawn around the cutout ("Stroke") is on.</summary>
+    public bool Stroke { get; set; }
+
+    public static Matting From(JsonElement c) => new()
+    {
+        Flag = (int)(c.Num("flag") ?? 0),
+        Path = c.Str("path") ?? "",
+        CustomId = c.Str("custom_matting_id") ?? "",
+        Reverse = c.Bool("reverse") ?? false,
+        Expansion = c.Num("expansion") ?? 0,
+        Feather = c.Num("feather") ?? 0,
+        Stroke = c.Bool("enable_matting_stroke") ?? false,
+    };
+}
+
 public sealed class VideoMaterial
 {
     public string Id { get; set; } = "";
@@ -300,8 +331,8 @@ public sealed class VideoMaterial
     public Crop Crop { get; set; } = new();
     /// <summary>"Stabilize" level, 0 = off.</summary>
     public int StableLevel { get; set; }
-    /// <summary>"Remove background" mode (<c>matting.flag</c>), 0 = off; 1 and 3 seen (custom / auto cutout).</summary>
-    public int MattingFlag { get; set; }
+    /// <summary>"Remove background".</summary>
+    public Matting Matting { get; set; } = new();
     /// <summary>
     /// AI processing applied to the clip: <c>video_algorithm.algorithms[].type</c> plus the names of the
     /// non-null per-feature configs (e.g. "super_resolution", "deflicker").
@@ -327,7 +358,6 @@ public sealed class VideoMaterial
             algorithms.AddRange(AlgorithmConfigs.Where(key => a.Get(key) is not null));
         }
         var stable = c.Obj("stable")?.Num("stable_level");
-        var matting = c.Obj("matting")?.Num("flag");
         return new()
         {
             Id = c.Str("id") ?? "",
@@ -342,7 +372,7 @@ public sealed class VideoMaterial
             ReversePath = c.Str("reverse_path") ?? "",
             Crop = c.Obj("crop") is { } crop ? Crop.From(crop) : new(),
             StableLevel = stable is { } s ? (int)s : 0,
-            MattingFlag = matting is { } f ? (int)f : 0,
+            Matting = c.Obj("matting") is { } matting ? Matting.From(matting) : new(),
             Algorithms = algorithms,
             BeautyMode = c.Bool("is_set_beauty_mode") ?? false,
         };

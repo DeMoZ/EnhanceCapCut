@@ -190,12 +190,77 @@ final class DraftParsingTests: XCTestCase {
         let found = Set(timeline.report.unsupported.map { "\($0.category): \($0.name)" })
         let expected: Set<String> = [
             "Keyframes: mask animation", "Keyframes: Saturation", "Playback: loop",
-            "Stabilization: level 3", "Remove background: cutout mode 1", "Beauty / makeup: retouch",
+            "Stabilization: level 3", "Remove background: result not saved in the project",
+            "Beauty / makeup: retouch",
             "AI processing: QualityEnhance", "AI processing: super_resolution",
             "Text: curved text (rendered straight)", "Text: multiple outlines (first one rendered)",
         ]
         XCTAssertEqual(found, expected)
         XCTAssertEqual(timeline.layers.count, 2, "unsupported features don't drop the clips")
+    }
+
+    func testCutoutUsesCapCutsMaskFrames() throws {
+        let fm = FileManager.default
+        let dir = fm.temporaryDirectory.appendingPathComponent("ecc-cutout-\(UUID().uuidString)")
+        defer { try? fm.removeItem(at: dir) }
+        let photo = dir.appendingPathComponent("p.png")
+        func addMasks(_ path: String) throws {
+            let masks = dir.appendingPathComponent(path, isDirectory: true)
+            try fm.createDirectory(at: masks, withIntermediateDirectories: true)
+            try Data([0, 255]).write(to: masks.appendingPathComponent("0"))
+        }
+        try addMasks("matting/auto/2/mask")
+        try addMasks("matting/custom/2/mask")
+        try addMasks("matting/custom/C1/5/mask")
+        try addMasks("matting/unpicked/2/mask")
+        try Data([0]).write(to: photo)
+        let root = "##_draftpath_placeholder_0E685133-18CE-45ED-8CB8-2904A212EC80_##/matting/"
+        // Auto cutout; custom cutout with its result; custom cutout with none (whole clip); auto cutout with feather;
+        // auto cutout whose result is gone.
+        let mattings = [
+            #"{"flag": 3, "path": "\#(root)auto", "custom_matting_id": "X", "reverse": true}"#,
+            #"{"flag": 1, "path": "\#(root)custom", "custom_matting_id": "C1"}"#,
+            #"{"flag": 1, "path": "\#(root)unpicked", "custom_matting_id": "C2"}"#,
+            #"{"flag": 3, "path": "\#(root)auto", "feather": 20, "enable_matting_stroke": true}"#,
+            #"{"flag": 3, "path": "\#(root)gone"}"#,
+        ]
+        let videos = mattings.enumerated().map { i, m in #"{"id": "V\#(i)", "type": "photo", "path": "\#(photo.path)", "matting": \#(m)}"# }
+        let segments = mattings.indices.map { i in
+            #"{"id": "S\#(i)", "material_id": "V\#(i)", "target_timerange": {"start": 0, "duration": 1000000}}"#
+        }
+        let json = """
+        {"tracks": [{"type": "video", "segments": [\(segments.joined(separator: ","))]}],
+         "materials": {"videos": [\(videos.joined(separator: ","))]}}
+        """
+        let draft = try JSONDecoder().decode(Draft.self, from: Data(json.utf8))
+        let timeline = TimelineBuilder.build(draft: draft, projectURL: dir)
+        let cutouts = Dictionary(uniqueKeysWithValues: timeline.layers.map { ($0.id, $0.cutout) })
+        func path(_ cutout: Cutout??) -> String? {
+            cutout??.directory.resolvingSymlinksInPath().path
+                .replacingOccurrences(of: dir.resolvingSymlinksInPath().path, with: "")
+        }
+        XCTAssertEqual(path(cutouts["S0"]), "/matting/auto/2/mask")
+        XCTAssertEqual(cutouts["S0"]??.inverted, true)
+        XCTAssertEqual(path(cutouts["S1"]), "/matting/custom/C1/5/mask")
+        XCTAssertNil(cutouts["S2"]!, "a custom cutout without a picked subject shows the whole clip")
+        XCTAssertNotNil(cutouts["S3"]!)
+        XCTAssertNil(cutouts["S4"]!)
+        let found = Set(timeline.report.unsupported.map { "\($0.category): \($0.name)" })
+        XCTAssertEqual(found, ["Remove background: edge expansion or feather", "Remove background: stroke",
+                               "Remove background: result not saved in the project"])
+    }
+
+    func testCutoutMaskFrames() {
+        XCTAssertEqual(CutoutMask.nearest([10, 20, 40], to: 0), 10)
+        XCTAssertEqual(CutoutMask.nearest([10, 20, 40], to: 15), 10, "ties go to the earlier frame")
+        XCTAssertEqual(CutoutMask.nearest([10, 20, 40], to: 31), 40)
+        XCTAssertEqual(CutoutMask.nearest([10, 20, 40], to: 99), 40)
+        // CapCut's sizes: 448×256 for 16:9, 256×336 for 3:4, 720×720 for a square photo.
+        XCTAssertEqual(CutoutMask.inferSize(bytes: 448 * 256, aspect: 16.0 / 9).map { [$0.width, $0.height] }, [448, 256])
+        XCTAssertEqual(CutoutMask.inferSize(bytes: 256 * 448, aspect: 9.0 / 16).map { [$0.width, $0.height] }, [256, 448])
+        XCTAssertEqual(CutoutMask.inferSize(bytes: 256 * 336, aspect: 3.0 / 4).map { [$0.width, $0.height] }, [256, 336])
+        XCTAssertEqual(CutoutMask.inferSize(bytes: 720 * 720, aspect: 1).map { [$0.width, $0.height] }, [720, 720])
+        XCTAssertNil(CutoutMask.inferSize(bytes: 7, aspect: 1))
     }
 
     func testCompoundWithDetachedSoundPlaysOnlyTheAudioTrack() throws {

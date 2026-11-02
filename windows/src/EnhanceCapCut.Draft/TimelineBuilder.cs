@@ -146,6 +146,8 @@ public static class TimelineBuilder
                             ReportKeyframes(segment);
                             if (segment.IsLoop) Note(L("Playback"), L("loop"));
                             if (video is not null) ReportVideo(video);
+                            // A compound clip's material is its rendered video; a cutout on it uses the compound's time.
+                            var cutout = video is { Matting.Flag: not 0 } ? MakeCutout(video.Matting) : null;
                             if (isMain && First(refs, canvases) is { } canvas
                                 && canvas.Type is not ("canvas_color" or "canvas_blur" or "canvas_image"))
                             {
@@ -154,7 +156,7 @@ public static class TimelineBuilder
 
                             var layer = new VisualLayer(segment.Id, content, trackIndex, segment.RenderIndex, isMain,
                                 segment.TargetTimerange, timeMap, video?.Crop ?? new Crop(), segment.Clip ?? new Clip(),
-                                segment.UniformScale, Keyframes(segment), isMain ? First(refs, canvases) : null);
+                                segment.UniformScale, Keyframes(segment), isMain ? First(refs, canvases) : null, cutout);
                             layers.Add((layer, order));
 
                             var muted = track.IsMuted || (isMain && draft.Config.VideoMute) || segment.Volume <= 0;
@@ -405,13 +407,32 @@ public static class TimelineBuilder
         {
             if (video.Type != "video" && video.Type != "photo") Note(L("Media"), $"{video.Type} clip");
             if (video.StableLevel > 0) Note(L("Stabilization"), $"level {video.StableLevel}");
-            if (video.MattingFlag != 0) Note(L("Remove background"), $"cutout mode {video.MattingFlag}");
             if (video.BeautyMode) Note(L("Beauty / makeup"), L("retouch"));
             // AI-generated images are already baked into the material's file.
             foreach (var algorithm in video.Algorithms.Distinct().Order(StringComparer.Ordinal))
             {
                 if (!algorithm.StartsWith("AigcTypeGen", StringComparison.Ordinal)) Note(L("AI processing"), algorithm);
             }
+        }
+
+        /// <summary>CapCut's cached "Remove background" result; what can't be reproduced is reported.</summary>
+        Cutout? MakeCutout(Matting matting)
+        {
+            if (matting.Expansion != 0 || matting.Feather != 0) Note(L("Remove background"), L("edge expansion or feather"));
+            if (matting.Stroke) Note(L("Remove background"), L("stroke"));
+            if (DraftLoader.ResolvePath(matting.Path, projectFolder) is not { } folder || !Directory.Exists(folder))
+            {
+                Note(L("Remove background"), L("result not saved in the project"));
+                return null;
+            }
+            // A custom cutout without its own result (no subject picked yet) shows the whole clip in CapCut.
+            var custom = matting.Flag == 1;
+            if (Cutout.Locate(folder, custom ? matting.CustomId : null) is not { } directory)
+            {
+                if (!custom) Note(L("Remove background"), L("result not saved in the project"));
+                return null;
+            }
+            return new Cutout(directory, matting.Reverse);
         }
 
         static readonly HashSet<string> Ignored =

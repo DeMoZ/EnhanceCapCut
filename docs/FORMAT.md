@@ -279,6 +279,30 @@ with the music regressed out, ⅓-octave 125 Hz–6.3 kHz, levels relative to th
   filter: it tracks our pre-filter chain within a few dB, and the filters' own level changes survive
   in the export.
 
+## Remove background
+
+`materials.videos[].matting`: `flag` 0 = off, 1 = custom cutout (subject picked with the brush), 3 = auto
+cutout; `path` = `##_draftpath_placeholder_…_##/matting/<hash>`; `custom_matting_id`; `reverse` ("Invert");
+`expansion`, `feather`, `enable_matting_stroke` + `strokes` (outline), `mask_video_path` / `is_clould`
+(empty / false in all the author's projects).
+
+The result folder holds one subfolder per cutout run:
+
+- `2/` — the auto cutout (every person in the frame); `<custom_matting_id>/5/` — the custom cutout (only the
+  picked subject). Several custom runs can share one `<hash>` folder; the material's `custom_matting_id` picks one.
+- Each has `mask/<µs>` — one raw 8-bit frame per source frame (0 = removed, 255 = kept, soft edges), not
+  obfuscated, upright (display orientation), file name = source time in µs of the material (for a compound
+  clip: of the compound's rendered video); `maskinfo/<µs>` — JSON `boundingBox` (normalized `left/top/right/
+  bottom` of the subject and the mask's `width`/`height`); `matting_result.json` — `result_time_range`
+  (computed source ranges); `mocf` — the frame times again; `brush_interaction` (custom only).
+- Mask sizes seen: 448×256 / 256×448 for 16:9 / 9:16 footage, 256×336 for 3:4, 720×720 for a square photo,
+  512×288 for custom cutouts of 16:9. A photo has one frame (`0`).
+- A custom cutout (`flag` 1) whose `<custom_matting_id>` folder is missing or empty shows the whole clip in
+  CapCut's export (Pullups7: the clip under the cut-out people is such a clip and the scene shows); the auto
+  result in `2/` is not used for it.
+- A compound clip's material is its rendered video and can be cut out itself; its frames are transparent
+  where nothing is drawn, so cut-out clips inside it show the layers below (GymCrowd).
+
 ## Compound clips
 
 `materials.drafts[]` (`type` `combination`) embed a complete nested draft in `draft`. A video segment

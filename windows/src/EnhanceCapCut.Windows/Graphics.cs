@@ -55,6 +55,11 @@ public sealed class Graphics : IDisposable
         Context.CreateBitmap(new SizeI(Math.Max(width, 1), Math.Max(height, 1)), IntPtr.Zero, 0,
             new BitmapProperties1(Bgra, 96, 96, options));
 
+    /// <summary>An 8-bit alpha-only bitmap (an opacity mask), filled with <c>CopyFromMemory</c>.</summary>
+    public ID2D1Bitmap1 CreateMaskBitmap(int width, int height) =>
+        Context.CreateBitmap(new SizeI(Math.Max(width, 1), Math.Max(height, 1)), IntPtr.Zero, 0,
+            new BitmapProperties1(new PixelFormat(Format.A8_UNorm, AlphaMode.Premultiplied), 96, 96, BitmapOptions.None));
+
     /// <summary>Runs <paramref name="draw"/> with <paramref name="target"/> as the render target.</summary>
     public void DrawInto(ID2D1Bitmap1 target, Action<ID2D1DeviceContext> draw)
     {

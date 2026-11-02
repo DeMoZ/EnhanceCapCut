@@ -92,10 +92,12 @@ public final class VisualLayer {
     public let uniformScale: Bool
     public let keyframes: [LayerProperty: KeyframeTrack]
     public let canvas: CanvasMaterial?
+    /// "Remove background": CapCut's mask frames, applied as the clip's alpha.
+    public let cutout: Cutout?
 
     init(id: String, content: VisualContent, trackIndex: Int, renderIndex: Int, isMainTrack: Bool,
          target: TimeRange, timeMap: TimeMap, crop: Crop, clip: Clip, uniformScale: Bool,
-         keyframes: [LayerProperty: KeyframeTrack], canvas: CanvasMaterial?) {
+         keyframes: [LayerProperty: KeyframeTrack], canvas: CanvasMaterial?, cutout: Cutout? = nil) {
         self.id = id
         self.content = content
         self.trackIndex = trackIndex
@@ -108,6 +110,7 @@ public final class VisualLayer {
         self.uniformScale = uniformScale
         self.keyframes = keyframes
         self.canvas = canvas
+        self.cutout = cutout
     }
 
     public func isActive(at t: Int64) -> Bool { t >= target.start && t < target.end }
@@ -128,6 +131,33 @@ public final class VisualLayer {
             positionY: kf(.positionY) ?? clip.transform.y,
             flipH: clip.flipHorizontal, flipV: clip.flipVertical,
             alpha: kf(.alpha) ?? clip.alpha)
+    }
+}
+
+/// CapCut's "Remove background" result for a clip: a folder of mask frames.
+public struct Cutout: Hashable {
+    /// The `mask` folder: one raw 8-bit frame per file, named by its source time in µs.
+    public var directory: URL
+    /// "Invert": keep the background, remove the subject.
+    public var inverted: Bool
+
+    public init(directory: URL, inverted: Bool = false) {
+        self.directory = directory
+        self.inverted = inverted
+    }
+
+    /// The mask folder in a matting result folder: `<folder>/<customID>/<n>/mask` for a custom cutout,
+    /// `<folder>/<n>/mask` for the auto cutout (`n` = 5 and 2 so far). Only folders with frames count.
+    public static func locate(folder: URL, customID: String?) -> URL? {
+        let fm = FileManager.default
+        func masks(in base: URL) -> URL? {
+            let entries = (try? fm.contentsOfDirectory(at: base, includingPropertiesForKeys: nil)) ?? []
+            return entries.sorted(by: { $0.path < $1.path }).lazy
+                .map { $0.appendingPathComponent("mask", isDirectory: true) }
+                .first { !((try? fm.contentsOfDirectory(atPath: $0.path)) ?? []).isEmpty }
+        }
+        guard let customID else { return masks(in: folder) }
+        return customID.isEmpty ? nil : masks(in: folder.appendingPathComponent(customID, isDirectory: true))
     }
 }
 
