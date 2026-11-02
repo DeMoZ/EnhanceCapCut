@@ -236,7 +236,7 @@ public static class DraftSubtitleWriter
     {
         var m = template is { } t ? (SortedDictionary<string, object?>)JsonText.From(t)! : JsonText.Object(DefaultMaterial);
         var text = cue.Text;
-        // The style run of the template's content, stretched over the new text (ranges are UTF-16 offsets).
+        // The style run of the template's content, stretched over the new text (ranges count code points).
         SortedDictionary<string, object?>? style = null;
         if (m.GetValueOrDefault("content") is string content)
         {
@@ -252,7 +252,7 @@ public static class DraftSubtitleWriter
             }
         }
         style ??= JsonText.Object(DefaultStyle);
-        style["range"] = new List<object?> { 0, text.Length };
+        style["range"] = new List<object?> { 0, text.EnumerateRunes().Count() };
         m["content"] = JsonText.Encode(new SortedDictionary<string, object?>(StringComparer.Ordinal)
         {
             ["styles"] = new List<object?> { style }, ["text"] = text,

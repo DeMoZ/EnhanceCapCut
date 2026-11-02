@@ -150,6 +150,17 @@ public class DraftParsingTests
     }
 
     [Fact]
+    public void StyleRangesCountCodePoints()
+    {
+        // "руку 😳" is 6 code points but 7 UTF-16 units; the second style covers the emoji only.
+        var content = TextContent.Parse("""{"text":"руку 😳🦑","styles":[{"range":[0,5]},{"range":[5,7]},{"range":[6,99]}]}""")!;
+        Assert.Equal((0, 5), content.Utf16Range(content.Styles[0]));
+        Assert.Equal((5, 9), content.Utf16Range(content.Styles[1]));
+        Assert.Equal((7, 9), content.Utf16Range(content.Styles[2]));  // clamped to the text
+        Assert.Equal((0, 9), content.Utf16Range(null));
+    }
+
+    [Fact]
     public void TimelineReportsMissingMediaAndUnsupported()
     {
         var timeline = TimelineBuilder.Build(Draft.Parse(Json), Temp);

@@ -45,11 +45,8 @@ enum TextRasterizer {
         var strokeWidth: CGFloat = 0
         let styles = spec.content.styles.isEmpty ? [nil] : spec.content.styles.map(Optional.some)
         for style in styles {
-            var range = full
-            if let r = style?.range, r.count == 2 {
-                let lo = max(0, min(r[0], text.length)), hi = max(lo, min(r[1], text.length))
-                range = NSRange(location: lo, length: hi - lo)
-            }
+            let run = spec.content.utf16Range(of: style)
+            let range = NSRange(location: run.lowerBound, length: run.count)
             guard range.length > 0 else { continue }
             let size = CGFloat(style?.size ?? material.fontSize) * unit(style?.fontPath)
             maxFontSize = max(maxFontSize, size)
@@ -237,7 +234,16 @@ enum TextRasterizer {
         return CTFontGetGlyphsForCharacters(font, chars, &glyphs, chars.count)
     }
 
-    /// Assigns CapCut's fallback fonts to characters the styled font can't draw.
+    /// Emoji stay with Core Text's own cascade (Apple Color Emoji): the Noto fallbacks would draw some of them
+    /// (❤, ☀, ✈…) as black-and-white symbols.
+    static func isEmoji(_ sequence: String) -> Bool {
+        let scalars = sequence.unicodeScalars
+        guard let first = scalars.first else { return false }
+        return first.properties.isEmojiPresentation
+            || (first.properties.isEmoji && scalars.contains { $0.value == 0xFE0F || $0.value == 0x20E3 })
+    }
+
+    /// Assigns CapCut's fallback fonts to characters the styled font can't draw (emoji excepted, see `isEmoji`).
     static func applyFallbacks(_ string: NSMutableAttributedString) {
         let descriptors = fallbacks()
         guard !descriptors.isEmpty else { return }
@@ -252,7 +258,9 @@ enum TextRasterizer {
                 index = NSMaxRange(range)
                 var chars = [UniChar](repeating: 0, count: range.length)
                 text.getCharacters(&chars, range: range)
-                if chars.allSatisfy({ $0 < 0x80 }) || covers(primaryCT, chars) { continue }
+                if chars.allSatisfy({ $0 < 0x80 }) || covers(primaryCT, chars) || isEmoji(text.substring(with: range)) {
+                    continue
+                }
                 for (descriptor, matchLineHeight) in descriptors {
                     let candidate = CTFontCreateWithFontDescriptor(descriptor, primary.pointSize, nil)
                     guard covers(candidate, chars) else { continue }

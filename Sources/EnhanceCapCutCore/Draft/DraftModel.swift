@@ -621,6 +621,19 @@ public struct TextContent: Decodable {
         styles = c.list("styles")
     }
 
+    /// The UTF-16 offsets `[start, end)` of a style's run in `text`, clamped to the text; the whole text
+    /// when the style has no range. Draft ranges count Unicode code points, so an emoji is one unit.
+    public func utf16Range(of style: TextStyle?) -> Range<Int> {
+        let length = text.utf16.count
+        guard let r = style?.range, r.count == 2 else { return 0..<length }
+        var offsets = [0]  // UTF-16 offset of each code point, then the end
+        offsets.reserveCapacity(text.unicodeScalars.count + 1)
+        for scalar in text.unicodeScalars { offsets.append(offsets[offsets.count - 1] + scalar.utf16.count) }
+        let lo = offsets[max(0, min(r[0], offsets.count - 1))]
+        let hi = offsets[max(0, min(r[1], offsets.count - 1))]
+        return lo..<max(lo, hi)
+    }
+
     public static func parse(_ json: String) -> TextContent? {
         guard let data = json.data(using: .utf8) else { return nil }
         return try? JSONDecoder().decode(TextContent.self, from: data)
@@ -628,7 +641,8 @@ public struct TextContent: Decodable {
 }
 
 public struct TextStyle: Decodable {
-    /// UTF-16 offsets [start, end).
+    /// Code-point offsets [start, end) into the text (not UTF-16: an emoji counts as one); see
+    /// `TextContent.utf16Range(of:)`.
     public var range: [Int]
     public var size: Double?
     public var fontPath: String?

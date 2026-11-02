@@ -244,12 +244,12 @@ public enum DraftSubtitleWriter {
                                  template: [String: Any]?) -> [String: Any] {
         var m = template ?? defaultMaterial
         let text = cue.text
-        // The style run of the template's content, stretched over the new text (ranges are UTF-16 offsets).
+        // The style run of the template's content, stretched over the new text (ranges count code points).
         let templateContent = (m["content"] as? String).flatMap {
             try? JSONSerialization.jsonObject(with: Data($0.utf8)) as? [String: Any]
         }
         var style = (templateContent?["styles"] as? [[String: Any]])?.first ?? defaultStyle
-        style["range"] = [0, text.utf16.count]
+        style["range"] = [0, text.unicodeScalars.count]
         m["content"] = JSONText.encode(["styles": [style], "text": text] as [String: Any])
         if let size = style["size"] as? Double { m["font_size"] = size }
 

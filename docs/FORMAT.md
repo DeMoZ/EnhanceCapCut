@@ -83,7 +83,8 @@ with audio). The segment's `source_timerange` is in that copy's time base (verif
 `materials.texts[]` (`type` `text` or `subtitle` = auto-captions). `content` is a JSON string:
 `{"text": "...", "styles": [{"range": [a, b], "size": 8, "font": {"path": ...},
 "fill": {"content": {"solid": {"color": [r, g, b]}}}, "strokes": [{"width": 0.06, ...}]}]}`.
-Ranges are UTF-16 offsets.
+Ranges count Unicode code points, not UTF-16 units: an emoji such as `😳` is one unit, so a style covering
+`"руку 😳"` is `[0, 6]` (UTF-16 would be 7). Renderers convert them to UTF-16 offsets before styling.
 
 Calibrated against CapCut exports: font size in px = `size × canvasWidth / 172` for the default
 `SystemFont/en.ttf`, `size × canvasWidth / 155` for other fonts; line pitch ≈ one font size
