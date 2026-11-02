@@ -120,6 +120,8 @@ private struct Builder {
                     reportKeyframes(segment)
                     if segment.isLoop { note(L("Playback"), L("loop")) }
                     if let video { reportVideo(video) }
+                    // A compound clip's material is its rendered video; a cutout on it uses the compound's time.
+                    let cutout = video.flatMap { $0.matting.flag != 0 ? makeCutout($0.matting) : nil }
                     if isMain, let canvas = refs.lazy.compactMap({ canvases[$0] }).first,
                        !["canvas_color", "canvas_blur", "canvas_image"].contains(canvas.type) {
                         note(L("Canvas"), canvas.type)
@@ -129,7 +131,8 @@ private struct Builder {
                         id: segment.id, content: content, trackIndex: trackIndex, renderIndex: segment.renderIndex,
                         isMainTrack: isMain, target: segment.targetTimerange, timeMap: timeMap,
                         crop: video?.crop ?? Crop(), clip: segment.clip ?? Clip(), uniformScale: segment.uniformScale,
-                        keyframes: keyframes(segment), canvas: isMain ? refs.lazy.compactMap { canvases[$0] }.first : nil)
+                        keyframes: keyframes(segment), canvas: isMain ? refs.lazy.compactMap { canvases[$0] }.first : nil,
+                        cutout: cutout)
                     layers.append((layer, order))
 
                     let muted = track.isMuted || (isMain && draft.config.videoMute) || segment.volume <= 0
@@ -346,12 +349,29 @@ private struct Builder {
     mutating func reportVideo(_ video: VideoMaterial) {
         if video.type != "video", video.type != "photo" { note(L("Media"), "\(video.type) clip") }
         if video.stableLevel > 0 { note(L("Stabilization"), "level \(video.stableLevel)") }
-        if video.mattingFlag != 0 { note(L("Remove background"), "cutout mode \(video.mattingFlag)") }
         if video.beautyMode { note(L("Beauty / makeup"), L("retouch")) }
         // AI-generated images are already baked into the material's file.
         for algorithm in Set(video.algorithms).sorted() where !algorithm.hasPrefix("AigcTypeGen") {
             note(L("AI processing"), algorithm)
         }
+    }
+
+    /// CapCut's cached "Remove background" result; what can't be reproduced is reported.
+    mutating func makeCutout(_ matting: Matting) -> Cutout? {
+        if matting.expansion != 0 || matting.feather != 0 { note(L("Remove background"), L("edge expansion or feather")) }
+        if matting.stroke { note(L("Remove background"), L("stroke")) }
+        guard let folder = DraftLoader.resolvePath(matting.path, projectURL: projectURL),
+              fm.fileExists(atPath: folder.path) else {
+            note(L("Remove background"), L("result not saved in the project"))
+            return nil
+        }
+        // A custom cutout without its own result (no subject picked yet) shows the whole clip in CapCut.
+        let custom = matting.flag == 1
+        guard let directory = Cutout.locate(folder: folder, customID: custom ? matting.customID : nil) else {
+            if !custom { note(L("Remove background"), L("result not saved in the project")) }
+            return nil
+        }
+        return Cutout(directory: directory, inverted: matting.reverse)
     }
 
     static let ignored: Set<String> = [

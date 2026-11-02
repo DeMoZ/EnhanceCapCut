@@ -215,7 +215,8 @@ public class DraftParsingTests
             HashSet<string> expected =
             [
                 "Keyframes: mask animation", "Keyframes: Saturation", "Playback: loop",
-                "Stabilization: level 3", "Remove background: cutout mode 1", "Beauty / makeup: retouch",
+                "Stabilization: level 3", "Remove background: result not saved in the project",
+                "Beauty / makeup: retouch",
                 "AI processing: QualityEnhance", "AI processing: super_resolution",
                 "Text: curved text (rendered straight)", "Text: multiple outlines (first one rendered)",
             ];
@@ -226,6 +227,67 @@ public class DraftParsingTests
         finally
         {
             File.Delete(photo);
+        }
+    }
+
+    [Fact]
+    public void CutoutUsesCapCutsMaskFrames()
+    {
+        var dir = Path.Combine(Temp, $"ecc-cutout-{Guid.NewGuid()}");
+        try
+        {
+            void AddMasks(string path)
+            {
+                var masks = Path.Combine(dir, path);
+                Directory.CreateDirectory(masks);
+                File.WriteAllBytes(Path.Combine(masks, "0"), [0, 255]);
+            }
+            AddMasks("matting/auto/2/mask");
+            AddMasks("matting/custom/2/mask");
+            AddMasks("matting/custom/C1/5/mask");
+            AddMasks("matting/unpicked/2/mask");
+            var photo = Path.Combine(dir, "p.png");
+            File.WriteAllBytes(photo, [0]);
+            var root = "##_draftpath_placeholder_0E685133-18CE-45ED-8CB8-2904A212EC80_##/matting/";
+            // Auto cutout; custom cutout with its result; custom cutout with none (whole clip); auto cutout with
+            // feather; auto cutout whose result is gone.
+            string[] mattings =
+            [
+                $$"""{"flag": 3, "path": "{{root}}auto", "custom_matting_id": "X", "reverse": true}""",
+                $$"""{"flag": 1, "path": "{{root}}custom", "custom_matting_id": "C1"}""",
+                $$"""{"flag": 1, "path": "{{root}}unpicked", "custom_matting_id": "C2"}""",
+                $$"""{"flag": 3, "path": "{{root}}auto", "feather": 20, "enable_matting_stroke": true}""",
+                $$"""{"flag": 3, "path": "{{root}}gone"}""",
+            ];
+            var escaped = photo.Replace("\\", "\\\\");
+            var videos = mattings.Select((m, i) => $$$"""{"id": "V{{{i}}}", "type": "photo", "path": "{{{escaped}}}", "matting": {{{m}}}}""");
+            var segments = mattings.Select((_, i) =>
+                $$$"""{"id": "S{{{i}}}", "material_id": "V{{{i}}}", "target_timerange": {"start": 0, "duration": 1000000}}""");
+            var json = $$$"""
+            {"tracks": [{"type": "video", "segments": [{{{string.Join(",", segments)}}}]}],
+             "materials": {"videos": [{{{string.Join(",", videos)}}}]}}
+            """;
+            var timeline = TimelineBuilder.Build(Draft.Parse(json), dir);
+            var cutouts = timeline.Layers.ToDictionary(l => l.Id, l => l.Cutout);
+            string? Rel(Cutout? c) => c is null ? null : Path.GetRelativePath(dir, c.Directory).Replace('\\', '/');
+            Assert.Equal("matting/auto/2/mask", Rel(cutouts["S0"]));
+            Assert.True(cutouts["S0"]!.Inverted);
+            Assert.Equal("matting/custom/C1/5/mask", Rel(cutouts["S1"]));
+            // A custom cutout without a picked subject shows the whole clip.
+            Assert.Null(cutouts["S2"]);
+            Assert.NotNull(cutouts["S3"]);
+            Assert.Null(cutouts["S4"]);
+            var found = timeline.Report.Unsupported.Select(i => $"{i.Category}: {i.Name}").ToHashSet();
+            HashSet<string> expected =
+            [
+                "Remove background: edge expansion or feather", "Remove background: stroke",
+                "Remove background: result not saved in the project",
+            ];
+            Assert.Equal(expected, found);
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
         }
     }
 

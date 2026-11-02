@@ -27,7 +27,8 @@ with one click EnhanceCapCut opens the project you're working on and
   spoken on your computer, even in the speaker's own voice.
 
 > [!WARNING]
-> **Not rendered yet.** Cuts, overlays, speed, transforms, keyframes, texts, captions and the audio mix are rendered;
+> **Not rendered yet.** Cuts, overlays, speed, transforms, keyframes, background removal, texts, captions and the audio
+> mix are rendered;
 > these CapCut features are not yet — a project that uses them exports without them (the export window lists the ones
 > your project uses):
 >
@@ -35,9 +36,8 @@ with one click EnhanceCapCut opens the project you're working on and
 >   ([#39](../../issues/39)), video effects ([#36](../../issues/36)), stickers ([#33](../../issues/33));
 > - text animations ([#34](../../issues/34)), text effects, templates and bubbles ([#35](../../issues/35)), vertical
 >   text ([#47](../../issues/47));
-> - masks ([#37](../../issues/37)), remove background ([#38](../../issues/38)), chroma key ([#43](../../issues/43)),
->   blend modes ([#42](../../issues/42)), clip animations ([#41](../../issues/41)), keyframe easing
->   ([#46](../../issues/46));
+> - masks ([#37](../../issues/37)), chroma key ([#43](../../issues/43)), blend modes ([#42](../../issues/42)), clip
+>   animations ([#41](../../issues/41)), keyframe easing ([#46](../../issues/46));
 > - stabilization ([#44](../../issues/44)), AI "Enhance quality" ([#45](../../issues/45)), retouch, beauty and makeup
 >   ([#40](../../issues/40));
 > - voice filters other than Booming, Live House and Old Hollywood ([#48](../../issues/48)); on Windows, all voice
@@ -156,8 +156,8 @@ backup.
 <details>
 <summary><b>Will the export look exactly like CapCut's?</b></summary>
 
-Cuts, overlays, speed (incl. curves), transforms and keyframes, canvas backgrounds, photos, compound clips, texts and
-captions and the audio mix (incl. CapCut's voice isolation, noise reduction and voice filters) are rendered. The
+Cuts, overlays, speed (incl. curves), transforms and keyframes, canvas backgrounds, photos, compound clips, background
+removal, texts and captions and the audio mix (incl. CapCut's voice isolation, noise reduction and voice filters) are rendered. The
 features in **Not rendered yet** at the top of this page are not yet — the export window tells you when your project
 uses them. See the [roadmap](docs/PLAN.md).
 </details>

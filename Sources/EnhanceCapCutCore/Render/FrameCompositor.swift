@@ -18,24 +18,30 @@ final class FrameCompositor {
     private var sources: [String: VideoFrameSource] = [:]
     private var failed: Set<String> = []
     private var nested: [String: FrameCompositor] = [:]
+    private var masks: [String: CutoutMask] = [:]
     private var textImages: [String: (image: CIImage, scale: CGFloat)] = [:]
     /// Messages about clips that could not be decoded (reported once each).
     private(set) var warnings: [String] = []
 
-    init(timeline: Timeline, size: CGSize, photos: PhotoCache = PhotoCache()) {
+    /// False for a compound clip's frames: transparent where nothing is drawn, like in CapCut (cut-out clips inside
+    /// it show the layers below).
+    let opaque: Bool
+
+    init(timeline: Timeline, size: CGSize, photos: PhotoCache = PhotoCache(), opaque: Bool = true) {
         self.timeline = timeline
         self.size = size
         self.photos = photos
+        self.opaque = opaque
     }
 
     var rect: CGRect { CGRect(origin: .zero, size: size) }
 
-    /// The composited frame at timeline time `t` (µs). Opaque, extent = `rect`.
+    /// The composited frame at timeline time `t` (µs), extent = `rect`; opaque unless `opaque` is false.
     func frame(at t: Int64) async -> CIImage {
         let active = timeline.layers.filter { $0.isActive(at: t) }
         releaseInactive(active: Set(active.map(\.id)))
 
-        var result = CIImage(color: .black).cropped(to: rect)
+        var result = CIImage(color: opaque ? .black : .clear).cropped(to: rect)
         var mainImage: (VisualLayer, CIImage)?
         var layerImages: [(VisualLayer, CIImage)] = []
         for layer in active {
@@ -60,10 +66,12 @@ final class FrameCompositor {
         switch layer.content {
         case let .video(url):
             guard let source = await source(for: layer, url: url) else { return nil }
-            return cropped(source.image(at: layer.timeMap.sourceTime(atOffset: offset)), layer.crop)
+            let time = layer.timeMap.sourceTime(atOffset: offset)
+            return cropped(cutOut(source.image(at: time), layer: layer, at: time), layer.crop)
 
         case let .photo(url):
-            return cropped(photos.image(url, maxDimension: max(size.width, size.height)), layer.crop)
+            return cropped(cutOut(photos.image(url, maxDimension: max(size.width, size.height)), layer: layer, at: 0),
+                           layer.crop)
 
         case let .compound(inner):
             let compositor: FrameCompositor
@@ -74,10 +82,11 @@ final class FrameCompositor {
                 let k = size.width / max(timeline.canvasSize.width, 1)
                 let innerSize = CGSize(width: (inner.canvasSize.width * k).rounded(),
                                        height: (inner.canvasSize.height * k).rounded())
-                compositor = FrameCompositor(timeline: inner, size: innerSize, photos: photos)
+                compositor = FrameCompositor(timeline: inner, size: innerSize, photos: photos, opaque: false)
                 nested[layer.id] = compositor
             }
-            return await compositor.frame(at: layer.timeMap.sourceTime(atOffset: offset))
+            let time = layer.timeMap.sourceTime(atOffset: offset)
+            return cutOut(await compositor.frame(at: time), layer: layer, at: time)
 
         case let .text(spec):
             return textImage(spec, layer: layer).image
@@ -100,8 +109,23 @@ final class FrameCompositor {
         }
     }
 
+    /// "Remove background": the frame with CapCut's mask at source time `t` as its alpha.
+    private func cutOut(_ image: CIImage?, layer: VisualLayer, at t: Int64) -> CIImage? {
+        guard let image, let cutout = layer.cutout else { return image }
+        if masks[layer.id] == nil {
+            guard let mask = CutoutMask(cutout) else { return image }
+            masks[layer.id] = mask
+        }
+        guard let mask = masks[layer.id]?.image(at: t, extent: image.extent) else { return image }
+        return image.applyingFilter("CIBlendWithRedMask", parameters: [
+            kCIInputBackgroundImageKey: CIImage.empty(),
+            kCIInputMaskImageKey: mask,
+        ])
+    }
+
     private func releaseInactive(active: Set<String>) {
         for id in sources.keys where !active.contains(id) { sources[id] = nil }
+        for id in masks.keys where !active.contains(id) { masks[id] = nil }
         for id in nested.keys where !active.contains(id) { nested[id] = nil }
         for id in textImages.keys where !active.contains(id) { textImages[id] = nil }
     }

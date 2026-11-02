@@ -59,7 +59,7 @@ public sealed record LayerTransform(double ScaleX, double ScaleY, double Rotatio
 
 public sealed class VisualLayer(string id, VisualContent content, int trackIndex, int renderIndex, bool isMainTrack,
     TimeRange target, TimeMap timeMap, Crop crop, Clip clip, bool uniformScale,
-    IReadOnlyDictionary<LayerProperty, KeyframeTrack> keyframes, CanvasMaterial? canvas)
+    IReadOnlyDictionary<LayerProperty, KeyframeTrack> keyframes, CanvasMaterial? canvas, Cutout? cutout = null)
 {
     public string Id { get; } = id;
     public VisualContent Content { get; } = content;
@@ -74,6 +74,8 @@ public sealed class VisualLayer(string id, VisualContent content, int trackIndex
     public bool UniformScale { get; } = uniformScale;
     public IReadOnlyDictionary<LayerProperty, KeyframeTrack> Keyframes { get; } = keyframes;
     public CanvasMaterial? Canvas { get; } = canvas;
+    /// <summary>"Remove background": CapCut's mask frames, applied as the clip's alpha.</summary>
+    public Cutout? Cutout { get; } = cutout;
 
     public bool IsActive(long t) => t >= Target.Start && t < Target.End;
 
@@ -92,6 +94,30 @@ public sealed class VisualLayer(string id, VisualContent content, int trackIndex
         return new(sx, sy, Kf(LayerProperty.Rotation) ?? Clip.Rotation,
             Kf(LayerProperty.PositionX) ?? Clip.Transform.X, Kf(LayerProperty.PositionY) ?? Clip.Transform.Y,
             Clip.FlipHorizontal, Clip.FlipVertical, Kf(LayerProperty.Alpha) ?? Clip.Alpha);
+    }
+}
+
+/// <summary>CapCut's "Remove background" result for a clip: a folder of mask frames.</summary>
+/// <param name="Directory">The <c>mask</c> folder: one raw 8-bit frame per file, named by its source time in µs.</param>
+/// <param name="Inverted">"Invert": keep the background, remove the subject.</param>
+public sealed record Cutout(string Directory, bool Inverted = false)
+{
+    /// <summary>
+    /// The mask folder in a matting result folder: <c>&lt;folder&gt;/&lt;customID&gt;/&lt;n&gt;/mask</c> for a custom
+    /// cutout, <c>&lt;folder&gt;/&lt;n&gt;/mask</c> for the auto cutout (<c>n</c> = 5 and 2 so far). Only folders with
+    /// frames count.
+    /// </summary>
+    public static string? Locate(string folder, string? customId)
+    {
+        static string? Masks(string root)
+        {
+            if (!System.IO.Directory.Exists(root)) return null;
+            return System.IO.Directory.EnumerateDirectories(root).Order(StringComparer.Ordinal)
+                .Select(d => System.IO.Path.Combine(d, "mask"))
+                .FirstOrDefault(m => System.IO.Directory.Exists(m) && System.IO.Directory.EnumerateFileSystemEntries(m).Any());
+        }
+        if (customId is null) return Masks(folder);
+        return customId.Length == 0 ? null : Masks(System.IO.Path.Combine(folder, customId));
     }
 }
 

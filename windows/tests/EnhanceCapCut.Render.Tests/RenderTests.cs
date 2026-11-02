@@ -191,3 +191,48 @@ public class LayoutTests
         Assert.Equal(2, TextCalibration.Unit(null, "", 344, 1));
     }
 }
+
+public class CutoutMaskTests
+{
+    [Fact]
+    public void NearestFrameAndSize()
+    {
+        long[] times = [10, 20, 40];
+        Assert.Equal(10, CutoutMask.Nearest(times, 0));
+        // Ties go to the earlier frame.
+        Assert.Equal(10, CutoutMask.Nearest(times, 15));
+        Assert.Equal(40, CutoutMask.Nearest(times, 31));
+        Assert.Equal(40, CutoutMask.Nearest(times, 99));
+        // CapCut's sizes: 448×256 for 16:9, 256×336 for 3:4, 720×720 for a square photo.
+        Assert.Equal((448, 256), CutoutMask.InferSize(448 * 256, 16.0 / 9));
+        Assert.Equal((256, 448), CutoutMask.InferSize(256 * 448, 9.0 / 16));
+        Assert.Equal((256, 336), CutoutMask.InferSize(256 * 336, 3.0 / 4));
+        Assert.Equal((720, 720), CutoutMask.InferSize(720 * 720, 1));
+        Assert.Null(CutoutMask.InferSize(7, 1));
+    }
+
+    [Fact]
+    public void ReadsFramesWithTheStoredSizeAndInverts()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), $"ecc-mask-{Guid.NewGuid()}");
+        var masks = Path.Combine(dir, "2", "mask");
+        var info = Path.Combine(dir, "2", "maskinfo");
+        Directory.CreateDirectory(masks);
+        Directory.CreateDirectory(info);
+        try
+        {
+            File.WriteAllBytes(Path.Combine(masks, "1000"), [0, 255, 10, 20, 30, 40]);
+            File.WriteAllBytes(Path.Combine(masks, "notes"), [1]);
+            File.WriteAllText(Path.Combine(info, "1000"), """{"boundingBox": {"left": 0, "width": 3, "height": 2}}""");
+            var mask = CutoutMask.Open(new Cutout(masks, Inverted: true))!;
+            Assert.Equal([1000L], mask.Times);
+            var frame = mask.FrameAt(5000, aspect: 1)!.Value;
+            Assert.Equal((3, 2), (frame.Width, frame.Height));
+            Assert.Equal([255, 0, 245, 235, 225, 215], frame.Pixels);
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+}

@@ -289,6 +289,35 @@ public struct Crop: Decodable, Equatable {
     }
 }
 
+/// A video material's "Remove background" (`matting`). CapCut stores its result as raw mask frames in the project
+/// folder (see FORMAT.md).
+public struct Matting: Decodable {
+    /// 0 = off, 1 = custom cutout (subject picked with the brush), 3 = auto cutout.
+    public var flag = 0
+    /// The folder with the results, usually `##_draftpath_placeholder_…_##/matting/<hash>`.
+    public var path = ""
+    /// The custom cutout's result folder inside `path`.
+    public var customID = ""
+    /// "Invert".
+    public var reverse = false
+    public var expansion: Double = 0
+    public var feather: Double = 0
+    /// The outline drawn around the cutout ("Stroke") is on.
+    public var stroke = false
+
+    public init() {}
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.anyKeyed()
+        flag = Int(c.num("flag") ?? 0)
+        path = c.str("path") ?? ""
+        customID = c.str("custom_matting_id") ?? ""
+        reverse = c.bool("reverse") ?? false
+        expansion = c.num("expansion") ?? 0
+        feather = c.num("feather") ?? 0
+        stroke = c.bool("enable_matting_stroke") ?? false
+    }
+}
+
 public struct VideoMaterial: Decodable {
     public var id: String
     /// "video" or "photo".
@@ -304,8 +333,8 @@ public struct VideoMaterial: Decodable {
     public var crop: Crop
     /// "Stabilize" level, 0 = off.
     public var stableLevel: Int
-    /// "Remove background" mode (`matting.flag`), 0 = off; 1 and 3 seen (custom / auto cutout).
-    public var mattingFlag: Int
+    /// "Remove background".
+    public var matting: Matting
     /// AI processing applied to the clip: `video_algorithm.algorithms[].type` plus the names of the
     /// non-null per-feature configs (e.g. "super_resolution", "deflicker").
     public var algorithms: [String]
@@ -332,8 +361,7 @@ public struct VideoMaterial: Decodable {
         crop = c.opt("crop") ?? Crop()
         stableLevel = (try? c.nestedContainer(keyedBy: AnyKey.self, forKey: AnyKey("stable")))
             .flatMap { $0.num("stable_level") }.map { Int($0) } ?? 0
-        mattingFlag = (try? c.nestedContainer(keyedBy: AnyKey.self, forKey: AnyKey("matting")))
-            .flatMap { $0.num("flag") }.map { Int($0) } ?? 0
+        matting = c.opt("matting") ?? Matting()
         var algorithms: [String] = []
         if let a = try? c.nestedContainer(keyedBy: AnyKey.self, forKey: AnyKey("video_algorithm")) {
             algorithms = a.list("algorithms", of: AlgorithmItem.self).map(\.type)

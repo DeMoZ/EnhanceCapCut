@@ -27,14 +27,20 @@ public sealed class Compositor : IDisposable
     readonly HashSet<string> failed = [];
     readonly Dictionary<string, Compositor> nested = [];
     readonly Dictionary<string, (ID2D1Bitmap1? Bitmap, float Scale)> texts = [];
+    readonly Dictionary<string, CutoutLayer> cutouts = [];
+    /// <summary>False for a compound clip's frames: transparent where nothing is drawn, like in CapCut (cut-out clips
+    /// inside it show the layers below).</summary>
+    readonly bool opaque;
 
     public int Width { get; }
     public int Height { get; }
     /// <summary>The last rendered frame (premultiplied BGRA, drawable).</summary>
     public ID2D1Bitmap1 Frame { get; }
 
-    public Compositor(Graphics graphics, Timeline timeline, int width, int height, List<string> warnings, ImageLoader? photos = null)
+    public Compositor(Graphics graphics, Timeline timeline, int width, int height, List<string> warnings,
+        ImageLoader? photos = null, bool opaque = true)
     {
+        this.opaque = opaque;
         this.graphics = graphics;
         this.timeline = timeline;
         this.warnings = warnings;
@@ -63,6 +69,21 @@ public sealed class Compositor : IDisposable
         }
     }
 
+    /// <summary>"Remove background": the clip's mask frames, the current one as an A8 bitmap, and the cut-out frame.</summary>
+    sealed class CutoutLayer(CutoutMask mask) : IDisposable
+    {
+        public CutoutMask Mask { get; } = mask;
+        public ID2D1Bitmap1? MaskBitmap { get; set; }
+        public long? MaskTime { get; set; }
+        public ID2D1Bitmap1? Result { get; set; }
+
+        public void Dispose()
+        {
+            MaskBitmap?.Dispose();
+            Result?.Dispose();
+        }
+    }
+
     /// <summary>Renders timeline time <paramref name="t"/> (µs) into <see cref="Frame"/>.</summary>
     public ID2D1Bitmap1 Render(long t)
     {
@@ -78,7 +99,7 @@ public sealed class Compositor : IDisposable
 
         graphics.DrawInto(Frame, dc =>
         {
-            dc.Clear(new Color4(0, 0, 0, 1));
+            dc.Clear(new Color4(0, 0, 0, opaque ? 1 : 0));
             if (main.Layer?.Canvas is { } canvas) Background(dc, canvas, main.Image);
             foreach (var (layer, image, textScale) in images) Place(dc, layer, image, textScale, t);
         });
@@ -103,20 +124,21 @@ public sealed class Compositor : IDisposable
                     v.Version = frame.Version;
                     if (v.Upright is { } upright) TurnUpright(v.Stored, upright, v.Reader.Rotation);
                 }
-                return (v.Image, null);
+                return (CutOut(layer, v.Image, layer.TimeMap.SourceTime(offset)), null);
             }
             case PhotoContent photo:
-                return photos.Load(photo.Path) is { } bitmap ? (bitmap, null) : null;
+                return photos.Load(photo.Path) is { } bitmap ? (CutOut(layer, bitmap, 0), null) : null;
             case CompoundContent compound:
             {
                 if (!nested.TryGetValue(layer.Id, out var inner))
                 {
                     // Render the nested canvas at the same pixel density as this one.
                     var (w, h) = Layout.NestedSize(timeline, compound.Timeline, Width);
-                    inner = new Compositor(graphics, compound.Timeline, w, h, warnings, photos);
+                    inner = new Compositor(graphics, compound.Timeline, w, h, warnings, photos, opaque: false);
                     nested[layer.Id] = inner;
                 }
-                return (inner.Render(layer.TimeMap.SourceTime(offset)), null);
+                var time = layer.TimeMap.SourceTime(offset);
+                return (CutOut(layer, inner.Render(time), time), null);
             }
             case TextContentLayer textLayer:
             {
@@ -131,6 +153,48 @@ public sealed class Compositor : IDisposable
             default:
                 return null;
         }
+    }
+
+    /// <summary>"Remove background": <paramref name="image"/> with CapCut's mask at source time <paramref name="t"/> as its alpha.</summary>
+    ID2D1Bitmap1 CutOut(VisualLayer layer, ID2D1Bitmap1 image, long t)
+    {
+        if (layer.Cutout is not { } cutout) return image;
+        if (!cutouts.TryGetValue(layer.Id, out var c))
+        {
+            if (CutoutMask.Open(cutout) is not { } opened) return image;
+            c = new CutoutLayer(opened);
+            cutouts[layer.Id] = c;
+        }
+        var size = image.PixelSize;
+        var time = CutoutMask.Nearest(c.Mask.Times, t);
+        if (c.MaskTime != time)
+        {
+            if (c.Mask.FrameAt(time, (double)size.Width / Math.Max(size.Height, 1)) is not { } frame) return image;
+            if (c.MaskBitmap is not { } existing || existing.PixelSize.Width != frame.Width || existing.PixelSize.Height != frame.Height)
+            {
+                c.MaskBitmap?.Dispose();
+                c.MaskBitmap = graphics.CreateMaskBitmap(frame.Width, frame.Height);
+            }
+            c.MaskBitmap.CopyFromMemory(frame.Pixels, (uint)frame.Width).CheckError();
+            c.MaskTime = time;
+        }
+        if (c.Result is not { } result || result.PixelSize.Width != size.Width || result.PixelSize.Height != size.Height)
+        {
+            c.Result?.Dispose();
+            c.Result = graphics.CreateBitmap(size.Width, size.Height, BitmapOptions.Target);
+        }
+        var mask = c.MaskBitmap!;
+        graphics.DrawInto(c.Result, dc =>
+        {
+            dc.Clear(new Color4(0, 0, 0, 0));
+            // FillOpacityMask needs aliased drawing; the mask is stretched over the whole frame.
+            dc.AntialiasMode = AntialiasMode.Aliased;
+            using var brush = dc.CreateBitmapBrush(image);
+            dc.FillOpacityMask(mask, brush, new Vortice.RawRectF(0, 0, size.Width, size.Height),
+                new Vortice.RawRectF(0, 0, mask.PixelSize.Width, mask.PixelSize.Height));
+            dc.AntialiasMode = AntialiasMode.PerPrimitive;
+        });
+        return c.Result;
     }
 
     VideoLayer? Video(VisualLayer layer, string path)
@@ -176,6 +240,7 @@ public sealed class Compositor : IDisposable
         foreach (var id in videos.Keys.Where(id => !active.Contains(id)).ToList()) { videos[id].Dispose(); videos.Remove(id); }
         foreach (var id in nested.Keys.Where(id => !active.Contains(id)).ToList()) { nested[id].Dispose(); nested.Remove(id); }
         foreach (var id in texts.Keys.Where(id => !active.Contains(id)).ToList()) { texts[id].Bitmap?.Dispose(); texts.Remove(id); }
+        foreach (var id in cutouts.Keys.Where(id => !active.Contains(id)).ToList()) { cutouts[id].Dispose(); cutouts.Remove(id); }
     }
 
     void Warn(string message)
@@ -253,6 +318,7 @@ public sealed class Compositor : IDisposable
         foreach (var v in videos.Values) v.Dispose();
         foreach (var n in nested.Values) n.Dispose();
         foreach (var (bitmap, _) in texts.Values) bitmap?.Dispose();
+        foreach (var c in cutouts.Values) c.Dispose();
         text.Dispose();
         if (ownsPhotos) photos.Dispose();
         Frame.Dispose();
