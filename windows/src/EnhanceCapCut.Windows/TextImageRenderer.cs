@@ -50,12 +50,7 @@ public sealed class TextImageRenderer(Graphics graphics) : IDisposable
         var styles = spec.Content.Styles.Count == 0 ? [null] : spec.Content.Styles.Cast<TextStyle?>().ToList();
         foreach (var style in styles)
         {
-            int lo = 0, hi = text.Length;
-            if (style?.Range is { Count: 2 } r)
-            {
-                lo = Math.Clamp(r[0], 0, text.Length);
-                hi = Math.Clamp(r[1], lo, text.Length);
-            }
+            var (lo, hi) = spec.Content.Utf16Range(style);
             if (hi <= lo) continue;
             var range = new TextRange((uint)lo, (uint)(hi - lo));
             var size = (float)(style?.Size ?? material.FontSize) * Unit(style?.FontPath);

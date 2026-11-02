@@ -130,6 +130,16 @@ final class DraftParsingTests: XCTestCase {
         XCTAssertEqual(content.styles.first?.fillColor ?? [], [1, 0, 0])
     }
 
+    func testStyleRangesCountCodePoints() throws {
+        // "руку 😳" is 6 code points but 7 UTF-16 units; the second style covers the emoji only.
+        let json = #"{"text":"руку 😳🦑","styles":[{"range":[0,5]},{"range":[5,7]},{"range":[6,99]}]}"#
+        let content = try XCTUnwrap(TextContent.parse(json))
+        XCTAssertEqual(content.utf16Range(of: content.styles[0]), 0..<5)
+        XCTAssertEqual(content.utf16Range(of: content.styles[1]), 5..<9)
+        XCTAssertEqual(content.utf16Range(of: content.styles[2]), 7..<9, "clamped to the text")
+        XCTAssertEqual(content.utf16Range(of: nil), 0..<9)
+    }
+
     func testTimelineReportsMissingMediaAndUnsupported() throws {
         let draft = try JSONDecoder().decode(Draft.self, from: Data(json.utf8))
         let timeline = TimelineBuilder.build(draft: draft, projectURL: URL(fileURLWithPath: "/tmp"))

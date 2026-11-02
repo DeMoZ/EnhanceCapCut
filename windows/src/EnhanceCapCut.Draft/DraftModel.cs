@@ -618,6 +618,21 @@ public sealed class TextContent
     public string Text { get; set; } = "";
     public List<TextStyle> Styles { get; set; } = [];
 
+    /// <summary>
+    /// The UTF-16 offsets [start, end) of a style's run in <see cref="Text"/>, clamped to the text; the whole text
+    /// when the style has no range. Draft ranges count Unicode code points, so an emoji is one unit.
+    /// </summary>
+    public (int Start, int End) Utf16Range(TextStyle? style)
+    {
+        if (style?.Range is not { Count: 2 } r) return (0, Text.Length);
+        var offsets = new List<int>(Text.Length + 1) { 0 };  // UTF-16 offset of each code point, then the end
+        for (var i = 0; i < Text.Length; i += char.IsSurrogatePair(Text, i) ? 2 : 1)
+            offsets.Add(i + (char.IsSurrogatePair(Text, i) ? 2 : 1));
+        var lo = offsets[Math.Clamp(r[0], 0, offsets.Count - 1)];
+        var hi = offsets[Math.Clamp(r[1], 0, offsets.Count - 1)];
+        return (lo, Math.Max(lo, hi));
+    }
+
     public static TextContent? Parse(string json)
     {
         try
@@ -636,7 +651,10 @@ public sealed class TextContent
 
 public sealed class TextStyle
 {
-    /// <summary>UTF-16 offsets [start, end).</summary>
+    /// <summary>
+    /// Code-point offsets [start, end) into the text (not UTF-16: an emoji counts as one); see
+    /// <see cref="TextContent.Utf16Range"/>.
+    /// </summary>
     public List<int> Range { get; set; } = [];
     public double? Size { get; set; }
     public string? FontPath { get; set; }
