@@ -1,0 +1,144 @@
+import Foundation
+
+/// One of CapCut's "Filters" (`materials.effects`, `type` "filter"): a colour lookup table read from the filter's
+/// package in CapCut's effect cache, applied at the filter's intensity.
+public struct ColorFilter: Hashable {
+    public var name: String
+    /// The lookup table: a `.cube` file or a PNG lookup image (see `ColorFilter.layout`).
+    public var lut: URL
+    /// The "intensity" slider (`value`), 0...1.
+    public var intensity: Double
+
+    public init(name: String, lut: URL, intensity: Double = 1) {
+        self.name = name
+        self.lut = lut
+        self.intensity = intensity
+    }
+
+    /// The largest lookup table we read (entries per channel).
+    public static let maxSize = 64
+
+    /// How a PNG lookup image holds its N×N×N table. In every layout red grows to the right and green downwards
+    /// inside a tile, and blue picks the tile.
+    public enum Layout: Equatable {
+        /// √N × √N tiles of N×N pixels, blue tile by tile, row by row (512×512 for N = 64).
+        case grid(size: Int, tilesPerRow: Int)
+        /// N tiles of N×N side by side (N² × N).
+        case row(size: Int)
+        /// N tiles of N×N stacked (N × N²).
+        case column(size: Int)
+
+        public var size: Int {
+            switch self {
+            case let .grid(size, _), let .row(size), let .column(size): size
+            }
+        }
+
+        /// The pixel holding entry (r, g, b).
+        public func pixel(r: Int, g: Int, b: Int) -> (x: Int, y: Int) {
+            switch self {
+            case let .grid(n, k): ((b % k) * n + r, (b / k) * n + g)
+            case let .row(n): (b * n + r, g)
+            case let .column(n): (r, b * n + g)
+            }
+        }
+    }
+
+    /// The layout of a lookup image of this size, or nil when it isn't one.
+    public static func layout(width: Int, height: Int) -> Layout? {
+        func valid(_ n: Int) -> Bool { n >= 2 && n <= maxSize }
+        if width == height {
+            // N = k², side = N·k = k³.
+            for k in 2...8 where k * k * k == width && valid(k * k) { return .grid(size: k * k, tilesPerRow: k) }
+            return nil
+        }
+        if height * height == width, valid(height) { return .row(size: height) }
+        if width * width == height, valid(width) { return .column(size: width) }
+        return nil
+    }
+
+    /// The width and height in a PNG file's header, or nil when it isn't a PNG.
+    public static func pngSize(_ url: URL) -> (width: Int, height: Int)? {
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
+        defer { try? handle.close() }
+        guard let data = try? handle.read(upToCount: 24), data.count == 24,
+              data.prefix(8) == Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]) else { return nil }
+        let bytes = [UInt8](data)
+        func int(_ at: Int) -> Int { bytes[at..<at + 4].reduce(0) { $0 << 8 | Int($1) } }
+        return (int(16), int(20))
+    }
+
+    /// The `LUT_3D_SIZE` of a `.cube` file, or nil when it has none or it's out of range.
+    public static func cubeSize(_ url: URL) -> Int? {
+        guard let text = try? String(contentsOf: url, encoding: .utf8) else { return nil }
+        for line in text.split(whereSeparator: \.isNewline) {
+            let parts = line.split(whereSeparator: \.isWhitespace)
+            if parts.count == 2, parts[0] == "LUT_3D_SIZE", let n = Int(parts[1]), n >= 2, n <= maxSize { return n }
+        }
+        return nil
+    }
+
+    /// The lookup table in a filter package: the first `.cube` or lookup-shaped PNG, by path, preferring files whose
+    /// name mentions "lut".
+    public static func lutFile(in package: URL) -> URL? {
+        let fm = FileManager.default
+        guard let walker = fm.enumerator(at: package, includingPropertiesForKeys: nil) else { return nil }
+        var candidates: [(rank: Int, path: String, url: URL)] = []
+        for case let url as URL in walker {
+            let ext = url.pathExtension.lowercased()
+            let usable: Bool
+            switch ext {
+            case "cube": usable = cubeSize(url) != nil
+            case "png": usable = pngSize(url).flatMap { layout(width: $0.width, height: $0.height) } != nil
+            default: continue
+            }
+            guard usable else { continue }
+            let rank = url.lastPathComponent.lowercased().contains("lut") ? 0 : 1
+            let relative = String(url.standardizedFileURL.path.dropFirst(package.standardizedFileURL.path.count))
+            candidates.append((rank, relative, url))
+        }
+        return candidates.min { ($0.rank, $0.path) < ($1.rank, $1.path) }?.url
+    }
+
+    /// The lookup table for a filter: in `path` (the cached package, or a folder in it), otherwise in the first
+    /// `<cache>/<resourceID>/<hash>` that has one.
+    public static func locate(path: URL?, resourceID: String, cacheRoots: [URL] = VoiceFilter.cacheRoots) -> URL? {
+        let fm = FileManager.default
+        var isDirectory: ObjCBool = false
+        if let path, fm.fileExists(atPath: path.path, isDirectory: &isDirectory), isDirectory.boolValue,
+           let lut = lutFile(in: path) { return lut }
+        guard !resourceID.isEmpty else { return nil }
+        for root in cacheRoots {
+            let folder = root.appendingPathComponent(resourceID, isDirectory: true)
+            let entries = (try? fm.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
+            for entry in entries.sorted(by: { $0.path < $1.path }) {
+                if let lut = lutFile(in: entry) { return lut }
+            }
+        }
+        return nil
+    }
+}
+
+/// A filter on a filter track: it colours everything painted below it (`renderIndex`) while it's active.
+public struct FilterLayer {
+    public var id: String
+    public var target: TimeRange
+    public var trackIndex: Int
+    public var renderIndex: Int
+    public var filter: ColorFilter
+
+    public init(id: String, target: TimeRange, trackIndex: Int, renderIndex: Int, filter: ColorFilter) {
+        self.id = id
+        self.target = target
+        self.trackIndex = trackIndex
+        self.renderIndex = renderIndex
+        self.filter = filter
+    }
+
+    public func isActive(at t: Int64) -> Bool { t >= target.start && t < target.end }
+
+    /// True when the filter is painted after `layer` (and so colours it).
+    public func covers(_ layer: VisualLayer) -> Bool {
+        (renderIndex, trackIndex) > (layer.renderIndex, layer.trackIndex)
+    }
+}

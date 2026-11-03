@@ -88,9 +88,11 @@ Usage counts from the author's 69 projects drive the order of the later mileston
 
 ## Milestone 2 — LUT filters
 
-- Read filter packages from CapCut's effect cache (`~/Library/Containers/com.lemon.lvoverseas/Data/Movies/CapCut/User Data/Cache/effect/<id>/<hash>/`)
-  at render time, locate the LUT image, apply it with `CIColorCube` with the filter's intensity.
-- Filter tracks (`effect`/`filter` track types) and per-clip filters; the "Cherry Cola" filter first.
+- [x] Read filter packages from CapCut's effect cache (`~/Library/Containers/com.lemon.lvoverseas/Data/Movies/CapCut/User Data/Cache/effect/<id>/<hash>/`)
+  at render time, locate the LUT (`.cube` or lookup PNG, `ColorFilter`), apply it with `CIColorCubeWithColorSpace`
+  (Direct2D LookupTable3D on Windows) at the filter's intensity. Filter tracks and per-clip filters.
+  Open: no real filter package was cached to check the layout on, so no comparison with a CapCut export yet (#31);
+  the Direct2D table's axis order is untested on Windows. "Cherry Cola" turned out to be makeup, not a filter.
 - Also: HSL adjustments (19 uses) and basic colour adjustments where they map to Core Image.
 
 ## Milestone 3 — "Flashback" transition and "Clock Time" stickers

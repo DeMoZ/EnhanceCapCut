@@ -230,6 +230,31 @@ export as `g_v·voice + g_a·ambience` per ⅓-octave band (voice = Apple's isol
   to the denoiser's 15 % × the enhancer's gain, i.e. the two don't stack.
 - No export with level 100 exists in the author's library; we assume 100 keeps the ambience whole.
 
+### Filters (`effects`, type `filter`)
+
+`materials.effects[]` with `type` `filter` ("Faded Mood", "Film", "Yellowstone", "Shimmering B&W", "Butter Cheese" in
+the author's projects): `name`, `resource_id` / `effect_id` (the effect id), `value` (the intensity slider, 0…1; all
+uses are at 1), `path` (the cached package, `…/Cache/effect/<resource_id>/<md5>`), `category_name`
+("Featured"), `adjust_params` (empty in all uses). Two ways to use one:
+
+- on a `filter` track: a segment whose `material_id` is the filter (`render_index` 10000+, no `clip`); it colours
+  everything painted below it (videos and overlays, not the texts at 14000+) for its `target_timerange`;
+- per clip: the filter's id in a video segment's `extra_material_refs`.
+
+We look for the lookup table in the package at render time (`ColorFilter.locate`: the draft's `path`, else
+`<cache>/<resource_id>/<hash>`): the first `.cube` file or lookup-shaped PNG, preferring names with "lut". PNG
+layouts: a √N×√N grid of N×N tiles (512×512 for N = 64), or N tiles in a row (N²×N) or a column; red grows to the
+right and green downwards in a tile, blue picks the tile. The table is applied to sRGB-encoded values, blended with
+the original by `value`. A filter whose package or table isn't found stays in the report.
+
+Not yet seen: a real filter package. None of the five used filters is in the author's effect cache right now
+(CapCut downloads a package when the filter is used or previewed), so the package layout above is an assumption that
+still has to be checked on one, and the render against a CapCut export. The renderer was checked end to end with a
+synthetic black-and-white table on OldSOund (filter track over a compound clip; texts above it keep their colour).
+
+"Cherry Cola" (2 uses) is not a filter: it's `type` `figure` with `value` 0, and its cached package is a makeup
+AmazingFeature (`image/blusher`, `eyebrow`, `lip`…), so it's reported as *Beauty / makeup*.
+
 ### Voice filters (`audio_effects`)
 
 `materials.audio_effects[]` (`type` `audio_effect`, `category_name` "Voice filters", `sub_type` 1):

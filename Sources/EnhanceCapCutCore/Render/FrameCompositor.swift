@@ -19,6 +19,8 @@ final class FrameCompositor {
     private var failed: Set<String> = []
     private var nested: [String: FrameCompositor] = [:]
     private var masks: [String: CutoutMask] = [:]
+    /// Filter lookup tables (nil: unreadable).
+    private var luts: [ColorFilter: ColorLUT?] = [:]
     private var textImages: [String: (image: CIImage, scale: CGFloat)] = [:]
     /// Messages about clips that could not be decoded (reported once each).
     private(set) var warnings: [String] = []
@@ -45,7 +47,8 @@ final class FrameCompositor {
         var mainImage: (VisualLayer, CIImage)?
         var layerImages: [(VisualLayer, CIImage)] = []
         for layer in active {
-            guard let image = await content(of: layer, at: t) else { continue }
+            guard let content = await content(of: layer, at: t) else { continue }
+            let image = colored(content, by: layer.filters)
             if layer.isMainTrack && mainImage == nil { mainImage = (layer, image) }
             layerImages.append((layer, image))
         }
@@ -53,9 +56,17 @@ final class FrameCompositor {
         if let (layer, image) = mainImage, let canvas = layer.canvas {
             result = background(canvas, source: image).composited(over: result)
         }
+        // Filter-track filters colour what's painted below them.
+        var filters = timeline.filters.filter { $0.isActive(at: t) }
+            .sorted { ($0.renderIndex, $0.trackIndex) < ($1.renderIndex, $1.trackIndex) }
         for (layer, image) in layerImages {
+            while let filter = filters.first, !filter.covers(layer) {
+                result = colored(result, by: [filter.filter]).cropped(to: rect)
+                filters.removeFirst()
+            }
             result = place(image, layer: layer, at: t).composited(over: result)
         }
+        result = colored(result, by: filters.map(\.filter))
         return result.cropped(to: rect)
     }
 
@@ -121,6 +132,15 @@ final class FrameCompositor {
             kCIInputBackgroundImageKey: CIImage.empty(),
             kCIInputMaskImageKey: mask,
         ])
+    }
+
+    /// `image` through CapCut filters' lookup tables, in order.
+    private func colored(_ image: CIImage, by filters: [ColorFilter]) -> CIImage {
+        filters.reduce(image) { image, filter in
+            if luts[filter] == nil { luts[filter] = .some(ColorLUT(filter)) }
+            guard let lut = luts[filter] ?? nil else { return image }
+            return lut.apply(to: image)
+        }
     }
 
     private func releaseInactive(active: Set<String>) {
