@@ -51,6 +51,7 @@ public enum VisualContent {
     case photo(URL)
     case text(TextLayerSpec)
     case compound(Timeline)
+    case sticker(StickerSpec)
 }
 
 public struct TextLayerSpec {

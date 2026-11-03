@@ -207,7 +207,17 @@ private struct Builder {
                 default:
                     // Stickers, effects and filters on their own tracks.
                     guard !track.isHidden else { continue }
-                    if let (key, item) = generic[segment.materialId] {
+                    // "Clock Time" stickers are drawn natively; other stickers are reported.
+                    if track.type == "sticker", segment.visible, let (key, item) = generic[segment.materialId],
+                       key == "stickers", let style = ClockSticker.style(resourceID: item.resourceID) {
+                        reportKeyframes(segment)
+                        let layer = VisualLayer(
+                            id: segment.id, content: .sticker(StickerSpec(name: item.name, clock: ClockSticker(style: style))),
+                            trackIndex: trackIndex, renderIndex: segment.renderIndex, isMainTrack: false,
+                            target: segment.targetTimerange, timeMap: timeMap, crop: Crop(), clip: segment.clip ?? Clip(),
+                            uniformScale: segment.uniformScale, keyframes: keyframes(segment), canvas: nil)
+                        layers.append((layer, order))
+                    } else if let (key, item) = generic[segment.materialId] {
                         report(key: key, item: item)
                         if key == "effects", item.type == "filter", segment.visible, let filter = colorFilter(item) {
                             filterLayers.append(FilterLayer(id: segment.id, target: segment.targetTimerange,

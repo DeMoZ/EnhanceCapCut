@@ -383,6 +383,26 @@ incoming one plays from the cut at its normal source time. What CapCut shows of 
 dissolves from one clip into the other; we re-implement it (`FlashbackLook`), every other transition is a
 cross-fade.
 
+## Stickers
+
+Sticker tracks (`type` `sticker`) hold segments whose `material_id` points into `materials.stickers[]`: `name`,
+`resource_id` = `sticker_id`, `category_name`, `path` (CapCut's cache,
+`~/Library/Containers/com.lemon.lvoverseas/Data/Movies/CapCut/User Data/Cache/artistEffect/<resource_id>/<hash>` — the
+folders were gone on the author's Mac), `global_alpha`, `cycle_setting`, shape/border/shadow fields (defaults in all
+the author's projects). The segment has `source_timerange` null, `render_index` 14000 and is placed with the ordinary
+`clip` (scale, rotation, transform, alpha).
+
+"Clock Time" (resource `7528282080199904565` "EN White Outline Progress Bar" and `7528280675909209405` "EN Blue
+White Minimalist") is drawn natively (`ClockSticker`). Measured on the author's exports (Pullups3Wide, Pullups5Wide):
+
+- The clock is centered on the clip position; its outer diameter is 0.441 (white) / 0.448 (blue) × the canvas height
+  (1080, 16:9; the shorter side is assumed for other shapes) × the clip scale.
+- White: white ring (0.157 of the outer radius) and white hands, no face. Blue: grey ring `#535353` (0.191), face
+  `#F9F9F9`, hands `#0078D2`. Hands are round-capped, 0.13–0.14 wide, 0.67–0.69 (minute) and 0.45–0.47 (hour) long.
+- The animation loops every 82 frames (2.733 s) from the segment start: from the rest pose (minute hand at 12, hour
+  hand at 3) the minute hand turns twice and the hour hand once, both slowing down, then they rest for ~4 frames.
+  Both styles move identically. The angle table is in `ClockSticker`.
+
 ## Compound clips
 
 `materials.drafts[]` (`type` `combination`) embed a complete nested draft in `draft`. A video segment

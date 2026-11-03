@@ -33,6 +33,8 @@ public sealed record VideoContent(string Path) : VisualContent;
 public sealed record PhotoContent(string Path) : VisualContent;
 public sealed record TextContentLayer(TextLayerSpec Spec) : VisualContent;
 public sealed record CompoundContent(Timeline Timeline) : VisualContent;
+/// <summary>A sticker clip the renderer draws itself (<paramref name="Name"/> = its name in CapCut).</summary>
+public sealed record StickerContent(string Name, ClockSticker Clock) : VisualContent;
 
 public sealed record TextLayerSpec(TextMaterial Material, TextContent Content);
 

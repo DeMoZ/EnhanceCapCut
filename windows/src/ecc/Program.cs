@@ -110,6 +110,7 @@ switch (command)
                 PhotoContent ph => "photo " + Path.GetFileName(ph.Path),
                 TextContentLayer t => "text \"" + Prefix(t.Spec.Content.Text, 30).Replace("\n", " ") + "\"",
                 CompoundContent c => $"compound ({c.Timeline.Layers.Count} layers)",
+                StickerContent st => "sticker " + st.Name,
                 _ => "?",
             };
             var speed = layer.TimeMap.IsConstant ? "x" + F2(layer.TimeMap.AverageSpeed) : "curve";

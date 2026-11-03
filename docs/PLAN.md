@@ -111,8 +111,10 @@ Usage counts from the author's 69 projects drive the order of the later mileston
       with a dissolve (Core Image / Direct2D, calibrated by eye on ATV), every other transition as a cross-fade
       (still listed in the report). Open: the other looks by usage (Sand Spread, Fading Red, Photo Switch, …);
       checking whether CapCut plays media beyond the clip edges (handles) instead of holding the edge frame.
-- Stickers: re-implement "Clock Time" (44 of 46 stickers) natively (clock face drawn with Core Graphics
-  from the segment's time), positioned with the sticker clip transform.
+- [x] Stickers: "Clock Time" (both styles the author uses, 48 of 50 stickers) drawn natively (Core Graphics /
+      Direct2D) from the segment's time, with hand animation, size and colours measured on CapCut's exports,
+      positioned with the sticker clip transform and keyframes. Open: other stickers (#66) — CapCut's cached
+      sticker media was gone on the author's Mac.
 
 ## Milestone 4 — cached AI results
 
