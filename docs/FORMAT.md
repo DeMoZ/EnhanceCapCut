@@ -264,7 +264,9 @@ reproduced yet. Rendered against the export: the table moves the colours the rig
 `AmazingFeature/`, one `filter.png`); Film's `filter.png` is a JPEG despite the name, so tables are recognised by
 their header (PNG or JPEG), not the extension. In Мокрая прогулка (filter track) our frames equal the table applied
 to the frame's values, but the export's shift is only ≈ 0.55 of that for all three filters (best per-pixel fit 0.55,
-0.55, 0.58 at `value` 1.0); the export (16:31) predates the draft's last save (17:56), so this is still open.
+0.55, 0.58 at `value` 1.0). CapCut's intensity slider does follow `value` (writing 0.3 into the draft shows 30 in
+CapCut), so the export (16:31, before the draft's last save at 17:56) was most likely made at a lower intensity; there
+is no export at the saved settings to confirm it.
 
 "Shimmering B&W" (ElefantCafeLong, per clip) has four parts: `AmazingFeature` (8001: animated sparkles from
 `kira-*.png` textures, plus an unused colour table `image/filter.png`), `AmazingFeature1` (8002: a glow/highlight
