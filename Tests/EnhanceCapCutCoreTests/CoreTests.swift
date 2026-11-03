@@ -106,7 +106,7 @@ final class DraftParsingTests: XCTestCase {
                     "crop": {"upper_left_x": 0.1, "upper_left_y": 0.0, "lower_right_x": 0.9, "lower_right_y": 1.0}}],
         "speeds": [{"id": "SP1", "type": "speed", "mode": 0, "speed": 2.0, "curve_speed": null}],
         "canvases": [{"id": "C1", "type": "canvas_blur", "blur": 0.5, "color": ""}],
-        "transitions": [{"id": "TR1", "type": "transition", "name": "Flashback"}],
+        "transitions": [{"id": "TR1", "type": "transition", "name": "Sand Spread"}],
         "texts": [{"id": "X1", "type": "subtitle", "font_size": "not a number",
                    "content": "{\\"text\\":\\"Hello\\",\\"styles\\":[{\\"range\\":[0,5],\\"size\\":8,\\"fill\\":{\\"content\\":{\\"solid\\":{\\"color\\":[1,0,0]}}}}]}"}],
         "audios": null
@@ -144,7 +144,9 @@ final class DraftParsingTests: XCTestCase {
         let draft = try JSONDecoder().decode(Draft.self, from: Data(json.utf8))
         let timeline = TimelineBuilder.build(draft: draft, projectURL: URL(fileURLWithPath: "/tmp"))
         XCTAssertEqual(timeline.report.missingFiles, ["/nonexistent/clip.mov"])
-        XCTAssertTrue(timeline.report.unsupported.contains { $0.category == "Transition" && $0.name == "Flashback" })
+        XCTAssertTrue(timeline.report.unsupported.contains {
+            $0.category == "Transition" && $0.name == "Sand Spread (shown as a cross-fade)"
+        })
         // The missing video produces no layer; the subtitle does.
         XCTAssertEqual(timeline.layers.count, 1)
         XCTAssertTrue(timeline.hasSubtitles)
@@ -197,6 +199,57 @@ final class DraftParsingTests: XCTestCase {
         ]
         XCTAssertEqual(found, expected)
         XCTAssertEqual(timeline.layers.count, 2, "unsupported features don't drop the clips")
+    }
+
+    func testTransitionsJoinAdjacentClips() throws {
+        let photo = FileManager.default.temporaryDirectory.appendingPathComponent("ecc-transition-test.png")
+        try Data([0]).write(to: photo)
+        defer { try? FileManager.default.removeItem(at: photo) }
+        func segment(_ id: String, _ start: Int, _ duration: Int, _ refs: [String]) -> String {
+            """
+            {"id": "\(id)", "material_id": "V1", "target_timerange": {"start": \(start), "duration": \(duration)},
+             "extra_material_refs": [\(refs.map { "\"\($0)\"" }.joined(separator: ","))]}
+            """
+        }
+        let json = """
+        {
+          "tracks": [{"type": "video", "segments": [
+            \(segment("A", 0, 2000000, ["F"])), \(segment("B", 2000000, 300000, ["X"])),
+            \(segment("C", 2300000, 1000000, ["F"])), \(segment("D", 4000000, 1000000, []))
+          ]}],
+          "materials": {
+            "videos": [{"id": "V1", "type": "photo", "path": "\(photo.path)"}],
+            "transitions": [
+              {"id": "F", "type": "transition", "name": "Flashback", "duration": 200000, "is_overlap": true},
+              {"id": "X", "type": "transition", "name": "Spin Shift", "duration": 1000000, "is_overlap": true}]
+          }
+        }
+        """
+        let draft = try JSONDecoder().decode(Draft.self, from: Data(json.utf8))
+        let timeline = TimelineBuilder.build(draft: draft, projectURL: URL(fileURLWithPath: "/tmp"))
+        let layers = Dictionary(uniqueKeysWithValues: timeline.layers.map { ($0.id, $0) })
+        // Centred on the cut.
+        let flashback = try XCTUnwrap(layers["A"]?.transitionOut)
+        XCTAssertEqual(flashback.kind, .flashback)
+        XCTAssertTrue(flashback.next === layers["B"])
+        XCTAssertEqual(flashback.range, TimeRange(start: 1_900_000, duration: 200_000))
+        XCTAssertEqual(flashback.progress(at: 2_000_000), 0.5)
+        // Kept within half of the shorter clip.
+        let other = try XCTUnwrap(layers["B"]?.transitionOut)
+        XCTAssertEqual(other.kind, .crossFade)
+        XCTAssertEqual(other.range, TimeRange(start: 2_150_000, duration: 300_000))
+        // C and D don't touch.
+        XCTAssertNil(layers["C"]?.transitionOut)
+        XCTAssertNil(layers["D"]?.transitionOut)
+        XCTAssertEqual(timeline.report.unsupported.map { "\($0.category): \($0.name)" },
+                       ["Transition: Spin Shift (shown as a cross-fade)"])
+
+        XCTAssertEqual(FlashbackLook.strength(0), 0, accuracy: 1e-9)
+        XCTAssertEqual(FlashbackLook.strength(0.5), 1, accuracy: 1e-9)
+        XCTAssertEqual(FlashbackLook.mix(0.2), 0)
+        XCTAssertEqual(FlashbackLook.mix(0.5), 0.5, accuracy: 1e-9)
+        XCTAssertEqual(FlashbackLook.mix(0.8), 1)
+        XCTAssertEqual(FlashbackLook.copy(0, at: 1).scale, 1, accuracy: 1e-9)
     }
 
     func testCutoutUsesCapCutsMaskFrames() throws {

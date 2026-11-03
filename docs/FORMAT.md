@@ -366,6 +366,23 @@ white, grey or black one), with a soft band; "Shadow" keeps pixels below a brigh
 key's hue out of what's kept; "Edge feather" blurs the matte. The keying runs on the clip's frames before the
 cutout and the crop. Its constants are not calibrated against a CapCut export yet.
 
+## Transitions
+
+`materials.transitions[]`: `{id, type: "transition", name, effect_id / resource_id, path (effect cache), duration (µs),
+is_overlap, category_name, is_ai_transition, video_path}`. The transition is referenced from the `extra_material_refs`
+of the clip it **leaves** (the outgoing clip); the last clip of a track has none. Target ranges stay back to back —
+adding a transition doesn't move or shorten the clips. Seen only on the main track, every one with `is_overlap: true`.
+
+Against the export of ATV (30 fps): the transition is centred on the cut, `[cut − duration/2, cut + duration/2)` —
+"Flashback" (0.2 s) blurs from 9.733 s to 9.933 s around the cut at 9.833 s; "Fading Red" (2 s) is fully red at the
+cut, the outgoing clip plays up to the cut (it ends at its media's end, so there are no frames beyond it) and the
+incoming one plays from the cut at its normal source time. What CapCut shows of the other clip in the opposite half
+(edge frame held or media beyond the clip edges) isn't settled: we hold the edge frame.
+
+"Flashback" (`effect_id` 7252586720078598658) looks like a zoom-and-spin blur that peaks at the cut while the picture
+dissolves from one clip into the other; we re-implement it (`FlashbackLook`), every other transition is a
+cross-fade.
+
 ## Compound clips
 
 `materials.drafts[]` (`type` `combination`) embed a complete nested draft in `draft`. A video segment

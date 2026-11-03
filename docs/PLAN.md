@@ -100,9 +100,11 @@ Usage counts from the author's 69 projects drive the order of the later mileston
 
 ## Milestone 3 — "Flashback" transition and "Clock Time" stickers
 
-- Transitions: model the overlap of adjacent main-track clips (`is_overlap`, `duration`), render
-  "Flashback" (18 of 26 transitions) as our own Metal/Core Image kernel; then a generic cross-fade
-  fallback for other transitions.
+- [x] Transitions: the transition between adjacent clips of a track, centred on the cut (`duration`), each clip
+      holding its edge frame for the other half; "Flashback" (18 of 26 transitions) as our own zoom-and-spin blur
+      with a dissolve (Core Image / Direct2D, calibrated by eye on ATV), every other transition as a cross-fade
+      (still listed in the report). Open: the other looks by usage (Sand Spread, Fading Red, Photo Switch, …);
+      checking whether CapCut plays media beyond the clip edges (handles) instead of holding the edge frame.
 - Stickers: re-implement "Clock Time" (44 of 46 stickers) natively (clock face drawn with Core Graphics
   from the segment's time), positioned with the sticker clip transform.
 

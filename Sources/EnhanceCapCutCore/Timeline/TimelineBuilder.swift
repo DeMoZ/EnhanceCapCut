@@ -54,6 +54,8 @@ private struct Builder {
         var order = 0
 
         for (trackIndex, track) in draft.tracks.enumerated() {
+            // The previous clip on this track and the transition it ends with.
+            var previous: (layer: VisualLayer, transition: GenericMaterial?)?
             for segment in track.segments {
                 order += 1
                 let refs = segment.extraMaterialRefs
@@ -141,6 +143,12 @@ private struct Builder {
                         generic[ref].flatMap { $0.0 == "effects" && $0.1.type == "filter" ? colorFilter($0.1) : nil }
                     }
                     layers.append((layer, order))
+                    if let from = previous?.layer, let material = previous?.transition {
+                        from.transitionOut = LayerTransition.make(
+                            name: material.name, resourceID: material.resourceID, duration: material.duration,
+                            from: from, into: layer)
+                    }
+                    previous = (layer, refs.lazy.compactMap { generic[$0] }.first { $0.0 == "transitions" }?.1)
 
                     let muted = track.isMuted || (isMain && draft.config.videoMute) || segment.volume <= 0
                     if !muted, let audioURL {
@@ -412,7 +420,10 @@ private struct Builder {
         guard !Builder.ignored.contains(key) else { return }
         let name = item.name.isEmpty ? item.type : item.name
         switch key {
-        case "transitions": note(L("Transition"), name)
+        case "transitions":
+            if LayerTransition.kind(name: item.name, resourceID: item.resourceID) != .flashback {
+                note(L("Transition"), L("{0} (shown as a cross-fade)", name))
+            }
         case "video_effects": note(L("Video effect"), name)
         case "stickers": note(L("Sticker"), name)
         case "common_mask", "masks": note(L("Mask"), name)

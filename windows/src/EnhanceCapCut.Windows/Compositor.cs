@@ -34,6 +34,8 @@ public sealed class Compositor : IDisposable
     /// <summary>A copy of <see cref="Frame"/> for filter-track filters to read from.</summary>
     ID2D1Bitmap1? frameCopy;
     readonly Dictionary<string, ChromaKeyer> chromaKeys = [];
+    /// <summary>Bitmaps of the transitions on screen, by outgoing clip.</summary>
+    readonly Dictionary<string, TransitionMixer> transitions = [];
     /// <summary>False for a compound clip's frames: transparent where nothing is drawn, like in CapCut (cut-out clips
     /// inside it show the layers below).</summary>
     readonly bool opaque;
@@ -94,7 +96,10 @@ public sealed class Compositor : IDisposable
     /// <summary>Renders timeline time <paramref name="t"/> (µs) into <see cref="Frame"/>.</summary>
     public ID2D1Bitmap1 Render(long t)
     {
-        var active = timeline.Layers.Where(l => l.IsActive(t)).ToList();
+        // Both clips of a transition stay on screen for its whole range.
+        var mixing = timeline.Layers.Where(l => l.TransitionOut?.Contains(t) == true)
+            .SelectMany(l => new[] { l.Id, l.TransitionOut!.Next.Id }).ToHashSet();
+        var active = timeline.Layers.Where(l => l.IsActive(t) || mixing.Contains(l.Id)).ToList();
         ReleaseInactive(active.Select(l => l.Id).ToHashSet());
 
         var images = new List<(VisualLayer Layer, ID2D1Bitmap1 Image, float? TextScale)>();
@@ -103,6 +108,8 @@ public sealed class Compositor : IDisposable
             if (Content(layer, t) is { } content) images.Add((layer, Colored(layer, content.Image), content.TextScale));
         }
         var main = images.FirstOrDefault(i => i.Layer.IsMainTrack);
+        var mixed = MixTransitions(images, t);
+        images.RemoveAll(i => mixed.Incoming.Contains(i.Layer.Id));
 
         // Filter-track filters colour what's painted below them: draw in runs between them.
         var filters = timeline.Filters.Where(f => f.IsActive(t) && colorFilters.CanApply([f.Filter]))
@@ -120,7 +127,11 @@ public sealed class Compositor : IDisposable
                     dc.Clear(new Color4(0, 0, 0, opaque ? 1 : 0));
                     if (main.Layer?.Canvas is { } canvas) Background(dc, canvas, main.Image);
                 }
-                foreach (var (layer, image, textScale) in run) Place(dc, layer, image, textScale, t);
+                foreach (var (layer, image, textScale) in run)
+                {
+                    if (mixed.Plates.TryGetValue(layer.Id, out var plate)) dc.DrawBitmap(plate, 1, InterpolationMode.NearestNeighbor);
+                    else Place(dc, layer, image, textScale, t);
+                }
             });
             first = false;
             next += run.Count;
@@ -132,6 +143,41 @@ public sealed class Compositor : IDisposable
         }
         return Frame;
     }
+
+    /// <summary>Each clip in a transition mixed with the next one, drawn later in the outgoing clip's place; the
+    /// incoming clips are then not drawn on their own.</summary>
+    (Dictionary<string, ID2D1Bitmap1> Plates, HashSet<string> Incoming) MixTransitions(
+        List<(VisualLayer Layer, ID2D1Bitmap1 Image, float? TextScale)> images, long t)
+    {
+        var plates = new Dictionary<string, ID2D1Bitmap1>();
+        var incoming = new HashSet<string>();
+        foreach (var (layer, image, textScale) in images)
+        {
+            if (layer.TransitionOut is not { } transition || !transition.Contains(t)) continue;
+            var next = images.FirstOrDefault(i => ReferenceEquals(i.Layer, transition.Next));
+            if (next.Layer is null) continue;
+            if (!transitions.TryGetValue(layer.Id, out var mixer))
+            {
+                mixer = new TransitionMixer(graphics, Width, Height);
+                transitions[layer.Id] = mixer;
+            }
+            DrawPlate(mixer.A, layer, image, textScale, t);
+            DrawPlate(mixer.B, next.Layer, next.Image, next.TextScale, t);
+            mixer.Mix(transition.Kind, transition.Progress(t));
+            plates[layer.Id] = mixer.Result;
+            incoming.Add(next.Layer.Id);
+        }
+        return (plates, incoming);
+    }
+
+    /// <summary>A clip placed on the frame, over its canvas background (and black, when opaque) on the main track.</summary>
+    void DrawPlate(ID2D1Bitmap1 target, VisualLayer layer, ID2D1Bitmap1 image, float? textScale, long t) =>
+        graphics.DrawInto(target, dc =>
+        {
+            dc.Clear(new Color4(0, 0, 0, layer.IsMainTrack && opaque ? 1 : 0));
+            if (layer.IsMainTrack && layer.Canvas is { } canvas) Background(dc, canvas, image);
+            Place(dc, layer, image, textScale, t);
+        });
 
     /// <summary><paramref name="image"/> through the clip's own filters, in order.</summary>
     ID2D1Bitmap1 Colored(VisualLayer layer, ID2D1Bitmap1 image)
@@ -303,6 +349,7 @@ public sealed class Compositor : IDisposable
         foreach (var id in nested.Keys.Where(id => !active.Contains(id)).ToList()) { nested[id].Dispose(); nested.Remove(id); }
         foreach (var id in texts.Keys.Where(id => !active.Contains(id)).ToList()) { texts[id].Bitmap?.Dispose(); texts.Remove(id); }
         foreach (var id in cutouts.Keys.Where(id => !active.Contains(id)).ToList()) { cutouts[id].Dispose(); cutouts.Remove(id); }
+        foreach (var id in transitions.Keys.Where(id => !active.Contains(id)).ToList()) { transitions[id].Dispose(); transitions.Remove(id); }
         foreach (var id in filtered.Keys.Where(id => !active.Contains(id)).ToList())
         {
             filtered[id].A.Dispose();
@@ -388,6 +435,7 @@ public sealed class Compositor : IDisposable
         foreach (var n in nested.Values) n.Dispose();
         foreach (var (bitmap, _) in texts.Values) bitmap?.Dispose();
         foreach (var c in cutouts.Values) c.Dispose();
+        foreach (var m in transitions.Values) m.Dispose();
         foreach (var (a, b) in filtered.Values) { a.Dispose(); b.Dispose(); }
         colorFilters.Dispose();
         frameCopy?.Dispose();

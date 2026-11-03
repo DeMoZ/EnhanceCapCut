@@ -65,6 +65,8 @@ public static class TimelineBuilder
             for (var trackIndex = 0; trackIndex < draft.Tracks.Count; trackIndex++)
             {
                 var track = draft.Tracks[trackIndex];
+                // The previous clip on this track and the transition it ends with.
+                (VisualLayer Layer, GenericMaterial? Transition)? previous = null;
                 foreach (var segment in track.Segments)
                 {
                     order++;
@@ -165,6 +167,10 @@ public static class TimelineBuilder
                             layer.Filters = refs.Select(r => generic.TryGetValue(r, out var f) && f.Key == "effects" && f.Item.Type == "filter"
                                 ? MakeColorFilter(f.Item) : null).OfType<ColorFilter>().ToList();
                             layers.Add((layer, order));
+                            if (previous is ({ } from, { } material))
+                                from.TransitionOut = LayerTransition.Make(material.Name, material.ResourceID, material.Duration, from, layer);
+                            previous = (layer, refs.Select(r => generic.TryGetValue(r, out var g) && g.Key == "transitions" ? g.Item : null)
+                                .FirstOrDefault(g => g is not null));
 
                             var muted = track.IsMuted || (isMain && draft.Config.VideoMute) || segment.Volume <= 0;
                             if (!muted && audioPath is not null)
@@ -476,7 +482,10 @@ public static class TimelineBuilder
             var name = item.Name.Length == 0 ? item.Type : item.Name;
             switch (key)
             {
-                case "transitions": Note(L("Transition"), name); break;
+                case "transitions":
+                    if (LayerTransition.KindOf(item.Name, item.ResourceID) != TransitionKind.Flashback)
+                        Note(L("Transition"), L("{0} (shown as a cross-fade)", name));
+                    break;
                 case "video_effects": Note(L("Video effect"), name); break;
                 case "stickers": Note(L("Sticker"), name); break;
                 case "common_mask" or "masks": Note(L("Mask"), name); break;

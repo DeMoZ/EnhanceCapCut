@@ -338,6 +338,7 @@
   "word art": "фигурный текст",
   "{0}  — main": "{0}  — основная",
   "{0}  — open in CapCut": "{0}  — открыт в CapCut",
+  "{0} (shown as a cross-fade)": "{0} (показан как растворение)",
   "{0} already exists": "{0} уже существует",
   "{0} captions ({1})": "субтитры: {0} ({1})",
   "{0} is from an older CapCut that keeps a single timeline. Open it in CapCut once, close it, and try again.": "Проект «{0}» создан в старой версии CapCut с одной временной шкалой. Откройте его в CapCut, закройте и попробуйте снова.",
