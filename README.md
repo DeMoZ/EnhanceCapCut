@@ -27,13 +27,12 @@ with one click EnhanceCapCut opens the project you're working on and
   spoken on your computer, even in the speaker's own voice.
 
 > [!WARNING]
-> **Not rendered yet.** Cuts, overlays, speed, transforms, keyframes, background removal, texts, captions and the audio
+> **Not rendered yet.** Cuts, overlays, speed, transforms, keyframes, background removal, filters, texts, captions and the audio
 > mix are rendered;
 > these CapCut features are not yet — a project that uses them exports without them (the export window lists the ones
 > your project uses):
 >
-> - transitions ([#32](../../issues/32)), filters whose package isn't in CapCut's effect cache and the sharpening, glow
->   and sparkles some filter packages add ([#31](../../issues/31)), colour adjustments and HSL
+> - transitions ([#32](../../issues/32)), colour adjustments and HSL
 >   ([#39](../../issues/39)), video effects ([#36](../../issues/36)), stickers ([#33](../../issues/33));
 > - text animations ([#34](../../issues/34)), text effects, templates and bubbles ([#35](../../issues/35)), vertical
 >   text ([#47](../../issues/47));
@@ -158,7 +157,7 @@ backup.
 <summary><b>Will the export look exactly like CapCut's?</b></summary>
 
 Cuts, overlays, speed (incl. curves), transforms and keyframes, canvas backgrounds, photos, compound clips, background
-removal, texts and captions and the audio mix (incl. CapCut's voice isolation, noise reduction and voice filters) are rendered. The
+removal, filters, texts and captions and the audio mix (incl. CapCut's voice isolation, noise reduction and voice filters) are rendered. The
 features in **Not rendered yet** at the top of this page are not yet — the export window tells you when your project
 uses them. See the [roadmap](docs/PLAN.md).
 </details>

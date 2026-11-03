@@ -92,9 +92,10 @@ Usage counts from the author's 69 projects drive the order of the later mileston
   at render time, locate the LUT (`.cube` or lookup PNG, `ColorFilter`), apply it with `CIColorCubeWithColorSpace`
   (Direct2D LookupTable3D on Windows) at the filter's intensity. Filter tracks and per-clip filters.
   Multi-part packages: the table each part's materials name, in `zorder`. Checked against the exports on
-  "Butter Cheese" (OldSOund) and "Shimmering B&W" (ElefantCafeLong). Open (#31): the extra passes some packages run
-  (Butter Cheese's 3×3 unsharp, Shimmering B&W's glow and sparkles); Faded Mood, Film, Yellowstone aren't cached yet;
-  the Direct2D table's axis order is untested on Windows. "Cherry Cola" turned out to be makeup, not a filter.
+  "Butter Cheese" (OldSOund), "Shimmering B&W" (ElefantCafeLong), "Yellowstone", "Film", "Faded Mood" (Мокрая прогулка).
+  Verified filter intensity in CapCut UI follows `draft_info.json` `value`. Open: the extra passes some packages run
+  (Butter Cheese's 3×3 unsharp, Shimmering B&W's glow and sparkles); the Direct2D table's axis order is untested on
+  Windows. "Cherry Cola" turned out to be makeup, not a filter.
 - Also: HSL adjustments (19 uses) and basic colour adjustments where they map to Core Image.
 
 ## Milestone 3 — "Flashback" transition and "Clock Time" stickers
