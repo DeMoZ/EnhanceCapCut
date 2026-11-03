@@ -247,10 +247,16 @@ layouts: a √N×√N grid of N×N tiles (512×512 for N = 64), or N tiles in a 
 right and green downwards in a tile, blue picks the tile. The table is applied to sRGB-encoded values, blended with
 the original by `value`. A filter whose package or table isn't found stays in the report.
 
-Not yet seen: a real filter package. None of the five used filters is in the author's effect cache right now
-(CapCut downloads a package when the filter is used or previewed), so the package layout above is an assumption that
-still has to be checked on one, and the render against a CapCut export. The renderer was checked end to end with a
-synthetic black-and-white table on OldSOund (filter track over a compound clip; texts above it keep their colour).
+CapCut downloads a package when a project using it is opened. Checked on "Butter Cheese" (OldSOund): the package is
+an AmazingFeature (`AmazingFeature/image/filter.png`, 512×512, the 8×8 grid above; `main.scene`, five `xshader`
+passes, `lua/SeekModeScript.lua`). The last pass looks up the grid image exactly as we do (blue between two tiles,
+red/green inside a tile) and mixes with the input by `uniAlpha` = the intensity. Before it the package sharpens the
+frame, independently of the intensity: two Gaussian passes with radius 0 (a no-op), then a 3×3 blur `b` and
+`out = in + (in − b) × sharpness` with `sharpness` 1.35 and radius 1 set in the Lua script. The sharpening isn't
+reproduced yet. Rendered against the export: the table moves the colours the right way (a wall patch goes from RGB
+161/163/131 without the filter to 156/152/111, CapCut 169/159/103); the rest is the clip's "color correct" adjustment
+(`effects`, `type` `color_correct`, `value` 0.8), which is still reported (#39). The other four used filters
+(Faded Mood, Film, Yellowstone, Shimmering B&W) haven't been cached yet.
 
 "Cherry Cola" (2 uses) is not a filter: it's `type` `figure` with `value` 0, and its cached package is a makeup
 AmazingFeature (`image/blusher`, `eyebrow`, `lip`…), so it's reported as *Beauty / makeup*.
