@@ -19,6 +19,17 @@ final class ColorFilterTests: XCTestCase {
         XCTAssertEqual(ColorFilter.Layout.row(size: 32).pixel(r: 1, g: 2, b: 3).x, 97)
     }
 
+    func testImageSizeFromPNGAndJPEGHeaders() {
+        // "Film" ships a JPEG named filter.png: APP0 segment, then the frame header (SOF0: precision, height, width).
+        let jpeg: [UInt8] = [0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x04, 0x4A, 0x46, 0xFF, 0xC0, 0x00, 0x11, 0x08, 0x01, 0x00, 0x02, 0x00,
+                             0x03, 0x01, 0x22, 0x00]
+        XCTAssertEqual(ColorFilter.imageSize(jpeg)?.width, 512)
+        XCTAssertEqual(ColorFilter.imageSize(jpeg)?.height, 256)
+        let png: [UInt8] = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52, 0, 0, 2, 0, 0, 0, 2, 0]
+        XCTAssertEqual(ColorFilter.imageSize(png)?.width, 512)
+        XCTAssertNil(ColorFilter.imageSize([0x47, 0x49, 0x46, 0x38]))
+    }
+
     /// A lookup image of `layout` holding `transform` (applied to 8-bit RGB), as a PNG.
     static func writeLookup(_ url: URL, width: Int, height: Int, layout: ColorFilter.Layout,
                             transform: (Int, Int, Int) -> (Int, Int, Int)) throws {

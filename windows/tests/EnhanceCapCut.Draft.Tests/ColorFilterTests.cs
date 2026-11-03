@@ -21,6 +21,18 @@ public class ColorFilterTests
         Assert.Equal(97, ColorFilter.LayoutFor(1024, 32)!.Pixel(1, 2, 3).X);
     }
 
+    [Fact]
+    public void ImageSizeFromPngAndJpegHeaders()
+    {
+        // "Film" ships a JPEG named filter.png: APP0 segment, then the frame header (SOF0: precision, height, width).
+        byte[] jpeg = [0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x04, 0x4A, 0x46, 0xFF, 0xC0, 0x00, 0x11, 0x08, 0x01, 0x00, 0x02, 0x00,
+            0x03, 0x01, 0x22, 0x00];
+        Assert.Equal((512, 256), ColorFilter.ImageSize(jpeg));
+        byte[] png = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52, 0, 0, 2, 0, 0, 0, 2, 0];
+        Assert.Equal(512, ColorFilter.ImageSize(png)?.Width);
+        Assert.Null(ColorFilter.ImageSize([0x47, 0x49, 0x46, 0x38]));
+    }
+
     /// <summary>A file with just a PNG signature and header (all the package search reads).</summary>
     internal static void WritePngHeader(string path, int width, int height)
     {

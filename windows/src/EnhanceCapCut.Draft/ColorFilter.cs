@@ -57,20 +57,44 @@ public sealed record ColorFilter(string Name, IReadOnlyList<string> Luts, double
 
     static readonly byte[] PngSignature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
 
-    /// <summary>The width and height in a PNG file's header, or null when it isn't a PNG.</summary>
-    public static (int Width, int Height)? PngSize(string path)
+    /// <summary>The width and height of a PNG or JPEG file, from its header, whatever its extension says (some
+    /// packages ship a JPEG named <c>filter.png</c>); null for anything else.</summary>
+    public static (int Width, int Height)? ImageSize(string path)
     {
         try
         {
             using var file = File.OpenRead(path);
-            var header = new byte[24];
-            if (file.ReadAtLeast(header, 24, throwOnEndOfStream: false) < 24 || !header.AsSpan(0, 8).SequenceEqual(PngSignature))
-                return null;
-            static int Int(byte[] b, int at) => b[at] << 24 | b[at + 1] << 16 | b[at + 2] << 8 | b[at + 3];
-            return (Int(header, 16), Int(header, 20));
+            var buffer = new byte[65536];
+            var count = file.ReadAtLeast(buffer, buffer.Length, throwOnEndOfStream: false);
+            return ImageSize(buffer.AsSpan(0, count));
         }
         catch (IOException) { return null; }
         catch (UnauthorizedAccessException) { return null; }
+    }
+
+    /// <summary>The width and height in the first bytes of a PNG or JPEG file.</summary>
+    public static (int Width, int Height)? ImageSize(ReadOnlySpan<byte> b)
+    {
+        static int Be(ReadOnlySpan<byte> b, int at, int n)
+        {
+            var v = 0;
+            for (var k = 0; k < n; k++) v = v << 8 | b[at + k];
+            return v;
+        }
+        if (b.Length >= 24 && b[..8].SequenceEqual(PngSignature)) return (Be(b, 16, 4), Be(b, 20, 4));
+        if (b.Length < 4 || b[0] != 0xFF || b[1] != 0xD8) return null;
+        // JPEG: walk the segments to the frame header (SOFn: C0–CF except C4 DHT, C8 JPG, CC DAC).
+        var i = 2;
+        while (i + 9 < b.Length)
+        {
+            if (b[i] != 0xFF) return null;
+            var marker = b[i + 1];
+            if (marker == 0xFF) { i++; continue; }
+            if (marker is >= 0xC0 and <= 0xCF and not (0xC4 or 0xC8 or 0xCC)) return (Be(b, i + 7, 2), Be(b, i + 5, 2));
+            if (marker is 0xD9 or 0xDA) return null;
+            i += 2 + Be(b, i + 2, 2);
+        }
+        return null;
     }
 
     /// <summary>The <c>LUT_3D_SIZE</c> of a <c>.cube</c> file, or null when it has none or it's out of range.</summary>
@@ -106,7 +130,7 @@ public sealed record ColorFilter(string Name, IReadOnlyList<string> Luts, double
             var usable = System.IO.Path.GetExtension(file).ToLowerInvariant() switch
             {
                 ".cube" => CubeSize(file) is not null,
-                ".png" => PngSize(file) is { } size && LayoutFor(size.Width, size.Height) is not null,
+                ".png" or ".jpg" or ".jpeg" => ImageSize(file) is { } size && LayoutFor(size.Width, size.Height) is not null,
                 _ => false,
             };
             if (!usable) continue;

@@ -58,15 +58,31 @@ public struct ColorFilter: Hashable {
         return nil
     }
 
-    /// The width and height in a PNG file's header, or nil when it isn't a PNG.
-    public static func pngSize(_ url: URL) -> (width: Int, height: Int)? {
+    /// The width and height of a PNG or JPEG file, from its header, whatever its extension says (some packages ship
+    /// a JPEG named `filter.png`); nil for anything else.
+    public static func imageSize(_ url: URL) -> (width: Int, height: Int)? {
         guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
         defer { try? handle.close() }
-        guard let data = try? handle.read(upToCount: 24), data.count == 24,
-              data.prefix(8) == Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]) else { return nil }
-        let bytes = [UInt8](data)
-        func int(_ at: Int) -> Int { bytes[at..<at + 4].reduce(0) { $0 << 8 | Int($1) } }
-        return (int(16), int(20))
+        guard let data = try? handle.read(upToCount: 65536) else { return nil }
+        return imageSize([UInt8](data))
+    }
+
+    /// The width and height in the first bytes of a PNG or JPEG file.
+    public static func imageSize(_ b: [UInt8]) -> (width: Int, height: Int)? {
+        func be(_ at: Int, _ n: Int) -> Int { b[at..<at + n].reduce(0) { $0 << 8 | Int($1) } }
+        if b.count >= 24, b.prefix(8) == [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A] { return (be(16, 4), be(20, 4)) }
+        guard b.count >= 4, b[0] == 0xFF, b[1] == 0xD8 else { return nil }
+        // JPEG: walk the segments to the frame header (SOFn: C0–CF except C4 DHT, C8 JPG, CC DAC).
+        var i = 2
+        while i + 9 < b.count {
+            guard b[i] == 0xFF else { return nil }
+            let marker = b[i + 1]
+            if marker == 0xFF { i += 1; continue }
+            if (0xC0...0xCF).contains(marker), ![0xC4, 0xC8, 0xCC].contains(marker) { return (be(i + 7, 2), be(i + 5, 2)) }
+            if marker == 0xD9 || marker == 0xDA { return nil }
+            i += 2 + be(i + 2, 2)
+        }
+        return nil
     }
 
     /// The `LUT_3D_SIZE` of a `.cube` file, or nil when it has none or it's out of range.
@@ -93,7 +109,7 @@ public struct ColorFilter: Hashable {
             let usable: Bool
             switch ext {
             case "cube": usable = cubeSize(url) != nil
-            case "png": usable = pngSize(url).flatMap { layout(width: $0.width, height: $0.height) } != nil
+            case "png", "jpg", "jpeg": usable = imageSize(url).flatMap { layout(width: $0.width, height: $0.height) } != nil
             default: continue
             }
             guard usable else { continue }

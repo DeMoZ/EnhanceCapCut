@@ -260,7 +260,11 @@ frame, independently of the intensity: two Gaussian passes with radius 0 (a no-o
 reproduced yet. Rendered against the export: the table moves the colours the right way (a wall patch goes from RGB
 161/163/131 without the filter to 156/152/111, CapCut 169/159/103); the rest is the clip's "color correct" adjustment
 (`effects`, `type` `color_correct`, `value` 0.8), which is still reported (#39). The other four used filters
-(Faded Mood, Film, Yellowstone) haven't been cached yet.
+(Faded Mood, Film, Yellowstone) are single-part packages with the same lookup shader (`AmazingFeature_2998/` or
+`AmazingFeature/`, one `filter.png`); Film's `filter.png` is a JPEG despite the name, so tables are recognised by
+their header (PNG or JPEG), not the extension. In Мокрая прогулка (filter track) our frames equal the table applied
+to the frame's values, but the export's shift is only ≈ 0.55 of that for all three filters (best per-pixel fit 0.55,
+0.55, 0.58 at `value` 1.0); the export (16:31) predates the draft's last save (17:56), so this is still open.
 
 "Shimmering B&W" (ElefantCafeLong, per clip) has four parts: `AmazingFeature` (8001: animated sparkles from
 `kira-*.png` textures, plus an unused colour table `image/filter.png`), `AmazingFeature1` (8002: a glow/highlight
