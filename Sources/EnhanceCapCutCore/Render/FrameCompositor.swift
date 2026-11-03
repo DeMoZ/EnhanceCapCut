@@ -19,8 +19,8 @@ final class FrameCompositor {
     private var failed: Set<String> = []
     private var nested: [String: FrameCompositor] = [:]
     private var masks: [String: CutoutMask] = [:]
-    /// Filter lookup tables (nil: unreadable).
-    private var luts: [ColorFilter: ColorLUT?] = [:]
+    /// Filters' readable lookup tables.
+    private var luts: [ColorFilter: [ColorLUT]] = [:]
     private var textImages: [String: (image: CIImage, scale: CGFloat)] = [:]
     /// Messages about clips that could not be decoded (reported once each).
     private(set) var warnings: [String] = []
@@ -137,9 +137,8 @@ final class FrameCompositor {
     /// `image` through CapCut filters' lookup tables, in order.
     private func colored(_ image: CIImage, by filters: [ColorFilter]) -> CIImage {
         filters.reduce(image) { image, filter in
-            if luts[filter] == nil { luts[filter] = .some(ColorLUT(filter)) }
-            guard let lut = luts[filter] ?? nil else { return image }
-            return lut.apply(to: image)
+            if luts[filter] == nil { luts[filter] = filter.luts.compactMap { ColorLUT($0, intensity: filter.intensity) } }
+            return luts[filter, default: []].reduce(image) { $1.apply(to: $0) }
         }
     }
 

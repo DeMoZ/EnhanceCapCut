@@ -1,12 +1,13 @@
 namespace EnhanceCapCut.Draft;
 
 /// <summary>
-/// One of CapCut's "Filters" (<c>materials.effects</c>, <c>type</c> "filter"): a colour lookup table read from the
-/// filter's package in CapCut's effect cache, applied at the filter's intensity.
+/// One of CapCut's "Filters" (<c>materials.effects</c>, <c>type</c> "filter"): colour lookup tables read from the
+/// filter's package in CapCut's effect cache, applied in order at the filter's intensity.
 /// </summary>
-/// <param name="Lut">The lookup table: a <c>.cube</c> file or a PNG lookup image (see <see cref="Layout"/>).</param>
+/// <param name="Luts">The lookup tables, in the order the package applies them: <c>.cube</c> files or PNG lookup images
+/// (see <see cref="Layout"/>).</param>
 /// <param name="Intensity">The "intensity" slider (<c>value</c>), 0…1.</param>
-public sealed record ColorFilter(string Name, string Lut, double Intensity = 1)
+public sealed record ColorFilter(string Name, IReadOnlyList<string> Luts, double Intensity = 1)
 {
     /// <summary>The largest lookup table we read (entries per channel).</summary>
     public const int MaxSize = 64;
@@ -93,9 +94,12 @@ public sealed record ColorFilter(string Name, string Lut, double Intensity = 1)
     /// The lookup table in a filter package: the first <c>.cube</c> or lookup-shaped PNG, by path, preferring files
     /// whose name mentions "lut".
     /// </summary>
-    public static string? LutFile(string package)
+    public static string? LutFile(string package) => LutFiles(package).FirstOrDefault();
+
+    /// <summary>Every <c>.cube</c> or lookup-shaped PNG in a folder, those whose name mentions "lut" first, then by path.</summary>
+    public static IReadOnlyList<string> LutFiles(string package)
     {
-        if (!System.IO.Directory.Exists(package)) return null;
+        if (!System.IO.Directory.Exists(package)) return [];
         var candidates = new List<(int Rank, string Path, string File)>();
         foreach (var file in System.IO.Directory.EnumerateFiles(package, "*", SearchOption.AllDirectories))
         {
@@ -110,27 +114,79 @@ public sealed record ColorFilter(string Name, string Lut, double Intensity = 1)
             var relative = System.IO.Path.GetRelativePath(package, file).Replace('\\', '/');
             candidates.Add((rank, "/" + relative, file));
         }
-        return candidates.OrderBy(c => c.Rank).ThenBy(c => c.Path, StringComparer.Ordinal).Select(c => c.File).FirstOrDefault();
+        return candidates.OrderBy(c => c.Rank).ThenBy(c => c.Path, StringComparer.Ordinal).Select(c => c.File).ToList();
+    }
+
+    /// <summary>The parts of a package (<c>config.json</c> → <c>effect.Link[]</c>), in the order they're applied (<c>zorder</c>).</summary>
+    public static IReadOnlyList<string> Features(string package)
+    {
+        try
+        {
+            using var json = System.Text.Json.JsonDocument.Parse(File.ReadAllBytes(System.IO.Path.Combine(package, "config.json")));
+            if (json.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object
+                || !json.RootElement.TryGetProperty("effect", out var effect) || effect.ValueKind != System.Text.Json.JsonValueKind.Object
+                || !effect.TryGetProperty("Link", out var links) || links.ValueKind != System.Text.Json.JsonValueKind.Array) return [];
+            var parts = new List<(double Z, int Index, string Path)>();
+            var i = 0;
+            foreach (var link in links.EnumerateArray())
+            {
+                i++;
+                if (link.ValueKind != System.Text.Json.JsonValueKind.Object || link.Str("path") is not { Length: > 0 } path) continue;
+                parts.Add((link.Num("zorder") ?? 0, i, System.IO.Path.Combine(package, path.TrimEnd('/'))));
+            }
+            return parts.OrderBy(p => p.Z).ThenBy(p => p.Index).Select(p => p.Path).ToList();
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
+        {
+            return [];
+        }
     }
 
     /// <summary>
-    /// The lookup table for a filter: in <paramref name="path"/> (the cached package, or a folder in it), otherwise in
-    /// the first <c>&lt;cache&gt;/&lt;resourceID&gt;/&lt;hash&gt;</c> that has one.
+    /// The lookup table a package part uses: a table in it whose path without the extension (<c>image/filter</c>) one
+    /// of its <c>material/*.material</c> files names. Parts often carry unused tables, so unreferenced ones don't count.
     /// </summary>
-    public static string? Locate(string? path, string resourceID, IReadOnlyList<string>? cacheRoots = null)
+    public static string? ReferencedLutFile(string feature)
     {
-        if (path is not null && LutFile(path) is { } lut) return lut;
-        if (resourceID.Length == 0) return null;
+        var materialDir = System.IO.Path.Combine(feature, "material");
+        if (!System.IO.Directory.Exists(materialDir)) return null;
+        var materials = System.IO.Directory.EnumerateFiles(materialDir, "*.material").Select(File.ReadAllBytes).ToList();
+        if (materials.Count == 0) return null;
+        return LutFiles(feature).FirstOrDefault(file =>
+        {
+            var relative = System.IO.Path.GetRelativePath(feature, file).Replace('\\', '/');
+            var name = System.Text.Encoding.UTF8.GetBytes(relative[..^System.IO.Path.GetExtension(relative).Length]);
+            return materials.Any(m => m.AsSpan().IndexOf(name) >= 0);
+        });
+    }
+
+    /// <summary>A package's lookup tables in the order it applies them: the table each part's materials use; for a
+    /// package without such references, its first table (<see cref="LutFile"/>).</summary>
+    public static IReadOnlyList<string> PackageLutFiles(string package)
+    {
+        var referenced = Features(package).Select(ReferencedLutFile).OfType<string>().ToList();
+        if (referenced.Count > 0) return referenced;
+        return LutFile(package) is { } lut ? [lut] : [];
+    }
+
+    /// <summary>
+    /// The lookup tables for a filter: in <paramref name="path"/> (the cached package), otherwise in the first
+    /// <c>&lt;cache&gt;/&lt;resourceID&gt;/&lt;hash&gt;</c> that has any. Empty when none is found.
+    /// </summary>
+    public static IReadOnlyList<string> Locate(string? path, string resourceID, IReadOnlyList<string>? cacheRoots = null)
+    {
+        if (path is not null && System.IO.Directory.Exists(path) && PackageLutFiles(path) is { Count: > 0 } luts) return luts;
+        if (resourceID.Length == 0) return [];
         foreach (var root in cacheRoots ?? VoiceFilter.CacheRoots)
         {
             var folder = System.IO.Path.Combine(root, resourceID);
             if (!System.IO.Directory.Exists(folder)) continue;
             foreach (var entry in System.IO.Directory.EnumerateDirectories(folder).Order(StringComparer.Ordinal))
             {
-                if (LutFile(entry) is { } found) return found;
+                if (PackageLutFiles(entry) is { Count: > 0 } found) return found;
             }
         }
-        return null;
+        return [];
     }
 }
 

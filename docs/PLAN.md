@@ -91,9 +91,10 @@ Usage counts from the author's 69 projects drive the order of the later mileston
 - [x] Read filter packages from CapCut's effect cache (`~/Library/Containers/com.lemon.lvoverseas/Data/Movies/CapCut/User Data/Cache/effect/<id>/<hash>/`)
   at render time, locate the LUT (`.cube` or lookup PNG, `ColorFilter`), apply it with `CIColorCubeWithColorSpace`
   (Direct2D LookupTable3D on Windows) at the filter's intensity. Filter tracks and per-clip filters.
-  Checked on "Butter Cheese" (OldSOund) against the export. Open (#31): the 3×3 unsharp pass (sharpness 1.35) the
-  package runs before its table; the other four used filters aren't cached yet; the Direct2D table's axis order is
-  untested on Windows. "Cherry Cola" turned out to be makeup, not a filter.
+  Multi-part packages: the table each part's materials name, in `zorder`. Checked against the exports on
+  "Butter Cheese" (OldSOund) and "Shimmering B&W" (ElefantCafeLong). Open (#31): the extra passes some packages run
+  (Butter Cheese's 3×3 unsharp, Shimmering B&W's glow and sparkles); Faded Mood, Film, Yellowstone aren't cached yet;
+  the Direct2D table's axis order is untested on Windows. "Cherry Cola" turned out to be makeup, not a filter.
 - Also: HSL adjustments (19 uses) and basic colour adjustments where they map to Core Image.
 
 ## Milestone 3 — "Flashback" transition and "Clock Time" stickers

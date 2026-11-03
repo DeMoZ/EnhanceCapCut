@@ -126,19 +126,46 @@ final class ColorFilterTests: XCTestCase {
         let draft = try JSONDecoder().decode(Draft.self, from: Data(json.utf8))
         // TimelineBuilder looks in the real cache; resolve the stale path the same way it does.
         XCTAssertEqual(ColorFilter.locate(path: URL(fileURLWithPath: "/somewhere/else"), resourceID: "111",
-                                          cacheRoots: [dir.appendingPathComponent("cache")])?.lastPathComponent, "filter.png")
+                                          cacheRoots: [dir.appendingPathComponent("cache")]).map(\.lastPathComponent), ["filter.png"])
         let timeline = TimelineBuilder.build(draft: draft, projectURL: dir)
         XCTAssertEqual(timeline.layers.first?.filters.map(\.name), ["Clip filter"])
-        XCTAssertEqual(timeline.layers.first?.filters.first?.lut.lastPathComponent, "filter.png")
+        XCTAssertEqual(timeline.layers.first?.filters.first?.luts.map(\.lastPathComponent), ["filter.png"])
         let found = Set(timeline.report.unsupported.map { "\($0.category): \($0.name)" })
         XCTAssertTrue(found.contains("Filter: Not cached"))
         XCTAssertFalse(found.contains("Filter: Clip filter"))
         XCTAssertEqual(timeline.filters.map(\.id), ["T1"], "the uncached filter is left out")
 
         let layer = FilterLayer(id: "T", target: TimeRange(start: 0, duration: 10), trackIndex: 1, renderIndex: 10000,
-                                filter: ColorFilter(name: "x", lut: photo))
+                                filter: ColorFilter(name: "x", luts: [photo]))
         XCTAssertTrue(layer.covers(timeline.layers[0]))
         XCTAssertTrue(layer.isActive(at: 5))
         XCTAssertFalse(layer.isActive(at: 10))
+    }
+
+    /// A multi-part package (like "Shimmering B&W"): parts applied by `zorder`, each with the table its materials name;
+    /// tables no material uses don't count.
+    func testPackagePartsUseTheTablesTheirMaterialsName() throws {
+        let fm = FileManager.default
+        let package = fm.temporaryDirectory.appendingPathComponent("ecc-package-\(UUID().uuidString)")
+        defer { try? fm.removeItem(at: package) }
+        for part in ["A/image", "A/material", "B/image", "B/material", "C/image"] {
+            try fm.createDirectory(at: package.appendingPathComponent(part), withIntermediateDirectories: true)
+        }
+        let grid = ColorFilter.Layout.grid(size: 16, tilesPerRow: 4)
+        for path in ["A/image/filter.png", "B/image/filter_bg.png", "B/image/filter_skin.png", "C/image/filter.png"] {
+            try Self.writeLookup(package.appendingPathComponent(path), width: 64, height: 64, layout: grid) { ($0, $1, $2) }
+        }
+        // Binary materials name their textures; A's table is unused.
+        try Data("\u{1}image/kira-1.png\u{0}".utf8).write(to: package.appendingPathComponent("A/material/stars.material"))
+        try Data("\u{1}image/filter_skin.png\u{0}image/filter_bg.png".utf8)
+            .write(to: package.appendingPathComponent("B/material/SkinSeg.material"))
+        try Data(#"{"effect": {"Link": [{"path": "C/", "zorder": 8003}, {"path": "B/", "zorder": 8002}, {"path": "A/", "zorder": 8001}]}}"#.utf8)
+            .write(to: package.appendingPathComponent("config.json"))
+        XCTAssertEqual(ColorFilter.lutFiles(package: package).map { $0.pathComponents.suffix(3).joined(separator: "/") },
+                       ["B/image/filter_bg.png"], "C has no materials, A's table is unused")
+        // Without the parts list, the first table of the package.
+        try fm.removeItem(at: package.appendingPathComponent("config.json"))
+        XCTAssertEqual(ColorFilter.lutFiles(package: package).map { $0.pathComponents.suffix(3).joined(separator: "/") },
+                       ["A/image/filter.png"])
     }
 }
