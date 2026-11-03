@@ -25,7 +25,8 @@ and timeline logic is a port of it and is checked against it (see "Status").
   self-contained): the export window and the Subtitles & Voice-over window, see below.
 - `src/ecc` — command-line tool: `ecc list`, `ecc info [project] [--timeline name|number]`, and on Windows
   `ecc render` (same options as the macOS CLI; HEVC 10-bit needs an encoder that supports it), and
-  `ecc subtitles` / `ecc voices` (see below).
+  `ecc subtitles` / `ecc voices` (see below); `ecc mcp`, the MCP server for AI agents (port of the macOS one, in
+  `EnhanceCapCut.Draft/McpServer.cs`; see [docs/CLI.md](../docs/CLI.md#ai-agents-mcp)).
 - `tests/` — unit tests for the draft and render layers (run anywhere) and end-to-end export tests (Windows only;
   elsewhere they return without checking).
 

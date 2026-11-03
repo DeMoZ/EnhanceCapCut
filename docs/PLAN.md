@@ -86,6 +86,12 @@ Usage counts from the author's 69 projects drive the order of the later mileston
       Japanese and Hebrew (need Cangjie / kana / diacritics front ends); voice isolation on Windows for cleaner
       references and "Replace voice" there; GPU (CoreML / DirectML) for the decoder, now the slow part.
 
+## AI agents (done)
+
+- [x] `ecc mcp`: an MCP server on stdin/stdout (`MCPServer` in the core, `McpServer.cs` on Windows) with
+  list / info / render / subtitles / voices as tools; renders and subtitles are jobs run one at a time as `ecc`
+  child processes, followed with `job_status`. Voice cloning stays with people (it needs the speakers' consent).
+
 ## Milestone 2 — LUT filters
 
 - [x] Read filter packages from CapCut's effect cache (`~/Library/Containers/com.lemon.lvoverseas/Data/Movies/CapCut/User Data/Cache/effect/<id>/<hash>/`)

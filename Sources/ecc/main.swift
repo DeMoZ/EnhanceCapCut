@@ -24,11 +24,16 @@ import Foundation
 //   ecc voices <language>
 //   ecc clone <reference audio> --language en --text "…" -o out.wav [--exaggeration 0.5] [--seed 1]
 //             (speaks the text in the reference's voice; downloads the voice cloning model on first use, 1.55 GB)
+//   ecc mcp
+//             (an MCP server on stdin/stdout for AI agents: list, info, render and subtitles as tools; see docs/CLI.md)
 
 func fail(_ message: String) -> Never {
     FileHandle.standardError.write((message + "\n").data(using: .utf8)!)
     exit(1)
 }
+
+// Line by line even into a pipe, so `ecc mcp` sees the progress of the renders it runs.
+setvbuf(stdout, nil, _IOLBF, 0)
 
 var args = Array(CommandLine.arguments.dropFirst())
 let command = args.isEmpty ? "help" : args.removeFirst()
@@ -321,6 +326,11 @@ case "voices":
         }
     }
 
+case "mcp":
+    guard let executable = Bundle.main.executableURL else { fail("Can't find the ecc executable") }
+    let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
+    MCPServer(runner: ProcessRunner(executable: executable), version: version).serve()
+
 default:
-    print("usage: ecc list | info [project] | render [project] [options] | voice <media> -o out.wav [options] | subtitles [project] --language ru-RU [options] | voices <language> | clone <reference audio> --language en --text … -o out.wav")
+    print("usage: ecc list | info [project] | render [project] [options] | voice <media> -o out.wav [options] | subtitles [project] --language ru-RU [options] | voices <language> | clone <reference audio> --language en --text … -o out.wav | mcp")
 }

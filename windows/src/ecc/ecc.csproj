@@ -6,6 +6,8 @@
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net10.0;net10.0-windows10.0.19041.0</TargetFrameworks>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <!-- Releases pass -p:Version=<x.y.z>; a local build is 0.0.0 (`ecc mcp` reports it as "dev"). -->
+    <Version Condition="'$(Version)' == ''">0.0.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
