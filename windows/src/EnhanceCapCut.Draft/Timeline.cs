@@ -64,7 +64,8 @@ public sealed record LayerTransform(double ScaleX, double ScaleY, double Rotatio
 
 public sealed class VisualLayer(string id, VisualContent content, int trackIndex, int renderIndex, bool isMainTrack,
     TimeRange target, TimeMap timeMap, Crop crop, Clip clip, bool uniformScale,
-    IReadOnlyDictionary<LayerProperty, KeyframeTrack> keyframes, CanvasMaterial? canvas, Cutout? cutout = null)
+    IReadOnlyDictionary<LayerProperty, KeyframeTrack> keyframes, CanvasMaterial? canvas, Cutout? cutout = null,
+    ChromaKey? chromaKey = null)
 {
     public string Id { get; } = id;
     public VisualContent Content { get; } = content;
@@ -83,6 +84,8 @@ public sealed class VisualLayer(string id, VisualContent content, int trackIndex
     public Cutout? Cutout { get; } = cutout;
     /// <summary>The clip's own filters, in order.</summary>
     public IReadOnlyList<ColorFilter> Filters { get; set; } = [];
+    /// <summary>"Chroma key", applied to the clip's frames before the cutout.</summary>
+    public ChromaKey? ChromaKey { get; } = chromaKey;
 
     public bool IsActive(long t) => t >= Target.Start && t < Target.End;
 

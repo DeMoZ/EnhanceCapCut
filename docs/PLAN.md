@@ -116,6 +116,9 @@ Usage counts from the author's 69 projects drive the order of the later mileston
       edge expansion, feather and the outline stroke (reported); `mask_video_path` (cloud cutout, never seen); our own
       segmentation (Apple Vision / an ONNX model) when CapCut's result is missing; checking CapCut for Windows
       writes the same folders.
+- [x] "Chroma key" (`materials.chromas`): our own Y′CbCr colour-distance keyer with "Intensity", "Shadow",
+      "Edge feather" and "Spill" (colour cubes in Core Image, 3D lookup tables in Direct2D). Open: calibrating it
+      against a CapCut export (none of the author's projects uses it); checking the Direct2D table order on Windows.
 
 ## Milestone 5 — remaining effects by usage frequency
 

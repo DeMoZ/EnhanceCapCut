@@ -33,6 +33,7 @@ public sealed class Compositor : IDisposable
     readonly Dictionary<string, (ID2D1Bitmap1 A, ID2D1Bitmap1 B)> filtered = [];
     /// <summary>A copy of <see cref="Frame"/> for filter-track filters to read from.</summary>
     ID2D1Bitmap1? frameCopy;
+    readonly Dictionary<string, ChromaKeyer> chromaKeys = [];
     /// <summary>False for a compound clip's frames: transparent where nothing is drawn, like in CapCut (cut-out clips
     /// inside it show the layers below).</summary>
     readonly bool opaque;
@@ -202,9 +203,23 @@ public sealed class Compositor : IDisposable
         }
     }
 
-    /// <summary>"Remove background": <paramref name="image"/> with CapCut's mask at source time <paramref name="t"/> as its alpha.</summary>
+    /// <summary>"Chroma key", before the cutout.</summary>
+    ID2D1Bitmap1 ChromaKeyed(VisualLayer layer, ID2D1Bitmap1 image)
+    {
+        if (layer.ChromaKey is not { } key) return image;
+        if (!chromaKeys.TryGetValue(layer.Id, out var keyer) || keyer.Key != key)
+        {
+            keyer?.Dispose();
+            keyer = new ChromaKeyer(graphics, key);
+            chromaKeys[layer.Id] = keyer;
+        }
+        return keyer.Apply(image);
+    }
+
+    /// <summary>"Chroma key", then "Remove background": <paramref name="image"/> with CapCut's mask at source time <paramref name="t"/> as its alpha.</summary>
     ID2D1Bitmap1 CutOut(VisualLayer layer, ID2D1Bitmap1 image, long t)
     {
+        image = ChromaKeyed(layer, image);
         if (layer.Cutout is not { } cutout) return image;
         if (!cutouts.TryGetValue(layer.Id, out var c))
         {
@@ -294,6 +309,7 @@ public sealed class Compositor : IDisposable
             filtered[id].B.Dispose();
             filtered.Remove(id);
         }
+        foreach (var id in chromaKeys.Keys.Where(id => !active.Contains(id)).ToList()) { chromaKeys[id].Dispose(); chromaKeys.Remove(id); }
     }
 
     void Warn(string message)
@@ -375,6 +391,7 @@ public sealed class Compositor : IDisposable
         foreach (var (a, b) in filtered.Values) { a.Dispose(); b.Dispose(); }
         colorFilters.Dispose();
         frameCopy?.Dispose();
+        foreach (var k in chromaKeys.Values) k.Dispose();
         text.Dispose();
         if (ownsPhotos) photos.Dispose();
         Frame.Dispose();

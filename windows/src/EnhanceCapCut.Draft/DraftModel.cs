@@ -207,6 +207,7 @@ public sealed class Materials
     public List<RealtimeDenoiseMaterial> RealtimeDenoises { get; set; } = [];
     public List<VocalBeautifyMaterial> VocalBeautifys { get; set; } = [];
     public List<AudioEffectMaterial> AudioEffects { get; set; } = [];
+    public List<ChromaMaterial> Chromas { get; set; } = [];
     /// <summary>Every material of every category, with just the fields used for reporting.</summary>
     public Dictionary<string, List<GenericMaterial>> All { get; set; } = [];
 
@@ -226,6 +227,7 @@ public sealed class Materials
             RealtimeDenoises = c.List("realtime_denoises", RealtimeDenoiseMaterial.From),
             VocalBeautifys = c.List("vocal_beautifys", VocalBeautifyMaterial.From),
             AudioEffects = c.List("audio_effects", AudioEffectMaterial.From),
+            Chromas = c.List("chromas", ChromaMaterial.From),
         };
         foreach (var property in c.EnumerateObject())
         {
@@ -420,6 +422,32 @@ public sealed class CanvasMaterial
         Color = c.Str("color") ?? "",
         Blur = c.Num("blur") ?? 0,
         Image = c.Str("image") ?? "",
+    };
+}
+
+/// <summary>"Chroma key" (<c>materials.chromas</c>), referenced from the segment's <c>extra_material_refs</c>. The sliders are 0…1.</summary>
+public sealed class ChromaMaterial
+{
+    public string Id { get; set; } = "";
+    /// <summary>The picked colour, "#RRGGBB" or "#AARRGGBB"; empty until one is picked.</summary>
+    public string Color { get; set; } = "";
+    /// <summary>"Intensity": how far from the colour is still removed; 0 = off.</summary>
+    public double Intensity { get; set; }
+    /// <summary>"Shadow": keeps dark pixels (shadows) opaque.</summary>
+    public double Shadow { get; set; }
+    /// <summary>"Edge feather".</summary>
+    public double EdgeSmooth { get; set; }
+    /// <summary>"Spill": removes the colour's cast from what's kept.</summary>
+    public double Spill { get; set; }
+
+    public static ChromaMaterial? From(JsonElement c) => c.ValueKind != JsonValueKind.Object ? null : new()
+    {
+        Id = c.Str("id") ?? "",
+        Color = c.Str("color") ?? "",
+        Intensity = c.Num("intensity_value") ?? 0,
+        Shadow = c.Num("shadow_value") ?? 0,
+        EdgeSmooth = c.Num("edge_smooth_value") ?? 0,
+        Spill = c.Num("spill_value") ?? 0,
     };
 }
 
