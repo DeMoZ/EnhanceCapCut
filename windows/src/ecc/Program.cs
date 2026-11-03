@@ -20,6 +20,8 @@ using EnhanceCapCut.Draft;
 //   ecc voices <language>                                                           (Windows only)
 //   ecc clone <reference.wav> --language en --text "…" -o out.wav [--exaggeration 0.5] [--seed 1]
 //             (speaks the text in the reference's voice; downloads the voice cloning model on first use, 1.55 GB)
+//   ecc mcp
+//             (an MCP server on stdin/stdout for AI agents: list, info, render and subtitles as tools; see docs/CLI.md)
 
 var rest = new List<string>(args);
 var command = rest.Count == 0 ? "help" : rest[0];
@@ -164,8 +166,14 @@ switch (command)
         await Clone();
         break;
 
+    case "mcp":
+        // Releases build with -p:Version=<x.y.z>; a local build is 0.0.0.
+        var version = System.Reflection.Assembly.GetEntryAssembly()?.GetName().Version?.ToString(3) is { } built && built != "0.0.0" ? built : "dev";
+        new McpServer(new McpProcessRunner(Environment.ProcessPath ?? "ecc"), version).Serve();
+        break;
+
     default:
-        Console.WriteLine("usage: ecc list | info [project] [--timeline name|number] | render [project] [options] | subtitles [project] --language ru-RU [options] | voices <language> | clone <reference.wav> --language en --text … -o out.wav");
+        Console.WriteLine("usage: ecc list | info [project] [--timeline name|number] | render [project] [options] | subtitles [project] --language ru-RU [options] | voices <language> | clone <reference.wav> --language en --text … -o out.wav | mcp");
         break;
 }
 

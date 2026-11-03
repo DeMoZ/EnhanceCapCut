@@ -186,7 +186,8 @@ Only your own, or the voice of people who agreed to it. The app asks you to conf
 <details>
 <summary><b>Is there a command line?</b></summary>
 
-Yes — `ecc` renders projects and adds subtitles from scripts. See [docs/CLI.md](docs/CLI.md).
+Yes — `ecc` renders projects and adds subtitles from scripts. AI agents (Claude, Cursor, …) can drive it too:
+`ecc mcp` is an MCP server. See [docs/CLI.md](docs/CLI.md).
 </details>
 
 ## ❤️ Support

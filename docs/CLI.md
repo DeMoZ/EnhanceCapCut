@@ -35,3 +35,43 @@ Translation languages must already be downloaded (the app's window can download 
 
 The Windows `ecc` has the same commands except the Mac-only ones (Apple voices, Siri, ProRes); see
 [windows/README.md](../windows/README.md).
+
+## AI agents (MCP)
+
+`ecc mcp` is a [Model Context Protocol](https://modelcontextprotocol.io) server on stdin/stdout, so an AI agent
+(Claude Code, Claude Desktop, Cursor, …) can export your projects for you: "render KohChang and 1014 in 9:16 at
+1080p for Shorts", "what in this project won't be rendered?", "add English captions to the open project".
+
+Claude Code:
+
+```sh
+claude mcp add enhancecapcut -- /Applications/EnhanceCapCut.app/Contents/MacOS/ecc mcp
+```
+
+Claude Desktop and other clients take the same command in their MCP config (on Windows the path to `ecc.exe` in
+the folder you unpacked the app to, with `"args": ["mcp"]`):
+
+```json
+{ "mcpServers": { "enhancecapcut": { "command": "/Applications/EnhanceCapCut.app/Contents/MacOS/ecc", "args": ["mcp"] } } }
+```
+
+Tools:
+
+| Tool | What it does |
+|---|---|
+| `list_projects` | Projects with their timelines, which one is open in CapCut, when each was last changed |
+| `project_info` | The `ecc info` report: layers, audio, features not rendered yet, missing media |
+| `render` | `ecc render` with the same options (`codec`, `quality`, `bitrate_mbps`, `fps`, `aspect`, `height`, `lufs`, `subtitles`, `from_seconds`, `duration_seconds`, `output`, `timeline`) |
+| `add_subtitles` | `ecc subtitles`: captions, translation, voice-over with system voices |
+| `list_voices` | `ecc voices` for a language |
+| `job_status`, `list_jobs`, `cancel_job` | Follow and stop jobs |
+
+`render` and `add_subtitles` take minutes, so they start a **job** and return its id at once; `job_status` reports
+the status (`queued`, `running`, `done`, `failed`, `cancelled`), progress, the output file, warnings (features not
+rendered, missing media) and the last lines of the log, and with `wait_seconds` (up to 50) waits for the end first.
+Jobs run one at a time in the order they were given, each as `ecc render …` / `ecc subtitles …` in a child process
+(`job_status` shows the command), so they behave exactly like the command line and use the app's saved settings for
+options they don't give. Closing the client stops the running job.
+
+Voice cloning isn't offered to agents: it needs the speakers' consent, which a person confirms in the app or with
+`ecc subtitles … --consent`.
