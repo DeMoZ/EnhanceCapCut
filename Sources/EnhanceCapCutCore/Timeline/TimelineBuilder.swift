@@ -43,6 +43,7 @@ private struct Builder {
         let denoises = Dictionary(m.realtimeDenoises.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         let enhancements = Dictionary(m.vocalBeautifys.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         let audioEffects = Dictionary(m.audioEffects.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        let chromas = Dictionary(m.chromas.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         var generic: [String: (String, GenericMaterial)] = [:]
         for (key, items) in m.all { for item in items { generic[item.id] = (key, item) } }
 
@@ -135,7 +136,7 @@ private struct Builder {
                         isMainTrack: isMain, target: segment.targetTimerange, timeMap: timeMap,
                         crop: video?.crop ?? Crop(), clip: segment.clip ?? Clip(), uniformScale: segment.uniformScale,
                         keyframes: keyframes(segment), canvas: isMain ? refs.lazy.compactMap { canvases[$0] }.first : nil,
-                        cutout: cutout)
+                        cutout: cutout, chromaKey: refs.lazy.compactMap { chromas[$0] }.first.flatMap(ChromaKey.init))
                     layer.filters = refs.compactMap { ref in
                         generic[ref].flatMap { $0.0 == "effects" && $0.1.type == "filter" ? colorFilter($0.1) : nil }
                     }
@@ -403,6 +404,8 @@ private struct Builder {
         "realtime_denoises_placeholder",
         // Rendered by VoiceProcessor (voice filters whose preset can't be run are noted where they're read).
         "vocal_separations", "realtime_denoises", "vocal_beautifys", "audio_effects",
+        // Rendered as the clip's chroma key.
+        "chromas",
     ]
 
     mutating func report(key: String, item: GenericMaterial) {
@@ -415,7 +418,6 @@ private struct Builder {
         case "common_mask", "masks": note(L("Mask"), name)
         case "hsl": note(L("HSL color"), L("color adjustment"))
         case "manual_deformations": note(L("Manual deformation"), L("body/face reshape"))
-        case "chromas": note(L("Chroma key"), L("chroma key"))
         case "material_animations":
             for animation in item.animationNames { note(L("Animation"), animation) }
         case "effects":

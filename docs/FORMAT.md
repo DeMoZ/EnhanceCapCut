@@ -352,6 +352,20 @@ The result folder holds one subfolder per cutout run:
 - A compound clip's material is its rendered video and can be cut out itself; its frames are transparent
   where nothing is drawn, so cut-out clips inside it show the layers below (GymCrowd).
 
+## Chroma key
+
+`materials.chromas[]` (`type` `chroma`), referenced from the video segment's `extra_material_refs`: `color`
+(the picked colour, `#RRGGBB` or `#AARRGGBB`; empty until one is picked), `intensity_value`, `shadow_value`,
+`edge_smooth_value`, `spill_value` (the sliders, 0…1), `path`. None of the author's projects uses it; the field names
+come from CapCut's `MaterialChroma` (`libvideoeditor.dylib`). In CapCut's own effect "Intensity" 0 leaves the clip as
+it is, and "Shadow" keeps dark pixels opaque.
+
+Our keyer (`ChromaKeyFilter` / `ChromaKeyMath`) is our own, not CapCut's: a pixel's opacity comes from its distance
+to the picked colour in Y′CbCr (BT.601 on sRGB values; brightness counts little for a saturated key and fully for a
+white, grey or black one), with a soft band; "Shadow" keeps pixels below a brightness opaque; "Spill" takes the
+key's hue out of what's kept; "Edge feather" blurs the matte. The keying runs on the clip's frames before the
+cutout and the crop. Its constants are not calibrated against a CapCut export yet.
+
 ## Compound clips
 
 `materials.drafts[]` (`type` `combination`) embed a complete nested draft in `draft`. A video segment

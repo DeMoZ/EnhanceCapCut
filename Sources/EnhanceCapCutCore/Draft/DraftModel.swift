@@ -210,6 +210,7 @@ public struct Materials: Decodable {
     public var realtimeDenoises: [RealtimeDenoiseMaterial] = []
     public var vocalBeautifys: [VocalBeautifyMaterial] = []
     public var audioEffects: [AudioEffectMaterial] = []
+    public var chromas: [ChromaMaterial] = []
     /// Every material of every category, with just the fields used for reporting.
     public var all: [String: [GenericMaterial]] = [:]
 
@@ -228,6 +229,7 @@ public struct Materials: Decodable {
         realtimeDenoises = c.list("realtime_denoises")
         vocalBeautifys = c.list("vocal_beautifys")
         audioEffects = c.list("audio_effects")
+        chromas = c.list("chromas")
         for key in c.allKeys {
             let items: [GenericMaterial] = c.list(key.stringValue)
             if !items.isEmpty { all[key.stringValue] = items }
@@ -420,6 +422,31 @@ public struct CanvasMaterial: Decodable {
         color = c.str("color") ?? ""
         blur = c.num("blur") ?? 0
         image = c.str("image") ?? ""
+    }
+}
+
+/// "Chroma key" (`materials.chromas`), referenced from the segment's `extra_material_refs`. The sliders are 0…1.
+public struct ChromaMaterial: Decodable {
+    public var id: String
+    /// The picked colour, "#RRGGBB" or "#AARRGGBB"; empty until one is picked.
+    public var color: String
+    /// "Intensity": how far from the colour is still removed; 0 = off.
+    public var intensity: Double
+    /// "Shadow": keeps dark pixels (shadows) opaque.
+    public var shadow: Double
+    /// "Edge feather".
+    public var edgeSmooth: Double
+    /// "Spill": removes the colour's cast from what's kept.
+    public var spill: Double
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.anyKeyed()
+        id = c.str("id") ?? ""
+        color = c.str("color") ?? ""
+        intensity = c.num("intensity_value") ?? 0
+        shadow = c.num("shadow_value") ?? 0
+        edgeSmooth = c.num("edge_smooth_value") ?? 0
+        spill = c.num("spill_value") ?? 0
     }
 }
 

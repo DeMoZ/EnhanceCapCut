@@ -100,10 +100,13 @@ public final class VisualLayer {
     public let cutout: Cutout?
     /// The clip's own filters, in order.
     public internal(set) var filters: [ColorFilter] = []
+    /// "Chroma key", applied to the clip's frames before the cutout.
+    public let chromaKey: ChromaKey?
 
     init(id: String, content: VisualContent, trackIndex: Int, renderIndex: Int, isMainTrack: Bool,
          target: TimeRange, timeMap: TimeMap, crop: Crop, clip: Clip, uniformScale: Bool,
-         keyframes: [LayerProperty: KeyframeTrack], canvas: CanvasMaterial?, cutout: Cutout? = nil) {
+         keyframes: [LayerProperty: KeyframeTrack], canvas: CanvasMaterial?, cutout: Cutout? = nil,
+         chromaKey: ChromaKey? = nil) {
         self.id = id
         self.content = content
         self.trackIndex = trackIndex
@@ -117,6 +120,7 @@ public final class VisualLayer {
         self.keyframes = keyframes
         self.canvas = canvas
         self.cutout = cutout
+        self.chromaKey = chromaKey
     }
 
     public func isActive(at t: Int64) -> Bool { t >= target.start && t < target.end }

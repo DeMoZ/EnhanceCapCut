@@ -21,6 +21,7 @@ final class FrameCompositor {
     private var masks: [String: CutoutMask] = [:]
     /// Filters' readable lookup tables.
     private var luts: [ColorFilter: [ColorLUT]] = [:]
+    private var chromaKeys: [String: ChromaKeyFilter] = [:]
     private var textImages: [String: (image: CIImage, scale: CGFloat)] = [:]
     /// Messages about clips that could not be decoded (reported once each).
     private(set) var warnings: [String] = []
@@ -120,8 +121,9 @@ final class FrameCompositor {
         }
     }
 
-    /// "Remove background": the frame with CapCut's mask at source time `t` as its alpha.
+    /// "Chroma key", then "Remove background": the frame with CapCut's mask at source time `t` as its alpha.
     private func cutOut(_ image: CIImage?, layer: VisualLayer, at t: Int64) -> CIImage? {
+        let image = chromaKeyed(image, layer: layer)
         guard let image, let cutout = layer.cutout else { return image }
         if masks[layer.id] == nil {
             guard let mask = CutoutMask(cutout) else { return image }
@@ -142,9 +144,17 @@ final class FrameCompositor {
         }
     }
 
+    /// "Chroma key", before the cutout.
+    private func chromaKeyed(_ image: CIImage?, layer: VisualLayer) -> CIImage? {
+        guard let image, let key = layer.chromaKey else { return image }
+        if chromaKeys[layer.id]?.key != key { chromaKeys[layer.id] = ChromaKeyFilter(key) }
+        return chromaKeys[layer.id]?.apply(image) ?? image
+    }
+
     private func releaseInactive(active: Set<String>) {
         for id in sources.keys where !active.contains(id) { sources[id] = nil }
         for id in masks.keys where !active.contains(id) { masks[id] = nil }
+        for id in chromaKeys.keys where !active.contains(id) { chromaKeys[id] = nil }
         for id in nested.keys where !active.contains(id) { nested[id] = nil }
         for id in textImages.keys where !active.contains(id) { textImages[id] = nil }
     }

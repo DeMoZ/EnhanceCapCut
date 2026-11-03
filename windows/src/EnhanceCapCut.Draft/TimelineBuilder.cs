@@ -49,6 +49,7 @@ public static class TimelineBuilder
             var denoises = ById(m.RealtimeDenoises, d => d.Id);
             var enhancements = ById(m.VocalBeautifys, e => e.Id);
             var audioEffects = ById(m.AudioEffects, e => e.Id);
+            var chromas = ById(m.Chromas, c => c.Id);
             var generic = new Dictionary<string, (string Key, GenericMaterial Item)>();
             foreach (var (key, items) in m.All)
             {
@@ -159,7 +160,8 @@ public static class TimelineBuilder
 
                             var layer = new VisualLayer(segment.Id, content, trackIndex, segment.RenderIndex, isMain,
                                 segment.TargetTimerange, timeMap, video?.Crop ?? new Crop(), segment.Clip ?? new Clip(),
-                                segment.UniformScale, Keyframes(segment), isMain ? First(refs, canvases) : null, cutout);
+                                segment.UniformScale, Keyframes(segment), isMain ? First(refs, canvases) : null, cutout,
+                                First(refs, chromas) is { } chroma ? ChromaKey.From(chroma) : null);
                             layer.Filters = refs.Select(r => generic.TryGetValue(r, out var f) && f.Key == "effects" && f.Item.Type == "filter"
                                 ? MakeColorFilter(f.Item) : null).OfType<ColorFilter>().ToList();
                             layers.Add((layer, order));
@@ -464,6 +466,8 @@ public static class TimelineBuilder
             "realtime_denoises_placeholder",
             // Rendered by the voice processing (voice filters whose preset can't be run are noted where they're read).
             "vocal_separations", "realtime_denoises", "vocal_beautifys", "audio_effects",
+            // Rendered as the clip's chroma key.
+            "chromas",
         ];
 
         void Report(string key, GenericMaterial item)
@@ -478,7 +482,6 @@ public static class TimelineBuilder
                 case "common_mask" or "masks": Note(L("Mask"), name); break;
                 case "hsl": Note(L("HSL color"), L("color adjustment")); break;
                 case "manual_deformations": Note(L("Manual deformation"), L("body/face reshape")); break;
-                case "chromas": Note(L("Chroma key"), L("chroma key")); break;
                 case "material_animations":
                     foreach (var animation in item.AnimationNames) Note(L("Animation"), animation);
                     break;
