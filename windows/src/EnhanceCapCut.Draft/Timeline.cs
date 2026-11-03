@@ -36,7 +36,11 @@ public sealed record CompoundContent(Timeline Timeline) : VisualContent;
 /// <summary>A sticker clip the renderer draws itself (<paramref name="Name"/> = its name in CapCut).</summary>
 public sealed record StickerContent(string Name, ClockSticker Clock) : VisualContent;
 
-public sealed record TextLayerSpec(TextMaterial Material, TextContent Content);
+/// <param name="Animations">Intro / outro / loop animations.</param>
+public sealed record TextLayerSpec(TextMaterial Material, TextContent Content, TextAnimations? Animations = null)
+{
+    public TextAnimations Animations { get; init; } = Animations ?? TextAnimations.None;
+}
 
 /// <summary>Layer properties that can be keyframed.</summary>
 public enum LayerProperty { PositionX, PositionY, ScaleX, ScaleY, Rotation, Alpha, Volume }

@@ -22,7 +22,7 @@ final class FrameCompositor {
     /// Filters' readable lookup tables.
     private var luts: [ColorFilter: [ColorLUT]] = [:]
     private var chromaKeys: [String: ChromaKeyFilter] = [:]
-    private var textImages: [String: (image: CIImage, scale: CGFloat)] = [:]
+    private var textImages: [String: (image: CIImage, scale: CGFloat, visible: Int)] = [:]
     /// Messages about clips that could not be decoded (reported once each).
     private(set) var warnings: [String] = []
 
@@ -131,7 +131,9 @@ final class FrameCompositor {
             return cutOut(await compositor.frame(at: time), layer: layer, at: time)
 
         case let .text(spec):
-            return textImage(spec, layer: layer).image
+            let reveal = spec.animations.state(atOffset: offset, duration: layer.target.duration).reveal
+            let visible = TextAnimationState.visibleLength(of: spec.content.text, reveal: reveal)
+            return textImage(spec, layer: layer, visible: visible).image
 
         case let .sticker(spec):
             // Drawn every frame at the size it's shown at.
@@ -205,16 +207,21 @@ final class FrameCompositor {
         return image.cropped(to: r).movedToOrigin()
     }
 
-    /// Text is rasterized once per clip, at the largest scale it reaches, so it stays sharp.
-    private func textImage(_ spec: TextLayerSpec, layer: VisualLayer) -> (image: CIImage?, scale: CGFloat) {
-        if let cached = textImages[layer.id] { return (cached.image, cached.scale) }
+    /// Text is rasterized once per clip (and per number of characters a typewriter animation shows), at the
+    /// largest scale it reaches, so it stays sharp.
+    private func textImage(_ spec: TextLayerSpec, layer: VisualLayer, visible: Int) -> (image: CIImage?, scale: CGFloat) {
+        if let cached = textImages[layer.id], cached.visible == visible { return (cached.image, cached.scale) }
         var maxScale = max(abs(layer.clip.scale.x), abs(layer.clip.scale.y))
         for p in [LayerProperty.scaleX, .scaleY] {
             if let values = layer.keyframes[p]?.values { maxScale = max(maxScale, values.map(abs).max() ?? 0) }
         }
+        maxScale *= spec.animations.maxScale
         let scale = CGFloat(min(max(maxScale, 1), 8))
-        guard let image = TextRasterizer.render(spec, canvasWidth: size.width, scale: scale) else { return (nil, 1) }
-        textImages[layer.id] = (image, scale)
+        guard let image = TextRasterizer.render(spec, canvasWidth: size.width, scale: scale, visibleLength: visible) else {
+            textImages[layer.id] = nil
+            return (nil, 1)
+        }
+        textImages[layer.id] = (image, scale, visible)
         return (image, scale)
     }
 
@@ -230,7 +237,15 @@ final class FrameCompositor {
     // MARK: Layout
 
     private func place(_ image: CIImage, layer: VisualLayer, at t: Int64) -> CIImage {
-        let tr = layer.transform(at: t)
+        var tr = layer.transform(at: t)
+        if case let .text(spec) = layer.content, !spec.animations.isEmpty {
+            let s = spec.animations.state(atOffset: t - layer.target.start, duration: layer.target.duration)
+            tr.scaleX *= s.scale
+            tr.scaleY *= s.scale
+            tr.positionX += s.offsetX
+            tr.positionY += s.offsetY
+            tr.alpha *= s.alpha
+        }
         let w = image.extent.width, h = image.extent.height
         guard w > 0, h > 0 else { return CIImage.empty() }
 

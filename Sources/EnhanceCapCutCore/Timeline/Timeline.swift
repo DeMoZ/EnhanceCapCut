@@ -57,6 +57,8 @@ public enum VisualContent {
 public struct TextLayerSpec {
     public var material: TextMaterial
     public var content: TextContent
+    /// Intro / outro / loop animations.
+    public var animations = TextAnimations()
 }
 
 /// Layer properties that can be keyframed.

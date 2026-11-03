@@ -26,7 +26,7 @@ public sealed class Compositor : IDisposable
     readonly Dictionary<string, VideoLayer> videos = [];
     readonly HashSet<string> failed = [];
     readonly Dictionary<string, Compositor> nested = [];
-    readonly Dictionary<string, (ID2D1Bitmap1? Bitmap, float Scale)> texts = [];
+    readonly Dictionary<string, (ID2D1Bitmap1? Bitmap, float Scale, int Visible)> texts = [];
     readonly Dictionary<string, CutoutLayer> cutouts = [];
     readonly ColorFilters colorFilters;
     /// <summary>Clips' frames through their own filters (two bitmaps to chain several).</summary>
@@ -239,10 +239,15 @@ public sealed class Compositor : IDisposable
             }
             case TextContentLayer textLayer:
             {
-                if (!texts.TryGetValue(layer.Id, out var cached))
+                // Rendered once per clip, and again when a typewriter animation shows another character.
+                var spec = textLayer.Spec;
+                var reveal = spec.Animations.State(offset, layer.Target.Duration).Reveal;
+                var visible = TextAnimationState.VisibleLength(spec.Content.Text, reveal);
+                if (!texts.TryGetValue(layer.Id, out var cached) || cached.Visible != visible)
                 {
+                    cached.Bitmap?.Dispose();
                     var scale = Layout.TextRasterScale(layer);
-                    cached = (text.Render(textLayer.Spec, Width, scale), scale);
+                    cached = (text.Render(spec, Width, scale, visible), scale, visible);
                     texts[layer.Id] = cached;
                 }
                 return cached.Bitmap is { } rendered ? (rendered, cached.Scale) : null;
@@ -394,6 +399,16 @@ public sealed class Compositor : IDisposable
         float w = x1 - x0, h = y1 - y0;
         if (w <= 0 || h <= 0) return;
         var transform = layer.Transform(t);
+        if (layer.Content is TextContentLayer { Spec.Animations: { IsEmpty: false } animations })
+        {
+            var s = animations.State(t - layer.Target.Start, layer.Target.Duration);
+            transform = transform with
+            {
+                ScaleX = transform.ScaleX * s.Scale, ScaleY = transform.ScaleY * s.Scale,
+                PositionX = transform.PositionX + s.OffsetX, PositionY = transform.PositionY + s.OffsetY,
+                Alpha = transform.Alpha * s.Alpha,
+            };
+        }
         dc.Transform = Layout.Placement(transform, w, h, Width, Height, textScale);
         var opacity = (float)Math.Clamp(transform.Alpha, 0, 1);
         if (opacity <= 0) return;
@@ -452,7 +467,7 @@ public sealed class Compositor : IDisposable
     {
         foreach (var v in videos.Values) v.Dispose();
         foreach (var n in nested.Values) n.Dispose();
-        foreach (var (bitmap, _) in texts.Values) bitmap?.Dispose();
+        foreach (var (bitmap, _, _) in texts.Values) bitmap?.Dispose();
         foreach (var c in cutouts.Values) c.Dispose();
         foreach (var m in transitions.Values) m.Dispose();
         foreach (var (a, b) in filtered.Values) { a.Dispose(); b.Dispose(); }

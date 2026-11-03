@@ -133,7 +133,10 @@ Usage counts from the author's 69 projects drive the order of the later mileston
 ## Milestone 5 — remaining effects by usage frequency
 
 - Video effects (`video_effects`, 11) and body effects (`effects/figure`, 55), most-used first.
-- Text effects / text templates ("ART EN 3D …"), text intro/outro animations (`material_animations`).
+- Text effects / text templates ("ART EN 3D …").
+- [x] Text intro/outro/loop animations (`material_animations`, #34): fade, typewriter, slide, zoom, pop, blink and
+      pulse, recognized by name, on both platforms (`TextAnimation.swift` / `TextAnimation.cs`). Open (#68): the
+      other presets (reported by name) and calibrating the motion against a CapCut export.
 - Masks (`common_mask`: rectangle, circle, brush…) with feather and keyframes.
 - Video clip animations, manual deformation.
 
@@ -198,7 +201,7 @@ instead of `draft_info.json`, and keeps its projects in
 
 ## Known gaps in milestone 1
 
-- Text: no text effects/animations; vertical typesetting is rendered horizontally; CapCut breaks
+- Text: no text effects; only the common text animations (#68); vertical typesetting is rendered horizontally; CapCut breaks
   Cyrillic/Thai lines mid-word, we break at word boundaries; Cyrillic fallback weight differs slightly.
 - Keyframes: linear interpolation only; no bezier easing.
 - Speed curves: video follows the curve exactly; audio follows it in 50 ms steps.

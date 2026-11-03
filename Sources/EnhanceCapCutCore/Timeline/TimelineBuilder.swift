@@ -44,6 +44,7 @@ private struct Builder {
         let enhancements = Dictionary(m.vocalBeautifys.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         let audioEffects = Dictionary(m.audioEffects.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         let chromas = Dictionary(m.chromas.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        let animations = Dictionary(m.materialAnimations.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         var generic: [String: (String, GenericMaterial)] = [:]
         for (key, items) in m.all { for item in items { generic[item.id] = (key, item) } }
 
@@ -84,7 +85,9 @@ private struct Builder {
                     }
                 }
                 func reportAll() {
-                    reportRefs(refs, generic: generic)
+                    // Text animations are rendered; the ones that aren't are noted where the text layer is built.
+                    reportRefs(track.type == "text" ? refs.filter { generic[$0]?.0 != "material_animations" } : refs,
+                               generic: generic)
                     if let filterIssue { note(L("Audio effect"), filterIssue) }
                 }
                 if track.type != "audio" { reportAll() }
@@ -197,8 +200,11 @@ private struct Builder {
                         note(L("Text effect"), L("word art"))
                     }
                     reportKeyframes(segment)
+                    let (textAnimations, unsupportedAnimations) = TextAnimations.make(refs.lazy.compactMap { animations[$0] }.first)
+                    for name in unsupportedAnimations { note(L("Animation"), name) }
                     let layer = VisualLayer(
-                        id: segment.id, content: .text(TextLayerSpec(material: text, content: parsed)),
+                        id: segment.id,
+                        content: .text(TextLayerSpec(material: text, content: parsed, animations: textAnimations)),
                         trackIndex: trackIndex, renderIndex: segment.renderIndex, isMainTrack: false,
                         target: segment.targetTimerange, timeMap: timeMap, crop: Crop(), clip: segment.clip ?? Clip(),
                         uniformScale: segment.uniformScale, keyframes: keyframes(segment), canvas: nil)

@@ -50,6 +50,7 @@ public static class TimelineBuilder
             var enhancements = ById(m.VocalBeautifys, e => e.Id);
             var audioEffects = ById(m.AudioEffects, e => e.Id);
             var chromas = ById(m.Chromas, c => c.Id);
+            var animations = ById(m.MaterialAnimations, a => a.Id);
             var generic = new Dictionary<string, (string Key, GenericMaterial Item)>();
             foreach (var (key, items) in m.All)
             {
@@ -99,7 +100,9 @@ public static class TimelineBuilder
                     }
                     void ReportAll()
                     {
-                        ReportRefs(refs, generic);
+                        // Text animations are rendered; the ones that aren't are noted where the text layer is built.
+                        ReportRefs(track.Type == "text"
+                            ? refs.Where(r => !(generic.TryGetValue(r, out var g) && g.Key == "material_animations")) : refs, generic);
                         if (filterIssue is not null) Note(L("Audio effect"), filterIssue);
                     }
                     if (track.Type != "audio") ReportAll();
@@ -222,7 +225,9 @@ public static class TimelineBuilder
                                 Note(L("Text effect"), L("word art"));
                             }
                             ReportKeyframes(segment);
-                            var layer = new VisualLayer(segment.Id, new TextContentLayer(new TextLayerSpec(text, parsed)),
+                            var (textAnimations, unsupportedAnimations) = TextAnimations.Make(First(refs, animations));
+                            foreach (var name in unsupportedAnimations) Note(L("Animation"), name);
+                            var layer = new VisualLayer(segment.Id, new TextContentLayer(new TextLayerSpec(text, parsed, textAnimations)),
                                 trackIndex, segment.RenderIndex, false, segment.TargetTimerange, timeMap, new Crop(),
                                 segment.Clip ?? new Clip(), segment.UniformScale, Keyframes(segment), null);
                             layers.Add((layer, order));
