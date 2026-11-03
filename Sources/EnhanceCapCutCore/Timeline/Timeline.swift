@@ -102,6 +102,8 @@ public final class VisualLayer {
     public internal(set) var filters: [ColorFilter] = []
     /// "Chroma key", applied to the clip's frames before the cutout.
     public let chromaKey: ChromaKey?
+    /// The transition into the next clip on this track.
+    public internal(set) var transitionOut: LayerTransition?
 
     init(id: String, content: VisualContent, trackIndex: Int, renderIndex: Int, isMainTrack: Bool,
          target: TimeRange, timeMap: TimeMap, crop: Crop, clip: Clip, uniformScale: Bool,

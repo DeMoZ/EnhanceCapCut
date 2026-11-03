@@ -41,7 +41,12 @@ final class FrameCompositor {
 
     /// The composited frame at timeline time `t` (µs), extent = `rect`; opaque unless `opaque` is false.
     func frame(at t: Int64) async -> CIImage {
-        let active = timeline.layers.filter { $0.isActive(at: t) }
+        // Both clips of a transition stay on screen for its whole range.
+        let mixing = Set(timeline.layers.flatMap { layer -> [String] in
+            guard let transition = layer.transitionOut, transition.contains(t) else { return [] }
+            return [layer.id, transition.next.id]
+        })
+        let active = timeline.layers.filter { $0.isActive(at: t) || mixing.contains($0.id) }
         releaseInactive(active: Set(active.map(\.id)))
 
         var result = CIImage(color: opaque ? .black : .clear).cropped(to: rect)
@@ -57,18 +62,43 @@ final class FrameCompositor {
         if let (layer, image) = mainImage, let canvas = layer.canvas {
             result = background(canvas, source: image).composited(over: result)
         }
+        // A clip in a transition is drawn mixed with the next one, in the outgoing clip's place.
+        var incoming: [String: CIImage] = [:]
+        for (layer, _) in layerImages {
+            if let transition = layer.transitionOut, transition.contains(t),
+               let next = layerImages.first(where: { $0.0 === transition.next }) {
+                incoming[next.0.id] = next.1
+            }
+        }
         // Filter-track filters colour what's painted below them.
         var filters = timeline.filters.filter { $0.isActive(at: t) }
             .sorted { ($0.renderIndex, $0.trackIndex) < ($1.renderIndex, $1.trackIndex) }
-        for (layer, image) in layerImages {
+        for (layer, image) in layerImages where incoming[layer.id] == nil {
             while let filter = filters.first, !filter.covers(layer) {
                 result = colored(result, by: [filter.filter]).cropped(to: rect)
                 filters.removeFirst()
             }
-            result = place(image, layer: layer, at: t).composited(over: result)
+            if let transition = layer.transitionOut, transition.contains(t), let next = incoming[transition.next.id] {
+                let mixed = TransitionMixer.mix(transition.kind, from: plate(image, layer: layer, at: t),
+                                                to: plate(next, layer: transition.next, at: t),
+                                                progress: transition.progress(at: t), rect: rect)
+                result = mixed.composited(over: result)
+            } else {
+                result = place(image, layer: layer, at: t).composited(over: result)
+            }
         }
         result = colored(result, by: filters.map(\.filter))
         return result.cropped(to: rect)
+    }
+
+    /// A clip placed on the frame, over its canvas background (and black, when opaque) on the main track.
+    private func plate(_ image: CIImage, layer: VisualLayer, at t: Int64) -> CIImage {
+        var plate = place(image, layer: layer, at: t)
+        if layer.isMainTrack {
+            if let canvas = layer.canvas { plate = plate.composited(over: background(canvas, source: image)) }
+            if opaque { plate = plate.composited(over: CIImage(color: .black).cropped(to: rect)) }
+        }
+        return plate.cropped(to: rect)
     }
 
     // MARK: Content

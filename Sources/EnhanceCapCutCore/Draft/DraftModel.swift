@@ -253,6 +253,8 @@ public struct GenericMaterial: Decodable {
     /// intensity slider, 0...1.
     public var resourceID: String
     public var value: Double?
+    /// For `transitions`: the length in µs.
+    public var duration: Int64
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.anyKeyed()
@@ -269,6 +271,7 @@ public struct GenericMaterial: Decodable {
         choice = c.num("choice").map { Int($0) }
         resourceID = c.str("resource_id") ?? c.str("effect_id") ?? ""
         value = c.num("value")
+        duration = c.int64("duration") ?? 0
     }
 
     struct NamedItem: Decodable {

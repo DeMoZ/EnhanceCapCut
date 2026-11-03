@@ -119,7 +119,7 @@ public class DraftParsingTests
                     "crop": {"upper_left_x": 0.1, "upper_left_y": 0.0, "lower_right_x": 0.9, "lower_right_y": 1.0}}],
         "speeds": [{"id": "SP1", "type": "speed", "mode": 0, "speed": 2.0, "curve_speed": null}],
         "canvases": [{"id": "C1", "type": "canvas_blur", "blur": 0.5, "color": ""}],
-        "transitions": [{"id": "TR1", "type": "transition", "name": "Flashback"}],
+        "transitions": [{"id": "TR1", "type": "transition", "name": "Sand Spread"}],
         "texts": [{"id": "X1", "type": "subtitle", "font_size": "not a number",
                    "content": "{\"text\":\"Hello\",\"styles\":[{\"range\":[0,5],\"size\":8,\"fill\":{\"content\":{\"solid\":{\"color\":[1,0,0]}}}}]}"}],
         "audios": null
@@ -165,11 +165,65 @@ public class DraftParsingTests
     {
         var timeline = TimelineBuilder.Build(Draft.Parse(Json), Temp);
         Assert.Equal(["/nonexistent/clip.mov"], timeline.Report.MissingFiles);
-        Assert.Contains(timeline.Report.Unsupported, i => i.Category == "Transition" && i.Name == "Flashback");
+        Assert.Contains(timeline.Report.Unsupported, i => i.Category == "Transition" && i.Name == "Sand Spread (shown as a cross-fade)");
         // The missing video produces no layer; the subtitle does.
         Assert.Single(timeline.Layers);
         Assert.True(timeline.HasSubtitles);
         Assert.Empty(timeline.WithoutSubtitles().Layers);
+    }
+
+    [Fact]
+    public void TransitionsJoinAdjacentClips()
+    {
+        var photo = Path.Combine(Temp, $"ecc-transition-test-{Guid.NewGuid()}.png");
+        File.WriteAllBytes(photo, [0]);
+        try
+        {
+            static string Segment(string id, long start, long duration, string refs) =>
+                $$"""{"id": "{{id}}", "material_id": "V1", "target_timerange": {"start": {{start}}, "duration": {{duration}}}, "extra_material_refs": [{{refs}}]}""";
+            var json = $$$"""
+            {
+              "tracks": [{"type": "video", "segments": [
+                {{{Segment("A", 0, 2000000, "\"F\"")}}}, {{{Segment("B", 2000000, 300000, "\"X\"")}}},
+                {{{Segment("C", 2300000, 1000000, "\"F\"")}}}, {{{Segment("D", 4000000, 1000000, "")}}}
+              ]}],
+              "materials": {
+                "videos": [{"id": "V1", "type": "photo", "path": "{{{photo.Replace("\\", "\\\\")}}}"}],
+                "transitions": [
+                  {"id": "F", "type": "transition", "name": "Flashback", "duration": 200000, "is_overlap": true},
+                  {"id": "X", "type": "transition", "name": "Spin Shift", "duration": 1000000, "is_overlap": true}]
+              }
+            }
+            """;
+            var timeline = TimelineBuilder.Build(Draft.Parse(json), Temp);
+            var layers = timeline.Layers.ToDictionary(l => l.Id);
+            // Centred on the cut.
+            var flashback = Assert.IsType<LayerTransition>(layers["A"].TransitionOut);
+            Assert.Equal(TransitionKind.Flashback, flashback.Kind);
+            Assert.Same(layers["B"], flashback.Next);
+            Assert.Equal(new TimeRange(1_900_000, 200_000), flashback.Range);
+            Assert.Equal(0.5, flashback.Progress(2_000_000));
+            // Kept within half of the shorter clip.
+            var other = Assert.IsType<LayerTransition>(layers["B"].TransitionOut);
+            Assert.Equal(TransitionKind.CrossFade, other.Kind);
+            Assert.Equal(new TimeRange(2_150_000, 300_000), other.Range);
+            // C and D don't touch.
+            Assert.Null(layers["C"].TransitionOut);
+            Assert.Null(layers["D"].TransitionOut);
+            Assert.Equal(["Transition: Spin Shift (shown as a cross-fade)"],
+                timeline.Report.Unsupported.Select(i => $"{i.Category}: {i.Name}"));
+
+            Assert.Equal(0, FlashbackLook.Strength(0), 9);
+            Assert.Equal(1, FlashbackLook.Strength(0.5), 9);
+            Assert.Equal(0, FlashbackLook.Mix(0.2));
+            Assert.Equal(0.5, FlashbackLook.Mix(0.5), 9);
+            Assert.Equal(1, FlashbackLook.Mix(0.8));
+            Assert.Equal(1, FlashbackLook.Copy(0, 1).Scale, 9);
+        }
+        finally
+        {
+            File.Delete(photo);
+        }
     }
 
     [Fact]

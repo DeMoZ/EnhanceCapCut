@@ -86,6 +86,8 @@ public sealed class VisualLayer(string id, VisualContent content, int trackIndex
     public IReadOnlyList<ColorFilter> Filters { get; set; } = [];
     /// <summary>"Chroma key", applied to the clip's frames before the cutout.</summary>
     public ChromaKey? ChromaKey { get; } = chromaKey;
+    /// <summary>The transition into the next clip on this track.</summary>
+    public LayerTransition? TransitionOut { get; set; }
 
     public bool IsActive(long t) => t >= Target.Start && t < Target.End;
 

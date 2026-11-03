@@ -255,6 +255,8 @@ public sealed class GenericMaterial
     /// and the intensity slider, 0…1.</summary>
     public string ResourceID { get; set; } = "";
     public double? Value { get; set; }
+    /// <summary>For <c>transitions</c>: the length in µs.</summary>
+    public long Duration { get; set; }
 
     public static GenericMaterial? From(JsonElement c)
     {
@@ -272,6 +274,7 @@ public sealed class GenericMaterial
             Choice = c.Num("choice") is { } choice ? (int)choice : null,
             ResourceID = c.Str("resource_id") ?? c.Str("effect_id") ?? "",
             Value = c.Num("value"),
+            Duration = c.Int64("duration") ?? 0,
         };
     }
 }
