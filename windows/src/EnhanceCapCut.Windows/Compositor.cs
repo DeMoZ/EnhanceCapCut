@@ -28,6 +28,11 @@ public sealed class Compositor : IDisposable
     readonly Dictionary<string, Compositor> nested = [];
     readonly Dictionary<string, (ID2D1Bitmap1? Bitmap, float Scale)> texts = [];
     readonly Dictionary<string, CutoutLayer> cutouts = [];
+    readonly ColorFilters colorFilters;
+    /// <summary>Clips' frames through their own filters (two bitmaps to chain several).</summary>
+    readonly Dictionary<string, (ID2D1Bitmap1 A, ID2D1Bitmap1 B)> filtered = [];
+    /// <summary>A copy of <see cref="Frame"/> for filter-track filters to read from.</summary>
+    ID2D1Bitmap1? frameCopy;
     /// <summary>False for a compound clip's frames: transparent where nothing is drawn, like in CapCut (cut-out clips
     /// inside it show the layers below).</summary>
     readonly bool opaque;
@@ -49,6 +54,7 @@ public sealed class Compositor : IDisposable
         ownsPhotos = photos is null;
         this.photos = photos ?? new ImageLoader(graphics);
         text = new TextImageRenderer(graphics);
+        colorFilters = new ColorFilters(graphics);
         Frame = graphics.CreateBitmap(width, height, BitmapOptions.Target);
     }
 
@@ -93,17 +99,58 @@ public sealed class Compositor : IDisposable
         var images = new List<(VisualLayer Layer, ID2D1Bitmap1 Image, float? TextScale)>();
         foreach (var layer in active)
         {
-            if (Content(layer, t) is { } content) images.Add((layer, content.Image, content.TextScale));
+            if (Content(layer, t) is { } content) images.Add((layer, Colored(layer, content.Image), content.TextScale));
         }
         var main = images.FirstOrDefault(i => i.Layer.IsMainTrack);
 
-        graphics.DrawInto(Frame, dc =>
+        // Filter-track filters colour what's painted below them: draw in runs between them.
+        var filters = timeline.Filters.Where(f => f.IsActive(t) && colorFilters.CanApply([f.Filter]))
+            .OrderBy(f => f.RenderIndex).ThenBy(f => f.TrackIndex).ToList();
+        var next = 0;
+        var first = true;
+        while (first || next < images.Count || filters.Count > 0)
         {
-            dc.Clear(new Color4(0, 0, 0, opaque ? 1 : 0));
-            if (main.Layer?.Canvas is { } canvas) Background(dc, canvas, main.Image);
-            foreach (var (layer, image, textScale) in images) Place(dc, layer, image, textScale, t);
-        });
+            var run = images.Skip(next).TakeWhile(i => filters.Count == 0 || filters[0].Covers(i.Layer)).ToList();
+            var clear = first;
+            graphics.DrawInto(Frame, dc =>
+            {
+                if (clear)
+                {
+                    dc.Clear(new Color4(0, 0, 0, opaque ? 1 : 0));
+                    if (main.Layer?.Canvas is { } canvas) Background(dc, canvas, main.Image);
+                }
+                foreach (var (layer, image, textScale) in run) Place(dc, layer, image, textScale, t);
+            });
+            first = false;
+            next += run.Count;
+            if (filters.Count == 0) break;
+            frameCopy ??= graphics.CreateBitmap(Width, Height, BitmapOptions.Target);
+            frameCopy.CopyFromBitmap(Frame).CheckError();
+            colorFilters.Apply(frameCopy, Frame, filters[0].Filter);
+            filters.RemoveAt(0);
+        }
         return Frame;
+    }
+
+    /// <summary><paramref name="image"/> through the clip's own filters, in order.</summary>
+    ID2D1Bitmap1 Colored(VisualLayer layer, ID2D1Bitmap1 image)
+    {
+        if (layer.Filters.Count == 0 || !colorFilters.CanApply(layer.Filters)) return image;
+        var size = image.PixelSize;
+        if (!filtered.TryGetValue(layer.Id, out var pair) || pair.A.PixelSize.Width != size.Width || pair.A.PixelSize.Height != size.Height)
+        {
+            if (filtered.Remove(layer.Id, out var old)) { old.A.Dispose(); old.B.Dispose(); }
+            pair = (graphics.CreateBitmap(size.Width, size.Height, BitmapOptions.Target),
+                graphics.CreateBitmap(size.Width, size.Height, BitmapOptions.Target));
+            filtered[layer.Id] = pair;
+        }
+        var source = image;
+        foreach (var filter in layer.Filters)
+        {
+            var target = source == pair.A ? pair.B : pair.A;
+            if (colorFilters.Apply(source, target, filter)) source = target;
+        }
+        return source;
     }
 
     // MARK: Content
@@ -241,6 +288,12 @@ public sealed class Compositor : IDisposable
         foreach (var id in nested.Keys.Where(id => !active.Contains(id)).ToList()) { nested[id].Dispose(); nested.Remove(id); }
         foreach (var id in texts.Keys.Where(id => !active.Contains(id)).ToList()) { texts[id].Bitmap?.Dispose(); texts.Remove(id); }
         foreach (var id in cutouts.Keys.Where(id => !active.Contains(id)).ToList()) { cutouts[id].Dispose(); cutouts.Remove(id); }
+        foreach (var id in filtered.Keys.Where(id => !active.Contains(id)).ToList())
+        {
+            filtered[id].A.Dispose();
+            filtered[id].B.Dispose();
+            filtered.Remove(id);
+        }
     }
 
     void Warn(string message)
@@ -319,6 +372,9 @@ public sealed class Compositor : IDisposable
         foreach (var n in nested.Values) n.Dispose();
         foreach (var (bitmap, _) in texts.Values) bitmap?.Dispose();
         foreach (var c in cutouts.Values) c.Dispose();
+        foreach (var (a, b) in filtered.Values) { a.Dispose(); b.Dispose(); }
+        colorFilters.Dispose();
+        frameCopy?.Dispose();
         text.Dispose();
         if (ownsPhotos) photos.Dispose();
         Frame.Dispose();

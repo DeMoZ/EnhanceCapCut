@@ -20,6 +20,8 @@ public static class TimelineBuilder
         readonly Dictionary<string, CombinationMaterial> combos = [];
         /// <summary>Voice filter preset directories by material path and resource id (null: not usable).</summary>
         readonly Dictionary<string, string?> filterDirectories = [];
+        /// <summary>Colour filters by material id (null: lookup table not found).</summary>
+        readonly Dictionary<string, ColorFilter?> colorFilters = [];
 
         static Dictionary<string, T> ById<T>(IEnumerable<T> items, Func<T, string> id)
         {
@@ -55,6 +57,7 @@ public static class TimelineBuilder
 
             var mainTrack = draft.Tracks.FindIndex(t => t.Type == "video");
             var layers = new List<(VisualLayer Layer, int Order)>();
+            var filterLayers = new List<FilterLayer>();
             var clips = new List<AudioClip>();
             var order = 0;
 
@@ -157,6 +160,8 @@ public static class TimelineBuilder
                             var layer = new VisualLayer(segment.Id, content, trackIndex, segment.RenderIndex, isMain,
                                 segment.TargetTimerange, timeMap, video?.Crop ?? new Crop(), segment.Clip ?? new Clip(),
                                 segment.UniformScale, Keyframes(segment), isMain ? First(refs, canvases) : null, cutout);
+                            layer.Filters = refs.Select(r => generic.TryGetValue(r, out var f) && f.Key == "effects" && f.Item.Type == "filter"
+                                ? MakeColorFilter(f.Item) : null).OfType<ColorFilter>().ToList();
                             layers.Add((layer, order));
 
                             var muted = track.IsMuted || (isMain && draft.Config.VideoMute) || segment.Volume <= 0;
@@ -219,7 +224,11 @@ public static class TimelineBuilder
                             // Stickers, effects and filters on their own tracks.
                             if (track.IsHidden) continue;
                             if (generic.TryGetValue(segment.MaterialId, out var g))
+                            {
                                 Report(g.Key, g.Item);
+                                if (g.Key == "effects" && g.Item.Type == "filter" && segment.Visible && MakeColorFilter(g.Item) is { } filter)
+                                    filterLayers.Add(new FilterLayer(segment.Id, segment.TargetTimerange, trackIndex, segment.RenderIndex, filter));
+                            }
                             else
                                 Note(Capitalized(track.Type), "segment");
                             break;
@@ -242,7 +251,10 @@ public static class TimelineBuilder
             };
 
             return new Timeline(draft.Name, draft.Canvas.Width, draft.Canvas.Height, end, draft.Fps > 0 ? draft.Fps : 30,
-                sorted, clips, report);
+                sorted, clips, report)
+            {
+                Filters = filterLayers,
+            };
         }
 
         Timeline? NestedTimeline(CombinationMaterial combo, int depth)
@@ -367,6 +379,16 @@ public static class TimelineBuilder
             return directory;
         }
 
+        /// <summary>A filter's lookup table from CapCut's effect cache (null when the package isn't cached or has none).</summary>
+        ColorFilter? MakeColorFilter(GenericMaterial item)
+        {
+            if (colorFilters.TryGetValue(item.Id, out var cached)) return cached;
+            var lut = ColorFilter.Locate(DraftLoader.ResolvePath(item.Path, projectFolder), item.ResourceID);
+            var filter = lut is null ? null : new ColorFilter(item.Name, lut, Math.Clamp(item.Value ?? 1, 0, 1));
+            colorFilters[item.Id] = filter;
+            return filter;
+        }
+
         // MARK: Report
 
         void Note(string category, string name)
@@ -462,7 +484,8 @@ public static class TimelineBuilder
                     break;
                 case "effects":
                     var t = item.Type;
-                    if (t == "filter") Note(L("Filter"), name);
+                    // Rendered from the cached lookup table when there is one.
+                    if (t == "filter") { if (MakeColorFilter(item) is null) Note(L("Filter"), name); }
                     else if (t == "text_effect") Note(L("Text effect"), name);
                     else if (t == "text_shape") { if (item.Name.Length > 0) Note(L("Text shape"), item.Name); }
                     else if (t is "color_correct" or "smart_color_adjust") Note(L("Color adjustment"), t.Replace('_', ' '));

@@ -12,6 +12,8 @@ public final class Timeline {
     public let layers: [VisualLayer]
     public let audioClips: [AudioClip]
     public let report: RenderReport
+    /// Filters on filter tracks (each colours the layers painted below it).
+    public internal(set) var filters: [FilterLayer] = []
 
     init(name: String, canvasSize: CGSize, duration: Int64, fps: Double, layers: [VisualLayer],
          audioClips: [AudioClip], report: RenderReport) {
@@ -30,8 +32,10 @@ public final class Timeline {
             if case let .text(spec) = layer.content { return spec.material.type != "subtitle" }
             return true
         }
-        return Timeline(name: name, canvasSize: canvasSize, duration: duration, fps: fps, layers: kept,
-                        audioClips: audioClips, report: report)
+        let copy = Timeline(name: name, canvasSize: canvasSize, duration: duration, fps: fps, layers: kept,
+                            audioClips: audioClips, report: report)
+        copy.filters = filters
+        return copy
     }
 
     public var hasSubtitles: Bool {
@@ -94,6 +98,8 @@ public final class VisualLayer {
     public let canvas: CanvasMaterial?
     /// "Remove background": CapCut's mask frames, applied as the clip's alpha.
     public let cutout: Cutout?
+    /// The clip's own filters, in order.
+    public internal(set) var filters: [ColorFilter] = []
 
     init(id: String, content: VisualContent, trackIndex: Int, renderIndex: Int, isMainTrack: Bool,
          target: TimeRange, timeMap: TimeMap, crop: Crop, clip: Clip, uniformScale: Bool,

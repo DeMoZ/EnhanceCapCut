@@ -14,10 +14,15 @@ public sealed class Timeline(string name, int canvasWidth, int canvasHeight, lon
     public IReadOnlyList<VisualLayer> Layers { get; } = layers;
     public IReadOnlyList<AudioClip> AudioClips { get; } = audioClips;
     public RenderReport Report { get; } = report;
+    /// <summary>Filters on filter tracks (each colours the layers painted below it).</summary>
+    public IReadOnlyList<FilterLayer> Filters { get; init; } = [];
 
     /// <summary>The same timeline without caption (auto-subtitle) clips.</summary>
     public Timeline WithoutSubtitles() => new(Name, CanvasWidth, CanvasHeight, Duration, Fps,
-        Layers.Where(l => l.Content is not TextContentLayer { Spec.Material.Type: "subtitle" }).ToList(), AudioClips, Report);
+        Layers.Where(l => l.Content is not TextContentLayer { Spec.Material.Type: "subtitle" }).ToList(), AudioClips, Report)
+    {
+        Filters = Filters,
+    };
 
     public bool HasSubtitles => Layers.Any(l => l.Content is TextContentLayer { Spec.Material.Type: "subtitle" });
 }
@@ -76,6 +81,8 @@ public sealed class VisualLayer(string id, VisualContent content, int trackIndex
     public CanvasMaterial? Canvas { get; } = canvas;
     /// <summary>"Remove background": CapCut's mask frames, applied as the clip's alpha.</summary>
     public Cutout? Cutout { get; } = cutout;
+    /// <summary>The clip's own filters, in order.</summary>
+    public IReadOnlyList<ColorFilter> Filters { get; set; } = [];
 
     public bool IsActive(long t) => t >= Target.Start && t < Target.End;
 

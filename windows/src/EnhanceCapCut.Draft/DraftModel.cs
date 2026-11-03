@@ -249,6 +249,10 @@ public sealed class GenericMaterial
     public bool? Enable { get; set; }
     public bool? IsDenoise { get; set; }
     public int? Choice { get; set; }
+    /// <summary>For filters (<c>effects</c>, type "filter"): the effect id in CapCut's library (the cache folder name)
+    /// and the intensity slider, 0…1.</summary>
+    public string ResourceID { get; set; } = "";
+    public double? Value { get; set; }
 
     public static GenericMaterial? From(JsonElement c)
     {
@@ -264,6 +268,8 @@ public sealed class GenericMaterial
             Enable = c.Bool("enable"),
             IsDenoise = c.Bool("is_denoise"),
             Choice = c.Num("choice") is { } choice ? (int)choice : null,
+            ResourceID = c.Str("resource_id") ?? c.Str("effect_id") ?? "",
+            Value = c.Num("value"),
         };
     }
 }

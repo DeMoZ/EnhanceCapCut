@@ -22,6 +22,8 @@ private struct Builder {
     var combos: [String: CombinationMaterial] = [:]
     /// Voice filter preset directories by material path and resource id (nil: not usable).
     var filterDirectories: [String: URL?] = [:]
+    /// Colour filters by material id (nil: lookup table not found).
+    var colorFilters: [String: ColorFilter?] = [:]
     let fm = FileManager.default
 
     init(projectURL: URL) { self.projectURL = projectURL }
@@ -46,6 +48,7 @@ private struct Builder {
 
         let mainTrack = draft.tracks.firstIndex { $0.type == "video" }
         var layers: [(VisualLayer, Int)] = []
+        var filterLayers: [FilterLayer] = []
         var clips: [AudioClip] = []
         var order = 0
 
@@ -133,6 +136,9 @@ private struct Builder {
                         crop: video?.crop ?? Crop(), clip: segment.clip ?? Clip(), uniformScale: segment.uniformScale,
                         keyframes: keyframes(segment), canvas: isMain ? refs.lazy.compactMap { canvases[$0] }.first : nil,
                         cutout: cutout)
+                    layer.filters = refs.compactMap { ref in
+                        generic[ref].flatMap { $0.0 == "effects" && $0.1.type == "filter" ? colorFilter($0.1) : nil }
+                    }
                     layers.append((layer, order))
 
                     let muted = track.isMuted || (isMain && draft.config.videoMute) || segment.volume <= 0
@@ -194,6 +200,11 @@ private struct Builder {
                     guard !track.isHidden else { continue }
                     if let (key, item) = generic[segment.materialId] {
                         report(key: key, item: item)
+                        if key == "effects", item.type == "filter", segment.visible, let filter = colorFilter(item) {
+                            filterLayers.append(FilterLayer(id: segment.id, target: segment.targetTimerange,
+                                                            trackIndex: trackIndex, renderIndex: segment.renderIndex,
+                                                            filter: filter))
+                        }
                     } else {
                         note(track.type.capitalized, "segment")
                     }
@@ -214,9 +225,11 @@ private struct Builder {
         }.sorted { ($0.category, $0.name) < ($1.category, $1.name) }
         report.missingFiles = missing.sorted()
 
-        return Timeline(name: draft.name, canvasSize: CGSize(width: draft.canvas.width, height: draft.canvas.height),
-                        duration: end, fps: draft.fps > 0 ? draft.fps : 30, layers: sorted, audioClips: clips,
-                        report: report)
+        let timeline = Timeline(name: draft.name, canvasSize: CGSize(width: draft.canvas.width, height: draft.canvas.height),
+                                duration: end, fps: draft.fps > 0 ? draft.fps : 30, layers: sorted, audioClips: clips,
+                                report: report)
+        timeline.filters = filterLayers
+        return timeline
     }
 
     mutating func nestedTimeline(_ combo: CombinationMaterial, depth: Int) -> Timeline? {
@@ -317,6 +330,17 @@ private struct Builder {
         return directory
     }
 
+    /// A filter's lookup table from CapCut's effect cache (nil when the package isn't cached or has none).
+    mutating func colorFilter(_ item: GenericMaterial) -> ColorFilter? {
+        if let cached = colorFilters[item.id] { return cached }
+        let path = DraftLoader.resolvePath(item.path, projectURL: projectURL)
+        let filter = ColorFilter.locate(path: path, resourceID: item.resourceID).map {
+            ColorFilter(name: item.name, lut: $0, intensity: min(max(item.value ?? 1, 0), 1))
+        }
+        colorFilters[item.id] = .some(filter)
+        return filter
+    }
+
     // MARK: Report
 
     mutating func note(_ category: String, _ name: String) {
@@ -397,7 +421,8 @@ private struct Builder {
             for animation in item.animationNames { note(L("Animation"), animation) }
         case "effects":
             switch item.type {
-            case "filter": note(L("Filter"), name)
+            // Rendered from the cached lookup table when there is one.
+            case "filter": if colorFilter(item) == nil { note(L("Filter"), name) }
             case "text_effect": note(L("Text effect"), name)
             case "text_shape": if !item.name.isEmpty { note(L("Text shape"), item.name) }
             case "color_correct", "smart_color_adjust": note(L("Color adjustment"), item.type.replacingOccurrences(of: "_", with: " "))

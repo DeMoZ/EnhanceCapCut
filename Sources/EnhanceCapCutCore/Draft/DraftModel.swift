@@ -247,6 +247,10 @@ public struct GenericMaterial: Decodable {
     public var enable: Bool?
     public var isDenoise: Bool?
     public var choice: Int?
+    /// For filters (`effects`, type "filter"): the effect id in CapCut's library (the cache folder name) and the
+    /// intensity slider, 0...1.
+    public var resourceID: String
+    public var value: Double?
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.anyKeyed()
@@ -261,6 +265,8 @@ public struct GenericMaterial: Decodable {
         enable = c.bool("enable")
         isDenoise = c.bool("is_denoise")
         choice = c.num("choice").map { Int($0) }
+        resourceID = c.str("resource_id") ?? c.str("effect_id") ?? ""
+        value = c.num("value")
     }
 
     struct NamedItem: Decodable {
