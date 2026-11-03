@@ -132,6 +132,12 @@ final class FrameCompositor {
 
         case let .text(spec):
             return textImage(spec, layer: layer).image
+
+        case let .sticker(spec):
+            // Drawn every frame at the size it's shown at.
+            let pixels = spec.clock.diameter * Double(min(size.width, size.height)) * Self.maxScale(of: layer)
+            return StickerRenderer.render(spec.clock, pixels: Int(pixels.rounded(.up)),
+                                          atOffset: layer.timeMap.sourceTime(atOffset: offset))
         }
     }
 
@@ -212,6 +218,15 @@ final class FrameCompositor {
         return (image, scale)
     }
 
+    /// The largest scale a layer reaches (clip scale or keyframes), 0.05…8.
+    static func maxScale(of layer: VisualLayer) -> Double {
+        var scale = max(abs(layer.clip.scale.x), abs(layer.clip.scale.y))
+        for p in [LayerProperty.scaleX, .scaleY] {
+            if let values = layer.keyframes[p]?.values { scale = max(scale, values.map(abs).max() ?? 0) }
+        }
+        return min(max(scale, 0.05), 8)
+    }
+
     // MARK: Layout
 
     private func place(_ image: CIImage, layer: VisualLayer, at t: Int64) -> CIImage {
@@ -222,6 +237,8 @@ final class FrameCompositor {
         var base: CGFloat
         if case .text = layer.content {
             base = 1 / (textImages[layer.id]?.scale ?? 1)
+        } else if case let .sticker(spec) = layer.content {
+            base = CGFloat(spec.clock.diameter) * min(size.width, size.height) / w
         } else {
             base = min(size.width / w, size.height / h)
         }

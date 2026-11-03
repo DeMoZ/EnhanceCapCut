@@ -28,12 +28,13 @@ with one click EnhanceCapCut opens the project you're working on and
 
 > [!WARNING]
 > **Not rendered yet.** Cuts, overlays, speed, transforms, keyframes, background removal, filters, chroma key, the
-> "Flashback" transition, texts, captions and the audio mix are rendered;
+> "Flashback" transition, texts, captions, "Clock Time" stickers and the audio mix are rendered;
 > these CapCut features are not yet — a project that uses them exports without them (the export window lists the ones
 > your project uses):
 >
 > - transitions other than "Flashback" (shown as a cross-fade, [#64](../../issues/64)), colour adjustments and HSL
->   ([#39](../../issues/39)), video effects ([#36](../../issues/36)), stickers ([#33](../../issues/33));
+>   ([#39](../../issues/39)), video effects ([#36](../../issues/36)), stickers other than "Clock Time"
+>   ([#66](../../issues/66));
 > - text animations ([#34](../../issues/34)), text effects, templates and bubbles ([#35](../../issues/35)), vertical
 >   text ([#47](../../issues/47));
 > - masks ([#37](../../issues/37)), blend modes ([#42](../../issues/42)), clip animations ([#41](../../issues/41)),
@@ -157,7 +158,7 @@ backup.
 <summary><b>Will the export look exactly like CapCut's?</b></summary>
 
 Cuts, overlays, speed (incl. curves), transforms and keyframes, canvas backgrounds, photos, compound clips, background
-removal, filters, the "Flashback" transition (others as a cross-fade), texts and captions and the audio mix (incl. CapCut's voice isolation, noise reduction and voice filters) are rendered. The
+removal, filters, the "Flashback" transition (others as a cross-fade), texts and captions, "Clock Time" stickers and the audio mix (incl. CapCut's voice isolation, noise reduction and voice filters) are rendered. The
 features in **Not rendered yet** at the top of this page are not yet — the export window tells you when your project
 uses them. See the [roadmap](docs/PLAN.md).
 </details>

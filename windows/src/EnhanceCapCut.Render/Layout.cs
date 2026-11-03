@@ -61,6 +61,18 @@ public static class Layout
         return (float)Math.Clamp(max, 1, 8);
     }
 
+    /// <summary>The largest scale a sticker reaches (clip scale or keyframes), 0.05…8: it's drawn at that size.</summary>
+    public static double StickerRasterScale(VisualLayer layer)
+    {
+        var max = Math.Max(Math.Abs(layer.Clip.Scale.X), Math.Abs(layer.Clip.Scale.Y));
+        foreach (var p in new[] { LayerProperty.ScaleX, LayerProperty.ScaleY })
+        {
+            if (layer.Keyframes.TryGetValue(p, out var track) && track.Values.Count > 0)
+                max = Math.Max(max, track.Values.Max(Math.Abs));
+        }
+        return Math.Clamp(max, 0.05, 8);
+    }
+
     /// <summary>A nested (compound clip) canvas rendered at the same pixel density as its parent.</summary>
     public static (int Width, int Height) NestedSize(Timeline parent, Timeline inner, int outW)
     {

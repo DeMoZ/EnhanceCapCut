@@ -91,6 +91,7 @@ case "info":
         case let .photo(url): kind = "photo " + url.lastPathComponent
         case let .text(spec): kind = "text \"" + spec.content.text.prefix(30).replacingOccurrences(of: "\n", with: " ") + "\""
         case let .compound(t): kind = "compound (\(t.layers.count) layers)"
+        case let .sticker(spec): kind = "sticker " + spec.name
         }
         let speed = layer.timeMap.isConstant ? String(format: "x%.2f", layer.timeMap.averageSpeed) : "curve"
         print("  [\(layer.renderIndex)/t\(layer.trackIndex)] \(seconds(layer.target.start))+\(seconds(layer.target.duration)) \(speed) \(kind)")

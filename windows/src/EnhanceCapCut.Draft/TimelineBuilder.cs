@@ -231,7 +231,17 @@ public static class TimelineBuilder
                         default:
                             // Stickers, effects and filters on their own tracks.
                             if (track.IsHidden) continue;
-                            if (generic.TryGetValue(segment.MaterialId, out var g))
+                            // "Clock Time" stickers are drawn natively; other stickers are reported.
+                            if (track.Type == "sticker" && segment.Visible && generic.TryGetValue(segment.MaterialId, out var st)
+                                && st.Key == "stickers" && ClockSticker.StyleFor(st.Item.ResourceID) is { } style)
+                            {
+                                ReportKeyframes(segment);
+                                var layer = new VisualLayer(segment.Id, new StickerContent(st.Item.Name, new ClockSticker(style)),
+                                    trackIndex, segment.RenderIndex, false, segment.TargetTimerange, timeMap, new Crop(),
+                                    segment.Clip ?? new Clip(), segment.UniformScale, Keyframes(segment), null);
+                                layers.Add((layer, order));
+                            }
+                            else if (generic.TryGetValue(segment.MaterialId, out var g))
                             {
                                 Report(g.Key, g.Item);
                                 if (g.Key == "effects" && g.Item.Type == "filter" && segment.Visible && MakeColorFilter(g.Item) is { } filter)

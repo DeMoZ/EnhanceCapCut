@@ -36,6 +36,8 @@ public sealed class Compositor : IDisposable
     readonly Dictionary<string, ChromaKeyer> chromaKeys = [];
     /// <summary>Bitmaps of the transitions on screen, by outgoing clip.</summary>
     readonly Dictionary<string, TransitionMixer> transitions = [];
+    readonly StickerImageRenderer stickerRenderer;
+    readonly Dictionary<string, ID2D1Bitmap1> stickers = [];
     /// <summary>False for a compound clip's frames: transparent where nothing is drawn, like in CapCut (cut-out clips
     /// inside it show the layers below).</summary>
     readonly bool opaque;
@@ -58,6 +60,7 @@ public sealed class Compositor : IDisposable
         this.photos = photos ?? new ImageLoader(graphics);
         text = new TextImageRenderer(graphics);
         colorFilters = new ColorFilters(graphics);
+        stickerRenderer = new StickerImageRenderer(graphics);
         Frame = graphics.CreateBitmap(width, height, BitmapOptions.Target);
     }
 
@@ -244,6 +247,21 @@ public sealed class Compositor : IDisposable
                 }
                 return cached.Bitmap is { } rendered ? (rendered, cached.Scale) : null;
             }
+            case StickerContent sticker:
+            {
+                // Drawn every frame at the size it's shown at; placed like text, at 1 / scale.
+                var scale = Layout.StickerRasterScale(layer);
+                var pixels = (int)Math.Ceiling(sticker.Clock.Diameter * Math.Min(Width, Height) * scale);
+                pixels = Math.Max(pixels, 4);
+                if (!stickers.TryGetValue(layer.Id, out var drawn) || drawn.PixelSize.Width != pixels)
+                {
+                    drawn?.Dispose();
+                    drawn = graphics.CreateBitmap(pixels, pixels, BitmapOptions.Target);
+                    stickers[layer.Id] = drawn;
+                }
+                stickerRenderer.Render(sticker.Clock, drawn, layer.TimeMap.SourceTime(offset));
+                return (drawn, (float)(pixels / (sticker.Clock.Diameter * Math.Min(Width, Height))));
+            }
             default:
                 return null;
         }
@@ -357,6 +375,7 @@ public sealed class Compositor : IDisposable
             filtered.Remove(id);
         }
         foreach (var id in chromaKeys.Keys.Where(id => !active.Contains(id)).ToList()) { chromaKeys[id].Dispose(); chromaKeys.Remove(id); }
+        foreach (var id in stickers.Keys.Where(id => !active.Contains(id)).ToList()) { stickers[id].Dispose(); stickers.Remove(id); }
     }
 
     void Warn(string message)
@@ -440,6 +459,8 @@ public sealed class Compositor : IDisposable
         colorFilters.Dispose();
         frameCopy?.Dispose();
         foreach (var k in chromaKeys.Values) k.Dispose();
+        foreach (var b in stickers.Values) b.Dispose();
+        stickerRenderer.Dispose();
         text.Dispose();
         if (ownsPhotos) photos.Dispose();
         Frame.Dispose();
