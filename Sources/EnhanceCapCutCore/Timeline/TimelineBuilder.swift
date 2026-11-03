@@ -334,9 +334,8 @@ private struct Builder {
     mutating func colorFilter(_ item: GenericMaterial) -> ColorFilter? {
         if let cached = colorFilters[item.id] { return cached }
         let path = DraftLoader.resolvePath(item.path, projectURL: projectURL)
-        let filter = ColorFilter.locate(path: path, resourceID: item.resourceID).map {
-            ColorFilter(name: item.name, lut: $0, intensity: min(max(item.value ?? 1, 0), 1))
-        }
+        let luts = ColorFilter.locate(path: path, resourceID: item.resourceID)
+        let filter = luts.isEmpty ? nil : ColorFilter(name: item.name, luts: luts, intensity: min(max(item.value ?? 1, 0), 1))
         colorFilters[item.id] = .some(filter)
         return filter
     }

@@ -241,8 +241,12 @@ uses are at 1), `path` (the cached package, `…/Cache/effect/<resource_id>/<md5
   everything painted below it (videos and overlays, not the texts at 14000+) for its `target_timerange`;
 - per clip: the filter's id in a video segment's `extra_material_refs`.
 
-We look for the lookup table in the package at render time (`ColorFilter.locate`: the draft's `path`, else
-`<cache>/<resource_id>/<hash>`): the first `.cube` file or lookup-shaped PNG, preferring names with "lut". PNG
+We look for the lookup tables in the package at render time (`ColorFilter.locate`: the draft's `path`, else
+`<cache>/<resource_id>/<hash>`). A package is a list of parts (`config.json` → `effect.Link[{path, zorder}]`); from
+each part, in `zorder`, we take the table one of its `material/*.material` files names (binary files that contain the
+texture paths, e.g. `image/filter_bg.png`; Butter Cheese's names just `image/filter`) and apply them in that order.
+Parts often carry tables no material uses, so those don't count. A package without such references falls back to
+its first `.cube` file or lookup-shaped PNG, preferring names with "lut". PNG
 layouts: a √N×√N grid of N×N tiles (512×512 for N = 64), or N tiles in a row (N²×N) or a column; red grows to the
 right and green downwards in a tile, blue picks the tile. The table is applied to sRGB-encoded values, blended with
 the original by `value`. A filter whose package or table isn't found stays in the report.
@@ -256,7 +260,19 @@ frame, independently of the intensity: two Gaussian passes with radius 0 (a no-o
 reproduced yet. Rendered against the export: the table moves the colours the right way (a wall patch goes from RGB
 161/163/131 without the filter to 156/152/111, CapCut 169/159/103); the rest is the clip's "color correct" adjustment
 (`effects`, `type` `color_correct`, `value` 0.8), which is still reported (#39). The other four used filters
-(Faded Mood, Film, Yellowstone, Shimmering B&W) haven't been cached yet.
+(Faded Mood, Film, Yellowstone) are single-part packages with the same lookup shader (`AmazingFeature_2998/` or
+`AmazingFeature/`, one `filter.png`); Film's `filter.png` is a JPEG despite the name, so tables are recognised by
+their header (PNG or JPEG), not the extension. In Мокрая прогулка (filter track) our frames equal the table applied
+to the frame's values, but the export's shift is only ≈ 0.55 of that for all three filters (best per-pixel fit 0.55,
+0.55, 0.58 at `value` 1.0); the export (16:31) predates the draft's last save (17:56), so this is still open.
+
+"Shimmering B&W" (ElefantCafeLong, per clip) has four parts: `AmazingFeature` (8001: animated sparkles from
+`kira-*.png` textures, plus an unused colour table `image/filter.png`), `AmazingFeature1` (8002: a glow/highlight
+chain whose `final` pass uses an identity table), `AmazingFeature_filter` (8003: the black-and-white table, as
+`filter_bg.png` and `filter_skin.png`, the same image, picked by a skin segmentation), `AmazingFeature_light` (8004:
+an Orton-style glow, blur ×4 + edge + merge, strength 0.8 × intensity × 0.5). We apply the identity and the B&W table;
+against the export the frame is black and white like CapCut's (saturation 0.8 vs 1.0 of 65535) but darker (luma
+27 250 vs 30 080): the glow and the sparkles aren't reproduced.
 
 "Cherry Cola" (2 uses) is not a filter: it's `type` `figure` with `value` 0, and its cached package is a makeup
 AmazingFeature (`image/blusher`, `eyebrow`, `lip`…), so it's reported as *Beauty / makeup*.

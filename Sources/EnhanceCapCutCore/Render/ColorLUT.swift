@@ -15,11 +15,11 @@ final class ColorLUT {
         self.data = data
     }
 
-    /// Reads `filter.lut` (a `.cube` file or a PNG lookup image); nil when it can't be read.
-    convenience init?(_ filter: ColorFilter) {
-        guard let table = filter.lut.pathExtension.lowercased() == "cube"
-            ? ColorLUT.readCube(filter.lut) : ColorLUT.readImage(filter.lut) else { return nil }
-        self.init(size: table.size, data: ColorLUT.cube(table.size, table.rgb, intensity: filter.intensity))
+    /// Reads `url` (a `.cube` file or a PNG lookup image) at `intensity`; nil when it can't be read.
+    convenience init?(_ url: URL, intensity: Double) {
+        guard let table = url.pathExtension.lowercased() == "cube"
+            ? ColorLUT.readCube(url) : ColorLUT.readImage(url) else { return nil }
+        self.init(size: table.size, data: ColorLUT.cube(table.size, table.rgb, intensity: intensity))
     }
 
     /// Entries as RGB triples in 0...1 (red fastest) → `CIColorCube` data at `intensity`.

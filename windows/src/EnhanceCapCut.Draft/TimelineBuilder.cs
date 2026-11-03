@@ -383,8 +383,8 @@ public static class TimelineBuilder
         ColorFilter? MakeColorFilter(GenericMaterial item)
         {
             if (colorFilters.TryGetValue(item.Id, out var cached)) return cached;
-            var lut = ColorFilter.Locate(DraftLoader.ResolvePath(item.Path, projectFolder), item.ResourceID);
-            var filter = lut is null ? null : new ColorFilter(item.Name, lut, Math.Clamp(item.Value ?? 1, 0, 1));
+            var luts = ColorFilter.Locate(DraftLoader.ResolvePath(item.Path, projectFolder), item.ResourceID);
+            var filter = luts.Count == 0 ? null : new ColorFilter(item.Name, luts, Math.Clamp(item.Value ?? 1, 0, 1));
             colorFilters[item.Id] = filter;
             return filter;
         }

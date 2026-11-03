@@ -21,6 +21,18 @@ public class ColorFilterTests
         Assert.Equal(97, ColorFilter.LayoutFor(1024, 32)!.Pixel(1, 2, 3).X);
     }
 
+    [Fact]
+    public void ImageSizeFromPngAndJpegHeaders()
+    {
+        // "Film" ships a JPEG named filter.png: APP0 segment, then the frame header (SOF0: precision, height, width).
+        byte[] jpeg = [0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x04, 0x4A, 0x46, 0xFF, 0xC0, 0x00, 0x11, 0x08, 0x01, 0x00, 0x02, 0x00,
+            0x03, 0x01, 0x22, 0x00];
+        Assert.Equal((512, 256), ColorFilter.ImageSize(jpeg));
+        byte[] png = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52, 0, 0, 2, 0, 0, 0, 2, 0];
+        Assert.Equal(512, ColorFilter.ImageSize(png)?.Width);
+        Assert.Null(ColorFilter.ImageSize([0x47, 0x49, 0x46, 0x38]));
+    }
+
     /// <summary>A file with just a PNG signature and header (all the package search reads).</summary>
     internal static void WritePngHeader(string path, int width, int height)
     {
@@ -60,16 +72,16 @@ public class ColorFilterTests
                  {"id": "F3", "type": "filter", "name": "Not cached", "value": 1, "resource_id": "222", "path": "/nope"}]}}
             """;
             // A stale path falls back to <cache>/<resource_id>/<hash>.
-            Assert.Equal("filter.png", Path.GetFileName(ColorFilter.Locate("/somewhere/else", "111", [Path.Combine(dir, "cache")])));
+            Assert.Equal(["filter.png"], ColorFilter.Locate("/somewhere/else", "111", [Path.Combine(dir, "cache")]).Select(Path.GetFileName));
             var timeline = TimelineBuilder.Build(Draft.Parse(json), dir);
             Assert.Equal(["Clip filter"], timeline.Layers[0].Filters.Select(f => f.Name));
-            Assert.Equal("filter.png", Path.GetFileName(timeline.Layers[0].Filters[0].Lut));
+            Assert.Equal(["filter.png"], timeline.Layers[0].Filters[0].Luts.Select(Path.GetFileName));
             var found = timeline.Report.Unsupported.Select(i => $"{i.Category}: {i.Name}").ToHashSet();
             Assert.Contains("Filter: Not cached", found);
             Assert.DoesNotContain("Filter: Clip filter", found);
             Assert.Equal(["T1"], timeline.Filters.Select(f => f.Id)); // the uncached filter is left out
 
-            var layer = new FilterLayer("T", new TimeRange(0, 10), 1, 10000, new ColorFilter("x", photo));
+            var layer = new FilterLayer("T", new TimeRange(0, 10), 1, 10000, new ColorFilter("x", [photo]));
             Assert.True(layer.Covers(timeline.Layers[0]));
             Assert.True(layer.IsActive(5));
             Assert.False(layer.IsActive(10));
@@ -77,6 +89,36 @@ public class ColorFilterTests
         finally
         {
             if (Directory.Exists(dir)) Directory.Delete(dir, true);
+        }
+    }
+
+    /// <summary>A multi-part package (like "Shimmering B&amp;W"): parts applied by <c>zorder</c>, each with the table its
+    /// materials name; tables no material uses don't count.</summary>
+    [Fact]
+    public void PackagePartsUseTheTablesTheirMaterialsName()
+    {
+        var package = Path.Combine(Path.GetTempPath(), $"ecc-package-{Guid.NewGuid()}");
+        try
+        {
+            foreach (var part in new[] { "A/image", "A/material", "B/image", "B/material", "C/image" })
+                Directory.CreateDirectory(Path.Combine(package, part));
+            foreach (var path in new[] { "A/image/filter.png", "B/image/filter_bg.png", "B/image/filter_skin.png", "C/image/filter.png" })
+                WritePngHeader(Path.Combine(package, path), 64, 64);
+            // Binary materials name their textures; A's table is unused.
+            File.WriteAllText(Path.Combine(package, "A/material/stars.material"), "\u0001image/kira-1.png\u0000");
+            File.WriteAllText(Path.Combine(package, "B/material/SkinSeg.material"), "\u0001image/filter_skin.png\u0000image/filter_bg.png");
+            File.WriteAllText(Path.Combine(package, "config.json"),
+                """{"effect": {"Link": [{"path": "C/", "zorder": 8003}, {"path": "B/", "zorder": 8002}, {"path": "A/", "zorder": 8001}]}}""");
+            string Rel(string f) => Path.GetRelativePath(package, f).Replace('\\', '/');
+            // C has no materials, A's table is unused.
+            Assert.Equal(["B/image/filter_bg.png"], ColorFilter.PackageLutFiles(package).Select(Rel));
+            // Without the parts list, the first table of the package.
+            File.Delete(Path.Combine(package, "config.json"));
+            Assert.Equal(["A/image/filter.png"], ColorFilter.PackageLutFiles(package).Select(Rel));
+        }
+        finally
+        {
+            if (Directory.Exists(package)) Directory.Delete(package, true);
         }
     }
 }

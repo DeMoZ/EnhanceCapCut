@@ -32,8 +32,8 @@ with one click EnhanceCapCut opens the project you're working on and
 > these CapCut features are not yet — a project that uses them exports without them (the export window lists the ones
 > your project uses):
 >
-> - transitions ([#32](../../issues/32)), filters whose package isn't in CapCut's effect cache and the sharpening some
->   filter packages add ([#31](../../issues/31)), colour adjustments and HSL
+> - transitions ([#32](../../issues/32)), filters whose package isn't in CapCut's effect cache and the sharpening, glow
+>   and sparkles some filter packages add ([#31](../../issues/31)), colour adjustments and HSL
 >   ([#39](../../issues/39)), video effects ([#36](../../issues/36)), stickers ([#33](../../issues/33));
 > - text animations ([#34](../../issues/34)), text effects, templates and bubbles ([#35](../../issues/35)), vertical
 >   text ([#47](../../issues/47));

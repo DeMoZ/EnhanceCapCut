@@ -14,20 +14,19 @@ namespace EnhanceCapCut.Windows;
 /// </summary>
 public sealed class ColorFilters(Graphics graphics) : IDisposable
 {
-    readonly Dictionary<ColorFilter, ID2D1LookupTable3D?> tables = [];
+    readonly Dictionary<(string Path, double Intensity), ID2D1LookupTable3D?> tables = [];
     ID2D1DeviceContext2? context2;
-    ID2D1Effect? effect;
 
-    /// <summary>The lookup table for <paramref name="filter"/>, or null when it can't be read.</summary>
-    ID2D1LookupTable3D? Table(ColorFilter filter)
+    /// <summary>The lookup table in <paramref name="path"/> at <paramref name="intensity"/>, or null when it can't be read.</summary>
+    ID2D1LookupTable3D? Table(string path, double intensity)
     {
-        if (tables.TryGetValue(filter, out var cached)) return cached;
+        if (tables.TryGetValue((path, intensity), out var cached)) return cached;
         ID2D1LookupTable3D? table = null;
         try
         {
-            if (Read(filter.Lut) is { } read)
+            if (Read(path) is { } read)
             {
-                var lut = ColorLut.Blend(read.Size, read.Rgb, filter.Intensity);
+                var lut = ColorLut.Blend(read.Size, read.Rgb, intensity);
                 var bytes = new byte[lut.Data.Length * sizeof(float)];
                 Buffer.BlockCopy(lut.Data, 0, bytes, 0, bytes.Length);
                 var n = (uint)lut.Size;
@@ -41,7 +40,7 @@ public sealed class ColorFilters(Graphics graphics) : IDisposable
         {
             table = null;
         }
-        tables[filter] = table;
+        tables[(path, intensity)] = table;
         return table;
     }
 
@@ -65,30 +64,44 @@ public sealed class ColorFilters(Graphics graphics) : IDisposable
     }
 
     /// <summary>True when <paramref name="filters"/> has at least one table we can apply.</summary>
-    public bool CanApply(IEnumerable<ColorFilter> filters) => filters.Any(f => Table(f) is not null);
+    public bool CanApply(IEnumerable<ColorFilter> filters) =>
+        filters.Any(f => f.Luts.Any(path => Table(path, f.Intensity) is not null));
 
-    /// <summary>Draws <paramref name="source"/> through <paramref name="filter"/>'s table into <paramref name="target"/>
-    /// (replacing its pixels). False (and nothing drawn) when the table can't be read.</summary>
+    /// <summary>Draws <paramref name="source"/> through <paramref name="filter"/>'s tables, in order, into
+    /// <paramref name="target"/> (replacing its pixels). False (and nothing drawn) when no table can be read.</summary>
     public unsafe bool Apply(ID2D1Bitmap1 source, ID2D1Bitmap1 target, ColorFilter filter)
     {
-        if (Table(filter) is not { } table) return false;
-        effect ??= new ID2D1Effect(graphics.Context.CreateEffect(EffectGuids.LookupTable3D));
-        var pointer = table.NativePointer;
-        effect.SetValue((uint)LookupTable3DProperties.Lut, PropertyType.IUnknown, &pointer, (uint)IntPtr.Size);
-        effect.SetInput(0, source, true);
-        graphics.DrawInto(target, dc =>
+        var luts = filter.Luts.Select(path => Table(path, filter.Intensity)).OfType<ID2D1LookupTable3D>().ToList();
+        if (luts.Count == 0) return false;
+        var chain = new List<ID2D1Effect>();
+        try
         {
-            dc.Clear(new Color4(0, 0, 0, 0));
-            dc.DrawImage(effect.Output, InterpolationMode.NearestNeighbor, CompositeMode.SourceCopy);
-        });
-        effect.SetInput(0, null, true);
+            foreach (var table in luts)
+            {
+                var effect = new ID2D1Effect(graphics.Context.CreateEffect(EffectGuids.LookupTable3D));
+                var pointer = table.NativePointer;
+                effect.SetValue((uint)LookupTable3DProperties.Lut, PropertyType.IUnknown, &pointer, (uint)IntPtr.Size);
+                if (chain.Count == 0) effect.SetInput(0, source, true);
+                else effect.SetInputEffect(0, chain[^1], true);
+                chain.Add(effect);
+            }
+            var last = chain[^1];
+            graphics.DrawInto(target, dc =>
+            {
+                dc.Clear(new Color4(0, 0, 0, 0));
+                dc.DrawImage(last.Output, InterpolationMode.NearestNeighbor, CompositeMode.SourceCopy);
+            });
+        }
+        finally
+        {
+            foreach (var effect in chain) effect.Dispose();
+        }
         return true;
     }
 
     public void Dispose()
     {
         foreach (var table in tables.Values) table?.Dispose();
-        effect?.Dispose();
         context2?.Dispose();
     }
 }
