@@ -36,7 +36,7 @@ with one click EnhanceCapCut opens the project you're working on and
 >   ([#39](../../issues/39)), video effects ([#36](../../issues/36)), stickers other than "Clock Time"
 >   ([#66](../../issues/66));
 > - text animations other than fade, typewriter, slide, zoom, pop, blink and pulse ([#68](../../issues/68)), text
->   effects, templates and bubbles ([#35](../../issues/35)), vertical text ([#47](../../issues/47));
+>   effects other than glows, and bubbles ([#35](../../issues/35)), vertical text ([#47](../../issues/47));
 > - masks ([#37](../../issues/37)), blend modes ([#42](../../issues/42)), clip animations ([#41](../../issues/41)),
 >   keyframe easing ([#46](../../issues/46));
 > - stabilization ([#44](../../issues/44)), AI "Enhance quality" ([#45](../../issues/45)), retouch, beauty and makeup

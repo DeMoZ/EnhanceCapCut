@@ -19,6 +19,8 @@ enum TextRasterizer {
     static let wrapFactor: CGFloat = 0.80 / 0.82
     /// Visible outline thickness per unit of CapCut's stroke `width` (measured on exports).
     static let strokeScale: CGFloat = 0.75
+    /// Times the glow's shadow is drawn: one Core Graphics shadow is fainter than CapCut's glow effects.
+    static let glowPasses = 3
 
     /// Returns the text as an image whose extent starts at the origin; `scale` multiplies the canvas-relative size.
     /// Only the first `visibleLength` UTF-16 units are drawn (a typewriter animation); the layout stays that of the
@@ -125,8 +127,9 @@ enum TextRasterizer {
         let padY = hasBackground ? CGFloat(material.backgroundHeight) * baseSize : 0
         let shadowOffset = material.hasShadow ? CGFloat(material.shadowDistance) * baseSize / 18 : 0
         let shadowBlur = material.hasShadow ? CGFloat(material.shadowSmoothing) * baseSize / 3 : 0
-        // Glyphs can overhang the line boxes; keep room for them, the outline and the shadow.
-        let margin = ceil(strokeWidth * 2 + shadowOffset + shadowBlur * 2 + maxFontSize * 0.4 + 4)
+        let glowBlur = spec.glow.map { CGFloat($0.radius) * baseSize } ?? 0
+        // Glyphs can overhang the line boxes; keep room for them, the outline, the shadow and the glow.
+        let margin = ceil(strokeWidth * 2 + shadowOffset + max(shadowBlur, glowBlur) * 2 + maxFontSize * 0.4 + 4)
         let boxSize = CGSize(width: textSize.width + padX * 2, height: textSize.height + padY * 2)
         let width = Int(boxSize.width + margin * 2), height = Int(boxSize.height + margin * 2)
         guard width > 0, height > 0, width < 16384, height < 16384,
@@ -163,6 +166,22 @@ enum TextRasterizer {
                 ctx.textPosition = CGPoint(x: x, y: firstBaseline - CGFloat(i) * pitch)
                 CTLineDraw(pick(line.fill, line.outline), ctx)
             }
+        }
+        if let glow = spec.glow {
+            // Only the blurred shadow of the glyphs is wanted: draw them off the bitmap and cast the shadow back
+            // (shadow offsets ignore the CTM), several times as one pass is fainter than CapCut's halo. Opaque: the
+            // effect draws its own look, ignoring the text's opacity (seen on the export).
+            ctx.saveGState()
+            let away = CGFloat(width + height) * 2
+            ctx.translateBy(x: away, y: 0)
+            ctx.setShadow(offset: CGSize(width: -away, height: 0), blur: glowBlur,
+                          color: rgb(glow.color, alpha: 1))
+            ctx.setLineJoin(.round)
+            for _ in 0..<glowPasses {
+                draw { fill, _ in fill }
+                if !outlines.isEmpty { draw { $1 } }
+            }
+            ctx.restoreGState()
         }
         if !outlines.isEmpty {
             // Outline first, fill on top, so the stroke only grows outward.

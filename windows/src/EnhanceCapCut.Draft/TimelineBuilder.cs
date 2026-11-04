@@ -219,15 +219,25 @@ public static class TimelineBuilder
                             if (text.Typesetting != 0) Note(L("Text"), L("vertical typesetting (rendered horizontally)"));
                             if (text.CurveEnabled) Note(L("Text"), L("curved text (rendered straight)"));
                             if (parsed.Styles.Any(s => s.Strokes.Count > 1)) Note(L("Text"), L("multiple outlines (first one rendered)"));
-                            if (parsed.Styles.Any(s => !string.IsNullOrEmpty(s.EffectStylePath))
-                                && !refs.Any(r => generic.TryGetValue(r, out var g) && g.Item.Type == "text_effect"))
+                            // A text effect applies only while a style carries its effectStyle (see TextEffectLook).
+                            TextGlow? glow = null;
+                            if (parsed.Styles.FirstOrDefault(s => !string.IsNullOrEmpty(s.EffectStylePath)) is { } styled)
                             {
-                                Note(L("Text effect"), L("word art"));
+                                if (refs.Select(r => generic.TryGetValue(r, out var g) ? g.Item : null)
+                                        .FirstOrDefault(g => g?.Type == "text_effect") is { } textEffect)
+                                {
+                                    glow = TextEffectLook.Glow(textEffect.Name, styled.FillColor);
+                                    if (glow is null) Note(L("Text effect"), textEffect.Name.Length == 0 ? L("word art") : textEffect.Name);
+                                }
+                                else
+                                {
+                                    Note(L("Text effect"), L("word art"));
+                                }
                             }
                             ReportKeyframes(segment);
                             var (textAnimations, unsupportedAnimations) = TextAnimations.Make(First(refs, animations));
                             foreach (var name in unsupportedAnimations) Note(L("Animation"), name);
-                            var layer = new VisualLayer(segment.Id, new TextContentLayer(new TextLayerSpec(text, parsed, textAnimations)),
+                            var layer = new VisualLayer(segment.Id, new TextContentLayer(new TextLayerSpec(text, parsed, textAnimations, glow)),
                                 trackIndex, segment.RenderIndex, false, segment.TargetTimerange, timeMap, new Crop(),
                                 segment.Clip ?? new Clip(), segment.UniformScale, Keyframes(segment), null);
                             layers.Add((layer, order));
@@ -513,7 +523,7 @@ public static class TimelineBuilder
                     var t = item.Type;
                     // Rendered from the cached lookup table when there is one.
                     if (t == "filter") { if (MakeColorFilter(item) is null) Note(L("Filter"), name); }
-                    else if (t == "text_effect") Note(L("Text effect"), name);
+                    else if (t == "text_effect") { }  // Reported with its text, where it's known whether it applies.
                     else if (t == "text_shape") { if (item.Name.Length > 0) Note(L("Text shape"), item.Name); }
                     else if (t is "color_correct" or "smart_color_adjust") Note(L("Color adjustment"), t.Replace('_', ' '));
                     else if (t.Contains("makeup") || t.Contains("beauty") || t == "figure" || t.Contains("face"))

@@ -195,16 +195,22 @@ private struct Builder {
                     if text.typesetting != 0 { note(L("Text"), L("vertical typesetting (rendered horizontally)")) }
                     if text.curveEnabled { note(L("Text"), L("curved text (rendered straight)")) }
                     if parsed.styles.contains(where: { $0.strokes.count > 1 }) { note(L("Text"), L("multiple outlines (first one rendered)")) }
-                    if parsed.styles.contains(where: { !($0.effectStylePath ?? "").isEmpty }),
-                       !refs.contains(where: { generic[$0]?.1.type == "text_effect" }) {
-                        note(L("Text effect"), L("word art"))
+                    // A text effect applies only while a style carries its `effectStyle` (see `TextEffectLook`).
+                    var glow: TextGlow?
+                    if let styled = parsed.styles.first(where: { !($0.effectStylePath ?? "").isEmpty }) {
+                        if let effect = refs.lazy.compactMap({ generic[$0]?.1 }).first(where: { $0.type == "text_effect" }) {
+                            glow = TextEffectLook.glow(named: effect.name, fill: styled.fillColor)
+                            if glow == nil { note(L("Text effect"), effect.name.isEmpty ? L("word art") : effect.name) }
+                        } else {
+                            note(L("Text effect"), L("word art"))
+                        }
                     }
                     reportKeyframes(segment)
                     let (textAnimations, unsupportedAnimations) = TextAnimations.make(refs.lazy.compactMap { animations[$0] }.first)
                     for name in unsupportedAnimations { note(L("Animation"), name) }
                     let layer = VisualLayer(
                         id: segment.id,
-                        content: .text(TextLayerSpec(material: text, content: parsed, animations: textAnimations)),
+                        content: .text(TextLayerSpec(material: text, content: parsed, animations: textAnimations, glow: glow)),
                         trackIndex: trackIndex, renderIndex: segment.renderIndex, isMainTrack: false,
                         target: segment.targetTimerange, timeMap: timeMap, crop: Crop(), clip: segment.clip ?? Clip(),
                         uniformScale: segment.uniformScale, keyframes: keyframes(segment), canvas: nil)
@@ -451,7 +457,7 @@ private struct Builder {
             switch item.type {
             // Rendered from the cached lookup table when there is one.
             case "filter": if colorFilter(item) == nil { note(L("Filter"), name) }
-            case "text_effect": note(L("Text effect"), name)
+            case "text_effect": break  // Reported with its text, where it's known whether it applies.
             case "text_shape": if !item.name.isEmpty { note(L("Text shape"), item.name) }
             case "color_correct", "smart_color_adjust": note(L("Color adjustment"), item.type.replacingOccurrences(of: "_", with: " "))
             case let t where t.contains("makeup") || t.contains("beauty") || t == "figure" || t.contains("face"):

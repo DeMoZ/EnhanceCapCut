@@ -303,6 +303,36 @@ final class DraftParsingTests: XCTestCase {
                                "Remove background: result not saved in the project"])
     }
 
+    func testTextEffectsApplyOnlyWithEffectStyle() throws {
+        func text(_ id: String, effect: Bool) -> String {
+            let style = effect ? #", \"effectStyle\": {\"path\": \"/cache/e\", \"id\": \"1\"}"# : ""
+            return #"{"id": "\#(id)", "content": "{\"text\": \"hi\", \"styles\": [{\"range\": [0, 2], \"fill\": {\"content\": {\"solid\": {\"color\": [0.2, 0.4, 0.6]}}}\#(style)}]}"}"#
+        }
+        // Stale effect (style reset): plain text. Glow effects: approximated. Other effects and word art without
+        // its material: reported.
+        let cases: [(String, Bool, String?)] = [
+            ("ART EN 3D WHITE AND BLUE ", false, "E0"), ("ART Artistic EN Yellow Glow", true, "E1"),
+            ("Soft glow", true, "E2"), ("融化的爱心", true, "E3"), ("", true, nil),
+        ]
+        let effects = cases.indices.map { #"{"id": "E\#($0)", "type": "text_effect", "name": "\#(cases[$0].0)"}"# }
+        let texts = cases.indices.map { text("T\($0)", effect: cases[$0].1) }
+        let segments = cases.indices.map { i in
+            let refs = cases[i].2.map { #"["\#($0)", "\#($0)"]"# } ?? "[]"
+            return #"{"id": "S\#(i)", "material_id": "T\#(i)", "extra_material_refs": \#(refs), "target_timerange": {"start": 0, "duration": 1000000}}"#
+        }
+        let json = """
+        {"tracks": [{"type": "text", "segments": [\(segments.joined(separator: ","))]}],
+         "materials": {"texts": [\(texts.joined(separator: ","))], "effects": [\(effects.joined(separator: ","))]}}
+        """
+        let draft = try JSONDecoder().decode(Draft.self, from: Data(json.utf8))
+        let timeline = TimelineBuilder.build(draft: draft, projectURL: FileManager.default.temporaryDirectory)
+        var glows: [String: TextGlow] = [:]
+        for layer in timeline.layers { if case .text(let spec) = layer.content, let glow = spec.glow { glows[layer.id] = glow } }
+        XCTAssertEqual(glows, ["S1": TextGlow(color: [1.0, 0.86, 0.1]), "S2": TextGlow(color: [0.2, 0.4, 0.6])])
+        let found = Set(timeline.report.unsupported.map { "\($0.category): \($0.name) ×\($0.count)" })
+        XCTAssertEqual(found, ["Text effect: 融化的爱心 ×1", "Text effect: word art ×1"])
+    }
+
     func testCutoutMaskFrames() {
         XCTAssertEqual(CutoutMask.nearest([10, 20, 40], to: 0), 10)
         XCTAssertEqual(CutoutMask.nearest([10, 20, 40], to: 15), 10, "ties go to the earlier frame")

@@ -116,6 +116,8 @@ public static class TextCalibration
     public const float WrapFactor = 0.80f / 0.82f;
     /// <summary>Visible outline thickness per unit of CapCut's stroke <c>width</c>.</summary>
     public const float StrokeScale = 0.75f;
+    /// <summary>Times a text glow is drawn: one blurred pass is fainter than CapCut's glow effects.</summary>
+    public const int GlowPasses = 3;
 
     /// <summary>Pixels of font size per unit of CapCut's <c>size</c> for a font file.</summary>
     public static float Unit(string? fontPath, string materialFontPath, float canvasWidth, float scale)
