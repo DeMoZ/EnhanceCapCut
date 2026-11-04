@@ -102,7 +102,11 @@ Usage counts from the author's 69 projects drive the order of the later mileston
   Verified filter intensity in CapCut UI follows `draft_info.json` `value`. Open: the extra passes some packages run
   (Butter Cheese's 3×3 unsharp, Shimmering B&W's glow and sparkles); the Direct2D table's axis order is untested on
   Windows. "Cherry Cola" turned out to be makeup, not a filter.
-- Also: HSL adjustments (19 uses) and basic colour adjustments where they map to Core Image.
+- [x] HSL: every `hsl` material in the author's projects (123, in 8 projects) is neutral — all sliders at 0, left
+      by opening the panel — so it changes nothing and is no longer reported. Open: HSL with real values and the
+      Adjust sliders (no example in any draft yet: needs a test project and its CapCut export to calibrate);
+      "Color correction" / "Smart color adjust" (`color_correct`, `smart_color_adjust`) run CapCut's private AI
+      model and save no result, so they stay reported (see FORMAT.md › Colour adjustments).
 
 ## Milestone 3 — "Flashback" transition and "Clock Time" stickers
 

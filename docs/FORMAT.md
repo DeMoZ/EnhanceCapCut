@@ -200,6 +200,24 @@ Calibrated against the author's CapCut exports (HEVC Main10, BT.709 tagged):
   `FrameSource.swift`); luma quantiles then match within ~1.5/255.
 - CapCut ignores `segment.hdr_settings` differences we've seen (`mode` 4, 1000 nits) — not modelled.
 
+## Colour adjustments
+
+- `materials.hsl[]` (referenced from a segment's `extra_material_refs`): `hsl_color_type` (1 seen; the effect
+  has 8 default colour ranges plus up to 10 picked ones, `custom_color` e.g. `#FFE64444`), `hue`, `saturation`,
+  `lightness`, `path` / `lumi_hub_path` (CapCut's shared colour-tools package in the effect cache). All 123 in the
+  author's projects are neutral (`hsl_color_type` 1, all three values 0): CapCut adds one when the HSL panel is
+  opened. They render as nothing and aren't reported; the value range of a changed slider is unknown.
+- Segments carry `enable_adjust`, `enable_hsl`, `enable_color_curves`, `enable_color_wheels`, `enable_lut`,
+  `enable_smart_color_adjust`, `enable_color_correct_adjust`, … — toggles, true by default; not values.
+  `config.adjust_max_index` and empty `adjust_mask/` folders exist too. No draft of the author's has values from
+  the Adjust panel (brightness, contrast, temperature, …), so their format is still unknown.
+- "Color correction" / "Smart color adjust": `materials.effects[]` of `type` `color_correct` (OldSOund) or
+  `smart_color_adjust` (Laughing), `name` "color-adjustment", `value` 0.8, empty `adjust_params`. The package runs
+  a pre-render algorithm (`lens_ii_auto_color`, a CapCut model) and the segment's `color_correct_alg_result` is
+  empty, so the result can't be reproduced; it stays reported. In Laughing's export the corrected clip is clearly
+  brighter and more neutral than our render (luma ≈ 157 vs 114 at 2 s), but part of that gap is the HLG footage:
+  the next clip, with no correction, is also brighter in CapCut's export (≈ 132 vs 118 at 8 s).
+
 ## Audio
 
 - The master bus is limited: CapCut exports peak at 0 dBFS even when clips sum far above it. We use a

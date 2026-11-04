@@ -497,7 +497,8 @@ private struct Builder {
             }
         case "video_effects": if !renderedEffects.contains(item.id) { note(L("Video effect"), name) }
         case "stickers": note(L("Sticker"), name)
-        case "hsl": note(L("HSL color"), L("color adjustment"))
+        // A neutral HSL changes nothing (all of the author's projects have only those).
+        case "hsl": if !item.isNeutralHSL { note(L("HSL color"), L("color adjustment")) }
         case "manual_deformations": note(L("Manual deformation"), L("body/face reshape"))
         case "material_animations":
             for animation in item.animationNames { note(L("Animation"), animation) }
