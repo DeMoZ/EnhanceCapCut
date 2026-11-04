@@ -112,6 +112,22 @@ not yet calibrated against a CapCut export (#68).
 Captions (`type: subtitle`) are burned in only when CapCut's export option is on — the author exports
 both variants — hence our "Burn in captions" toggle.
 
+### Text effects and bubbles
+
+A text effect ("word art", panel `panel-text-flower`) is a `materials.effects` entry of type `text_effect`
+(`name`, `effect_id`, `path` to the package in CapCut's effect cache), referenced (often twice) from the text
+segment's `extra_material_refs`; the content style that uses it has `"effectStyle": {"path", "id"}` with the same
+id. CapCut applies the effect only while the style has `effectStyle`: after the style is reset the segment keeps the
+reference and CapCut exports plain text (22 "ART EN 3D WHITE AND BLUE" texts in the author's "Мокрая прогулка"). A
+style can carry `effectStyle` without the material ("word art").
+
+Bubbles are `effects` of type `text_shape` (`category_id` `bubble`, `sub_type` `manual_stretch`); one with an empty
+`name` and `path` is CapCut's "none" and draws nothing. The packages (shaders/textures for effects, the bubble
+image) are downloaded on use and later evicted: those of the author's projects were no longer in the cache.
+
+What we render: "… Glow" effects as a halo in the effect name's colour (or the text's), blur ≈ 0.12 × font size
+(`TextEffectLook`), opaque, drawn three times under the outline. Other effects and named bubbles are reported by name.
+
 ### Caption tracks (what EnhanceCapCut writes)
 
 CapCut's auto-captions live on `text` tracks with `flag` 1 (plain text tracks have 0). Each caption is a

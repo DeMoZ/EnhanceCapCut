@@ -37,7 +37,9 @@ public sealed record CompoundContent(Timeline Timeline) : VisualContent;
 public sealed record StickerContent(string Name, ClockSticker Clock) : VisualContent;
 
 /// <param name="Animations">Intro / outro / loop animations.</param>
-public sealed record TextLayerSpec(TextMaterial Material, TextContent Content, TextAnimations? Animations = null)
+/// <param name="Glow">The approximated look of the text's CapCut text effect, if any (<see cref="TextEffectLook"/>).</param>
+public sealed record TextLayerSpec(TextMaterial Material, TextContent Content, TextAnimations? Animations = null,
+    TextGlow? Glow = null)
 {
     public TextAnimations Animations { get; init; } = Animations ?? TextAnimations.None;
 }

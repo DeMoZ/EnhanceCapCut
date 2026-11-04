@@ -285,6 +285,44 @@ public class DraftParsingTests
     }
 
     [Fact]
+    public void TextEffectsApplyOnlyWithEffectStyle()
+    {
+        static string Text(string id, bool effect)
+        {
+            var style = effect ? """, \"effectStyle\": {\"path\": \"/cache/e\", \"id\": \"1\"}""" : "";
+            return """{"id": """ + $"\"{id}\"" + """, "content": "{\"text\": \"hi\", \"styles\": [{\"range\": [0, 2], \"fill\": {\"content\": {\"solid\": {\"color\": [0.2, 0.4, 0.6]}}}""" + style + "}]}\"}";
+        }
+        // Stale effect (style reset): plain text. Glow effects: approximated. Other effects and word art without its
+        // material: reported.
+        (string Name, bool Styled, string? Ref)[] cases =
+        [
+            ("ART EN 3D WHITE AND BLUE ", false, "E0"), ("ART Artistic EN Yellow Glow", true, "E1"),
+            ("Soft glow", true, "E2"), ("融化的爱心", true, "E3"), ("", true, null),
+        ];
+        var effects = cases.Select((c, i) => $$$"""{"id": "E{{{i}}}", "type": "text_effect", "name": "{{{c.Name}}}"}""");
+        var texts = cases.Select((c, i) => Text($"T{i}", c.Styled));
+        var segments = cases.Select((c, i) =>
+        {
+            var refs = c.Ref is null ? "[]" : $"[\"{c.Ref}\", \"{c.Ref}\"]";
+            return $$$"""{"id": "S{{{i}}}", "material_id": "T{{{i}}}", "extra_material_refs": {{{refs}}}, "target_timerange": {"start": 0, "duration": 1000000}}""";
+        });
+        var json = $$$"""
+        {"tracks": [{"type": "text", "segments": [{{{string.Join(",", segments)}}}]}],
+         "materials": {"texts": [{{{string.Join(",", texts)}}}], "effects": [{{{string.Join(",", effects)}}}]}}
+        """;
+        var timeline = TimelineBuilder.Build(Draft.Parse(json), Temp);
+        var glows = timeline.Layers
+            .Where(l => l.Content is TextContentLayer { Spec.Glow: not null })
+            .ToDictionary(l => l.Id, l => ((TextContentLayer)l.Content).Spec.Glow!.Color.ToArray());
+        Assert.Equal(["S1", "S2"], glows.Keys.Order());
+        Assert.Equal([1.0, 0.86, 0.1], glows["S1"]);
+        Assert.Equal([0.2, 0.4, 0.6], glows["S2"]);
+        var found = timeline.Report.Unsupported.Select(i => $"{i.Category}: {i.Name} ×{i.Count}").ToHashSet();
+        HashSet<string> expected = ["Text effect: 融化的爱心 ×1", "Text effect: word art ×1"];
+        Assert.Equal(expected, found);
+    }
+
+    [Fact]
     public void CutoutUsesCapCutsMaskFrames()
     {
         var dir = Path.Combine(Temp, $"ecc-cutout-{Guid.NewGuid()}");

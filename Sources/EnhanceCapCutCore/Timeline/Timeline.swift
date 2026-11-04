@@ -59,6 +59,8 @@ public struct TextLayerSpec {
     public var content: TextContent
     /// Intro / outro / loop animations.
     public var animations = TextAnimations()
+    /// The approximated look of the text's CapCut text effect, if any (`TextEffectLook`).
+    public var glow: TextGlow? = nil
 }
 
 /// Layer properties that can be keyframed.

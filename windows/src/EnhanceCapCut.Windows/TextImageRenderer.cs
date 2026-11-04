@@ -111,8 +111,9 @@ public sealed class TextImageRenderer(Graphics graphics) : IDisposable
         var padY = hasBackground ? (float)material.BackgroundHeight * baseSize : 0;
         var shadowOffset = material.HasShadow ? (float)material.ShadowDistance * baseSize / 18 : 0;
         var shadowBlur = material.HasShadow ? (float)material.ShadowSmoothing * baseSize / 3 : 0;
-        // Glyphs can overhang the line boxes; keep room for them, the outline and the shadow.
-        var margin = MathF.Ceiling(strokeWidth * 2 + shadowOffset + shadowBlur * 2 + maxFontSize * 0.4f + 4);
+        var glowBlur = spec.Glow is { } g ? (float)g.Radius * baseSize : 0;
+        // Glyphs can overhang the line boxes; keep room for them, the outline, the shadow and the glow.
+        var margin = MathF.Ceiling(strokeWidth * 2 + shadowOffset + Math.Max(shadowBlur, glowBlur) * 2 + maxFontSize * 0.4f + 4);
         float boxWidth = textWidth + padX * 2, boxHeight = textHeight + padY * 2;
         int width = (int)(boxWidth + margin * 2), height = (int)(boxHeight + margin * 2);
         if (width <= 0 || height <= 0 || width >= 16384 || height >= 16384) { brushes.ForEach(b => b.Dispose()); return null; }
@@ -134,7 +135,7 @@ public sealed class TextImageRenderer(Graphics graphics) : IDisposable
             });
         }
         brushes.ForEach(b => b.Dispose());
-        if (!hasBackground && !material.HasShadow) return glyphs;
+        if (!hasBackground && !material.HasShadow && spec.Glow is null) return glyphs;
 
         var result = graphics.CreateBitmap(width, height, BitmapOptions.Target);
         graphics.DrawInto(result, dc =>
@@ -145,6 +146,18 @@ public sealed class TextImageRenderer(Graphics graphics) : IDisposable
                 var radius = (float)material.BackgroundRoundRadius * Math.Min(boxWidth, boxHeight) / 2;
                 using var background = Brush(Rgba.FromHex(material.BackgroundColor, material.BackgroundAlpha * material.GlobalAlpha));
                 dc.FillRoundedRectangle(new RoundedRectangle(new System.Drawing.RectangleF(margin, margin, boxWidth, boxHeight), radius, radius), background);
+            }
+            if (spec.Glow is { } glow)
+            {
+                // Same blur scale as the shadow's; drawn several times, as one pass is fainter than CapCut's halo
+                // (TextCalibration.GlowPasses, like the Mac's TextRasterizer). Opaque: the effect ignores the text's opacity.
+                using var halo = new Shadow(dc)
+                {
+                    BlurStandardDeviation = glowBlur / 2,
+                    Color = new Vector4((float)glow.Color[0], (float)glow.Color[1], (float)glow.Color[2], 1),
+                };
+                halo.SetInput(0, glyphs, true);
+                for (var i = 0; i < TextCalibration.GlowPasses; i++) dc.DrawImage(halo);
             }
             if (material.HasShadow)
             {
