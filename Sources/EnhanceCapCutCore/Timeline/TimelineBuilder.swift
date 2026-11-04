@@ -50,6 +50,7 @@ private struct Builder {
                                       uniquingKeysWith: { a, _ in a })
         renderedEffects.formUnion(videoEffects.keys)
         let animations = Dictionary(m.materialAnimations.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        let maskMaterials = Dictionary(m.masks.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         var generic: [String: (String, GenericMaterial)] = [:]
         for (key, items) in m.all { for item in items { generic[item.id] = (key, item) } }
 
@@ -136,6 +137,7 @@ private struct Builder {
                     if let video { reportVideo(video) }
                     // A compound clip's material is its rendered video; a cutout on it uses the compound's time.
                     let cutout = video.flatMap { $0.matting.flag != 0 ? makeCutout($0.matting) : nil }
+                    let masks = makeMasks(refs.compactMap { maskMaterials[$0] }, segment: segment)
                     if isMain, let canvas = refs.lazy.compactMap({ canvases[$0] }).first,
                        !["canvas_color", "canvas_blur", "canvas_image"].contains(canvas.type) {
                         note(L("Canvas"), canvas.type)
@@ -146,7 +148,8 @@ private struct Builder {
                         isMainTrack: isMain, target: segment.targetTimerange, timeMap: timeMap,
                         crop: video?.crop ?? Crop(), clip: segment.clip ?? Clip(), uniformScale: segment.uniformScale,
                         keyframes: keyframes(segment), canvas: isMain ? refs.lazy.compactMap { canvases[$0] }.first : nil,
-                        cutout: cutout, chromaKey: refs.lazy.compactMap { chromas[$0] }.first.flatMap(ChromaKey.init))
+                        cutout: cutout, chromaKey: refs.lazy.compactMap { chromas[$0] }.first.flatMap(ChromaKey.init),
+                        masks: masks)
                     layer.effects = refs.compactMap { videoEffects[$0] }
                     layer.filters = refs.compactMap { ref in
                         generic[ref].flatMap { $0.0 == "effects" && $0.1.type == "filter" ? colorFilter($0.1) : nil }
@@ -389,15 +392,15 @@ private struct Builder {
         }
     }
 
-    /// Keyframed properties the renderer doesn't animate. Mask keyframes are one entry: the mask itself
-    /// is reported from its material.
+    /// Keyframed properties the renderer doesn't animate. Unknown mask properties are one entry.
     mutating func reportKeyframes(_ segment: Segment) {
         var names: Set<String> = []
         for group in segment.keyframes where !group.keyframes.isEmpty {
             let type = group.propertyType
             if LayerProperty(rawValue: type) != nil { continue }
-            if type.hasPrefix("KFTypeCommonMask") || type.hasPrefix("KFTypeMask") {
-                names.insert("mask animation")
+            if MaskProperty.isMask(type) {
+                // Known mask properties are animated with their mask (see makeMasks).
+                if MaskProperty(propertyType: type) == nil { names.insert("mask animation") }
             } else {
                 names.insert(type.hasPrefix("KFType") ? String(type.dropFirst(6)) : type)
             }
@@ -434,10 +437,50 @@ private struct Builder {
         return Cutout(directory: directory, inverted: matting.reverse)
     }
 
+    /// A video clip's masks; what can't be reproduced is reported.
+    mutating func makeMasks(_ materials: [MaskMaterial], segment: Segment) -> [ClipMask] {
+        var result: [ClipMask] = []
+        for mask in materials {
+            // Keyframes name their mask by its constant id; older drafts with one mask may leave it out.
+            var keyframes: [MaskProperty: KeyframeTrack] = [:]
+            for group in segment.keyframes where MaskProperty.isMask(group.propertyType)
+                && (group.materialId == mask.constantID || (group.materialId.isEmpty && materials.count == 1)) {
+                if let property = MaskProperty(propertyType: group.propertyType), let track = KeyframeTrack(group: group) {
+                    keyframes[property] = track
+                }
+            }
+            func animated(_ p: MaskProperty, _ value: Double) -> Bool {
+                value != 0 || keyframes[p]?.values.contains { $0 != 0 } == true
+            }
+            if animated(.expansion, mask.expansion) { note(L("Mask"), L("expansion")) }
+            let geometry = MaskGeometry(centerX: mask.centerX, centerY: mask.centerY, width: mask.width, height: mask.height,
+                                        rotation: mask.rotation, feather: mask.feather, roundCorner: mask.roundCorner)
+            let kind: ClipMask.Kind
+            if mask.resourceType == "custom" {
+                guard let folder = DraftLoader.resolvePath(mask.loaderWorkSpace, projectURL: projectURL),
+                      !BrushFrames.times(in: folder).isEmpty else {
+                    note(L("Mask"), L("brush strokes not saved in the project"))
+                    continue
+                }
+                if animated(.feather, mask.feather) { note(L("Mask"), L("brush feather")) }
+                kind = .brush(folder)
+            } else if let shape = ClipMask.shape(resourceType: mask.resourceType, name: mask.name) {
+                kind = .shape(shape)
+            } else {
+                note(L("Mask"), mask.name.isEmpty ? mask.resourceType : mask.name)
+                continue
+            }
+            result.append(ClipMask(kind: kind, geometry: geometry, inverted: mask.invert, keyframes: keyframes))
+        }
+        return result
+    }
+
     static let ignored: Set<String> = [
         "speeds", "placeholder_infos", "sound_channel_mappings", "material_colors", "canvases", "beats",
         "loudnesses", "audio_fades", "drafts", "videos", "audios", "texts", "ai_translates", "smart_crops",
         "realtime_denoises_placeholder",
+        // Rendered as clip masks (what can't be drawn is noted in makeMasks).
+        "common_mask", "masks",
         // Rendered by VoiceProcessor (voice filters whose preset can't be run are noted where they're read).
         "vocal_separations", "realtime_denoises", "vocal_beautifys", "audio_effects",
         // Rendered as the clip's chroma key.
@@ -454,7 +497,6 @@ private struct Builder {
             }
         case "video_effects": if !renderedEffects.contains(item.id) { note(L("Video effect"), name) }
         case "stickers": note(L("Sticker"), name)
-        case "common_mask", "masks": note(L("Mask"), name)
         case "hsl": note(L("HSL color"), L("color adjustment"))
         case "manual_deformations": note(L("Manual deformation"), L("body/face reshape"))
         case "material_animations":

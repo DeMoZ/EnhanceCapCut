@@ -165,7 +165,7 @@ final class DraftParsingTests: XCTestCase {
                "common_keyframes": [
                  {"property_type": "KFTypePositionX", "keyframe_list": [{"time_offset": 0, "values": [0]}]},
                  {"property_type": "KFTypeCommonMaskFeather", "keyframe_list": [{"time_offset": 0, "values": [0]}]},
-                 {"property_type": "KFTypeCommonMaskSizeWidth", "keyframe_list": [{"time_offset": 0, "values": [0]}]},
+                 {"property_type": "KFTypeCommonMaskTwist", "keyframe_list": [{"time_offset": 0, "values": [0]}]},
                  {"property_type": "KFTypeSaturation", "keyframe_list": [{"time_offset": 0, "values": [0]}]}]}
             ]},
             {"type": "audio", "segments": [

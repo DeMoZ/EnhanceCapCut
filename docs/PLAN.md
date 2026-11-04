@@ -144,7 +144,11 @@ Usage counts from the author's 69 projects drive the order of the later mileston
 - [x] Text intro/outro/loop animations (`material_animations`, #34): fade, typewriter, slide, zoom, pop, blink and
       pulse, recognized by name, on both platforms (`TextAnimation.swift` / `TextAnimation.cs`). Open (#68): the
       other presets (reported by name) and calibrating the motion against a CapCut export.
-- Masks (`common_mask`: rectangle, circle, brush…) with feather and keyframes.
+- [x] Masks (`common_mask`, #37): split, mirror, circle, rectangle (round corners), heart, star and brush (CapCut's
+      tracked strokes from `adjust_mask/`), with feather, invert, several masks per clip and mask keyframes, drawn by
+      our own `MaskRaster` on both platforms; checked against the Pullups7 export. Open: `expansion` (reported, always 0 in the
+      author's projects) and brush feather (reported, 5 GymCrowd clips); heart and star aren't in the author's projects, so their outline
+      isn't calibrated.
 - Video clip animations, manual deformation.
 
 ## Milestone 6 — beauty / makeup approximations
@@ -194,8 +198,7 @@ instead of `draft_info.json`, and keeps its projects in
     text size against Windows CapCut exports); HDR (HLG/PQ) clips are converted without tone mapping (a
     warning says so); "quality" maps to a bitrate (`MfVideoWriter.BitsPerPixel`), not a constant-quality
     mode; CapCut's own fallback fonts aren't read (Windows' font fallback is used); the mix is held in
-    memory (~350 MB per 15 min); no Lanczos pre-shrink for large downscales; masks aren't drawn (also not
-    on the Mac).
+    memory (~350 MB per 15 min); no Lanczos pre-shrink for large downscales.
 - [x] Stage 3: the app in WinUI 3 (unpackaged, self-contained Windows App SDK; UI built in code): the export window
   and the Subtitles & Voice-over window with the Mac windows' layout, texts and behaviour; one instance, a second
   launch brings the export window back and re-detects the project open in CapCut (by `.locked`, like on the Mac).

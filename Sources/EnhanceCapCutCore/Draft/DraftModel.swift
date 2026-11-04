@@ -143,11 +143,14 @@ public struct KeyframeGroup: Decodable {
     /// e.g. "KFTypePositionX", "KFTypeScaleX", "KFTypeRotation", "KFTypeAlpha", "KFTypeVolume".
     public var propertyType: String
     public var keyframes: [Keyframe]
+    /// For mask keyframes: the mask's `constant_material_id`.
+    public var materialId: String
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.anyKeyed()
         propertyType = c.str("property_type") ?? ""
         keyframes = c.list("keyframe_list")
+        materialId = c.str("material_id") ?? ""
     }
 }
 
@@ -213,6 +216,8 @@ public struct Materials: Decodable {
     public var chromas: [ChromaMaterial] = []
     public var videoEffects: [VideoEffectMaterial] = []
     public var materialAnimations: [AnimationMaterial] = []
+    /// Clip masks (`common_mask`, older drafts `masks`).
+    public var masks: [MaskMaterial] = []
     /// Every material of every category, with just the fields used for reporting.
     public var all: [String: [GenericMaterial]] = [:]
 
@@ -234,6 +239,7 @@ public struct Materials: Decodable {
         chromas = c.list("chromas")
         videoEffects = c.list("video_effects")
         materialAnimations = c.list("material_animations")
+        masks = c.list("common_mask") + c.list("masks")
         for key in c.allKeys {
             let items: [GenericMaterial] = c.list(key.stringValue)
             if !items.isEmpty { all[key.stringValue] = items }

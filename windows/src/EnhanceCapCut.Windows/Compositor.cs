@@ -28,6 +28,7 @@ public sealed class Compositor : IDisposable
     readonly Dictionary<string, Compositor> nested = [];
     readonly Dictionary<string, (ID2D1Bitmap1? Bitmap, float Scale, int Visible)> texts = [];
     readonly Dictionary<string, CutoutLayer> cutouts = [];
+    readonly Dictionary<string, ClipMaskLayer> clipMasks = [];
     readonly ColorFilters colorFilters;
     /// <summary>Clips' frames through their own filters (two bitmaps to chain several).</summary>
     readonly Dictionary<string, (ID2D1Bitmap1 A, ID2D1Bitmap1 B)> filtered = [];
@@ -223,10 +224,12 @@ public sealed class Compositor : IDisposable
                     v.Version = frame.Version;
                     if (v.Upright is { } upright) TurnUpright(v.Stored, upright, v.Reader.Rotation);
                 }
-                return (CutOut(layer, v.Image, layer.TimeMap.SourceTime(offset)), null);
+                var sourceTime = layer.TimeMap.SourceTime(offset);
+                return (Masked(layer, CutOut(layer, v.Image, sourceTime), sourceTime), null);
             }
             case PhotoContent photo:
-                return photos.Load(photo.Path) is { } bitmap ? (CutOut(layer, bitmap, 0), null) : null;
+                return photos.Load(photo.Path) is { } bitmap
+                    ? (Masked(layer, CutOut(layer, bitmap, 0), layer.TimeMap.SourceTime(offset)), null) : null;
             case CompoundContent compound:
             {
                 if (!nested.TryGetValue(layer.Id, out var inner))
@@ -237,7 +240,7 @@ public sealed class Compositor : IDisposable
                     nested[layer.Id] = inner;
                 }
                 var time = layer.TimeMap.SourceTime(offset);
-                return (CutOut(layer, inner.Render(time), time), null);
+                return (Masked(layer, CutOut(layer, inner.Render(time), time), time), null);
             }
             case TextContentLayer textLayer:
             {
@@ -285,6 +288,14 @@ public sealed class Compositor : IDisposable
             chromaKeys[layer.Id] = keyer;
         }
         return keyer.Apply(image);
+    }
+
+    /// <summary>Clip masks: <paramref name="image"/> with the union of its masks at source time <paramref name="t"/> as its alpha.</summary>
+    ID2D1Bitmap1 Masked(VisualLayer layer, ID2D1Bitmap1 image, long t)
+    {
+        if (layer.Masks.Count == 0) return image;
+        if (!clipMasks.TryGetValue(layer.Id, out var m)) clipMasks[layer.Id] = m = new ClipMaskLayer(layer.Masks);
+        return m.Apply(graphics, image, t);
     }
 
     /// <summary>"Chroma key", then "Remove background": <paramref name="image"/> with CapCut's mask at source time <paramref name="t"/> as its alpha.</summary>
@@ -374,6 +385,7 @@ public sealed class Compositor : IDisposable
         foreach (var id in nested.Keys.Where(id => !active.Contains(id)).ToList()) { nested[id].Dispose(); nested.Remove(id); }
         foreach (var id in texts.Keys.Where(id => !active.Contains(id)).ToList()) { texts[id].Bitmap?.Dispose(); texts.Remove(id); }
         foreach (var id in cutouts.Keys.Where(id => !active.Contains(id)).ToList()) { cutouts[id].Dispose(); cutouts.Remove(id); }
+        foreach (var id in clipMasks.Keys.Where(id => !active.Contains(id)).ToList()) { clipMasks[id].Dispose(); clipMasks.Remove(id); }
         foreach (var id in transitions.Keys.Where(id => !active.Contains(id)).ToList()) { transitions[id].Dispose(); transitions.Remove(id); }
         foreach (var id in filtered.Keys.Where(id => !active.Contains(id)).ToList())
         {
@@ -472,6 +484,7 @@ public sealed class Compositor : IDisposable
         foreach (var n in nested.Values) n.Dispose();
         foreach (var (bitmap, _, _) in texts.Values) bitmap?.Dispose();
         foreach (var c in cutouts.Values) c.Dispose();
+        foreach (var m in clipMasks.Values) m.Dispose();
         foreach (var m in transitions.Values) m.Dispose();
         foreach (var (a, b) in filtered.Values) { a.Dispose(); b.Dispose(); }
         colorFilters.Dispose();
