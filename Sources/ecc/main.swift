@@ -38,6 +38,23 @@ setvbuf(stdout, nil, _IOLBF, 0)
 var args = Array(CommandLine.arguments.dropFirst())
 let command = args.isEmpty ? "help" : args.removeFirst()
 
+// Help never runs the command: `ecc help render`, `ecc --help`, `ecc render --help`.
+if Help.isRequest(command) {
+    print(Help.text(for: args.first))
+    exit(0)
+}
+if args.contains("--help") || args.contains("-h") {
+    print(Help.text(for: command))
+    exit(0)
+}
+
+/// Stops on options the command doesn't know, so a typo doesn't start a render with the defaults.
+func rejectUnknownOptions() {
+    if let unknown = args.first(where: { $0.hasPrefix("-") }) {
+        fail("Unknown option \(unknown) for ecc \(command); see ecc \(command) --help")
+    }
+}
+
 func option(_ name: String) -> String? {
     guard let i = args.firstIndex(of: name), i + 1 < args.count else { return nil }
     let value = args[i + 1]
@@ -73,6 +90,7 @@ case "list":
 
 case "info":
     let timelineArg = option("--timeline")
+    rejectUnknownOptions()
     let p = project()
     let pt = timeline(timelineArg, of: p)
     let timeline = try TimelineBuilder.build(project: p, timeline: pt)
@@ -138,6 +156,7 @@ case "render":
     let length = option("--duration").flatMap(Double.init)
     let out = option("-o")
     let timelineArg = option("--timeline")
+    rejectUnknownOptions()
     let p = project()
     let pt = timeline(timelineArg, of: p)
     let timeline = try TimelineBuilder.build(project: p, timeline: pt)
@@ -333,5 +352,5 @@ case "mcp":
     MCPServer(runner: ProcessRunner(executable: executable), version: version).serve()
 
 default:
-    print("usage: ecc list | info [project] | render [project] [options] | voice <media> -o out.wav [options] | subtitles [project] --language ru-RU [options] | voices <language> | clone <reference audio> --language en --text … -o out.wav | mcp")
+    fail("Unknown command \(command)\n" + Help.overview)
 }

@@ -4,6 +4,7 @@ The `ecc` tool (built next to the app, also inside the Mac bundle at `Contents/M
 `ecc.exe`) uses the same renderer as the app. It always speaks English.
 
 ```sh
+ecc --help                                 # the commands; `ecc render --help` (or -h) for one command's options
 ecc list                                   # projects, * = open in CapCut
 ecc info ChiangMaiMarkets                   # what will be rendered, unsupported features, missing media
 ecc render 1014 -o ~/Movies/1014.mp4 --codec hevc10 --quality 70
@@ -16,6 +17,8 @@ ecc subtitles ATV --language ru-RU --translate en --voice en=clone --consent --o
 ecc clone reference.wav --language en --text "Hello there." -o hello.wav   # audition voice cloning
 ecc voices th                              # installed voices for a language, with their ids
 ```
+
+`ecc info` and `ecc render` stop on an option they don't know instead of running with the defaults.
 
 Options: `--codec h264|hevc|hevc10|prores422|prores422HQ`, `--quality 0-100`, `--bitrate Mbps`,
 `--fps N`, `--aspect project|9:16|1:1|16:9`, `--height 720|1080|1440|2160`, `--lufs -14`,
