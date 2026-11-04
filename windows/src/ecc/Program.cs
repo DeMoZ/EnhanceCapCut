@@ -27,10 +27,29 @@ var rest = new List<string>(args);
 var command = rest.Count == 0 ? "help" : rest[0];
 if (rest.Count > 0) rest.RemoveAt(0);
 
+// Help never runs the command: `ecc help render`, `ecc --help`, `ecc render --help`.
+if (Help.IsRequest(command))
+{
+    Console.WriteLine(Help.Text(rest.FirstOrDefault()));
+    return;
+}
+if (rest.Contains("--help") || rest.Contains("-h"))
+{
+    Console.WriteLine(Help.Text(command));
+    return;
+}
+
 static void Fail(string message)
 {
     Console.Error.WriteLine(message);
     Environment.Exit(1);
+}
+
+// Stops on options the command doesn't know, so a typo doesn't start a render with the defaults.
+void RejectUnknownOptions()
+{
+    if (rest.FirstOrDefault(a => a.StartsWith('-')) is { } unknown)
+        Fail($"Unknown option {unknown} for ecc {command}; see ecc {command} --help");
 }
 
 string? Option(string name)
@@ -90,6 +109,7 @@ switch (command)
     case "info":
     {
         var timelineArg = Option("--timeline");
+        RejectUnknownOptions();
         var p = Project();
         var pt = TimelineOf(timelineArg, p);
         var timeline = TimelineBuilder.Build(p, pt);
@@ -174,7 +194,7 @@ switch (command)
         break;
 
     default:
-        Console.WriteLine("usage: ecc list | info [project] [--timeline name|number] | render [project] [options] | subtitles [project] --language ru-RU [options] | voices <language> | clone <reference.wav> --language en --text … -o out.wav | mcp");
+        Fail($"Unknown command {command}\n" + Help.Overview);
         break;
 }
 
@@ -395,6 +415,7 @@ void Render()
     var length = Option("--duration") is { } d ? Number(d) : (double?)null;
     var output = Option("-o");
     var timelineArg = Option("--timeline");
+    RejectUnknownOptions();
     var p = Project();
     var pt = TimelineOf(timelineArg, p);
     var timeline = TimelineBuilder.Build(p, pt);
