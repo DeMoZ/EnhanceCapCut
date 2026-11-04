@@ -47,7 +47,8 @@ public static class Layout
         (float)Math.Max(blur, 0.05) * Math.Min(outW, outH) * 0.08f;
 
     /// <summary>
-    /// Text is rasterized once per clip at the largest scale it reaches (clip scale or keyframes, 1…8),
+    /// Text is rasterized once per clip at the largest scale it reaches (clip scale or keyframes, times what its
+    /// animations reach, 1…8),
     /// so it stays sharp.
     /// </summary>
     public static float TextRasterScale(VisualLayer layer)
@@ -58,6 +59,7 @@ public static class Layout
             if (layer.Keyframes.TryGetValue(p, out var track) && track.Values.Count > 0)
                 max = Math.Max(max, track.Values.Max(Math.Abs));
         }
+        if (layer.Content is TextContentLayer textLayer) max *= textLayer.Spec.Animations.MaxScale;
         return (float)Math.Clamp(max, 1, 8);
     }
 

@@ -23,8 +23,12 @@ public sealed class TextImageRenderer(Graphics graphics) : IDisposable
 
     sealed record Outline(int Start, int End, float Relative, Rgba Color);
 
-    /// <summary>The text as a bitmap; <paramref name="scale"/> multiplies the canvas-relative size.</summary>
-    public ID2D1Bitmap1? Render(TextLayerSpec spec, float canvasWidth, float scale)
+    /// <summary>
+    /// The text as a bitmap; <paramref name="scale"/> multiplies the canvas-relative size. Only the first
+    /// <paramref name="visibleLength"/> UTF-16 units are drawn (a typewriter animation); the layout stays that of the
+    /// whole text.
+    /// </summary>
+    public ID2D1Bitmap1? Render(TextLayerSpec spec, float canvasWidth, float scale, int? visibleLength = null)
     {
         var material = spec.Material;
         var text = spec.Content.Text;
@@ -82,6 +86,14 @@ public sealed class TextImageRenderer(Graphics graphics) : IDisposable
             outlines.Add(new(0, text.Length, relative, Rgba.FromHex(material.BorderColor, material.GlobalAlpha)));
         }
         if (maxFontSize <= 0) { brushes.ForEach(b => b.Dispose()); return null; }
+        // Hidden characters keep their place but draw nothing (no fill, outline or shadow).
+        var visible = Math.Clamp(visibleLength ?? text.Length, 0, text.Length);
+        if (visible < text.Length)
+        {
+            var clear = Brush(new Rgba(0, 0, 0, 0));
+            brushes.Add(clear);
+            layout.SetDrawingEffect(clear, new TextRange((uint)visible, (uint)(text.Length - visible)));
+        }
 
         // CapCut spaces lines by about one font size, ignoring the font's own ascent/descent/leading.
         var pitch = baseSize * (TextCalibration.LineHeight + (float)material.LineSpacing);
@@ -115,7 +127,7 @@ public sealed class TextImageRenderer(Graphics graphics) : IDisposable
                 dc.Clear(new Color4(0, 0, 0, 0));
                 if (outlines.Count > 0)
                 {
-                    using var renderer = new OutlineRenderer(graphics, outlines, Brush);
+                    using var renderer = new OutlineRenderer(graphics, outlines, Brush, visible);
                     layout.Draw(IntPtr.Zero, renderer, origin.X, origin.Y);
                 }
                 dc.DrawTextLayout(origin, layout, fallbackBrush, DrawTextOptions.EnableColorFont);
@@ -226,7 +238,7 @@ public sealed class TextImageRenderer(Graphics graphics) : IDisposable
     /// Strokes each glyph run's outline (centered on the glyph edge, width = 2 × relative × font size, round joins)
     /// in the colour of the outline range it belongs to.
     /// </summary>
-    sealed class OutlineRenderer(Graphics graphics, List<Outline> outlines, Func<Rgba, ID2D1SolidColorBrush> brush)
+    sealed class OutlineRenderer(Graphics graphics, List<Outline> outlines, Func<Rgba, ID2D1SolidColorBrush> brush, int visible)
         : TextRendererBase
     {
         readonly ID2D1StrokeStyle round = graphics.Factory.CreateStrokeStyle(new StrokeStyleProperties
@@ -239,6 +251,8 @@ public sealed class TextImageRenderer(Graphics graphics) : IDisposable
             MeasuringMode measuringMode, GlyphRun glyphRun, GlyphRunDescription glyphRunDescription, IUnknown clientDrawingEffect)
         {
             var position = (int)glyphRunDescription.TextPosition;
+            // Runs split where the drawing effect changes, so a run is either shown or hidden as a whole.
+            if (position >= visible) return;
             var outline = outlines.LastOrDefault(o => position >= o.Start && position < o.End);
             if (outline is null || glyphRun.FontFace is null || glyphRun.Indices is null) return;
             using var path = graphics.Factory.CreatePathGeometry();

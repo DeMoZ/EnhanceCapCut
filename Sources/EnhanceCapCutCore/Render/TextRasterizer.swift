@@ -21,7 +21,9 @@ enum TextRasterizer {
     static let strokeScale: CGFloat = 0.75
 
     /// Returns the text as an image whose extent starts at the origin; `scale` multiplies the canvas-relative size.
-    static func render(_ spec: TextLayerSpec, canvasWidth: CGFloat, scale: CGFloat) -> CIImage? {
+    /// Only the first `visibleLength` UTF-16 units are drawn (a typewriter animation); the layout stays that of the
+    /// whole text.
+    static func render(_ spec: TextLayerSpec, canvasWidth: CGFloat, scale: CGFloat, visibleLength: Int? = nil) -> CIImage? {
         let material = spec.material
         let text = spec.content.text as NSString
         guard text.length > 0 else { return nil }
@@ -76,6 +78,10 @@ enum TextRasterizer {
         }
         guard maxFontSize > 0 else { return nil }
         applyFallbacks(attributed)
+        // Hidden characters keep their place but draw nothing (no fill, outline or shadow).
+        let hidden: NSRange? = visibleLength.flatMap { $0 < text.length
+            ? NSRange(location: max($0, 0), length: text.length - max($0, 0)) : nil }
+        if let hidden { attributed.addAttribute(.foregroundColor, value: NSColor.clear, range: hidden) }
 
         // Break lines at the material's max line width (a fraction of the canvas width) and at newlines.
         let wrapWidth = max(CGFloat(material.lineMaxWidth), 0.05) * wrapFactor * canvasWidth * scale
@@ -86,6 +92,7 @@ enum TextRasterizer {
             outline.addAttribute(.strokeWidth, value: relative * 200, range: range)
             outline.addAttribute(.strokeColor, value: NSColor(cgColor: color) ?? .black, range: range)
         }
+        if let hidden { outline.addAttribute(.strokeColor, value: NSColor.clear, range: hidden) }
         let typesetter = CTTypesetterCreateWithAttributedString(attributed)
         var lines: [(fill: CTLine, outline: CTLine, width: CGFloat)] = []
         var start = 0

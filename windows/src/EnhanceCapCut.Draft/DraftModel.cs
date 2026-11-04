@@ -208,6 +208,7 @@ public sealed class Materials
     public List<VocalBeautifyMaterial> VocalBeautifys { get; set; } = [];
     public List<AudioEffectMaterial> AudioEffects { get; set; } = [];
     public List<ChromaMaterial> Chromas { get; set; } = [];
+    public List<AnimationMaterial> MaterialAnimations { get; set; } = [];
     /// <summary>Every material of every category, with just the fields used for reporting.</summary>
     public Dictionary<string, List<GenericMaterial>> All { get; set; } = [];
 
@@ -228,6 +229,7 @@ public sealed class Materials
             VocalBeautifys = c.List("vocal_beautifys", VocalBeautifyMaterial.From),
             AudioEffects = c.List("audio_effects", AudioEffectMaterial.From),
             Chromas = c.List("chromas", ChromaMaterial.From),
+            MaterialAnimations = c.List("material_animations", AnimationMaterial.From),
         };
         foreach (var property in c.EnumerateObject())
         {

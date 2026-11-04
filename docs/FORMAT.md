@@ -95,6 +95,20 @@ CapCut's default font `SystemFont/en.ttf` is Latin-only. Its fallbacks live next
 (`NotoSans-Regular.ttf`, `NotoSansThai-Regular.ttf`, …). Measured: Cyrillic is drawn at the nominal size;
 Thai is scaled so its ascent+descent equals the primary font's (≈0.66×).
 
+### Text animations
+
+A text (or sticker) segment's `extra_material_refs` holds one `materials.material_animations[]` entry (`type`
+`sticker_animation` for both) whose `animations[]` has at most one of each `type`: `in`, `out`, `loop`. Each has
+`duration` (µs; for a loop, one cycle), `start` (always 0: an outro plays in the last `duration` of the clip),
+`name` (in the language CapCut used when it was applied: "Fade In", "渐隐", …), `resource_id` / `id` (the preset in
+CapCut's library), `category_id` (`ruchang` in, `chuchang` out, `xunhuan` loop, `…_fav` from Favorites), `path` (the
+cached preset) and `anim_adjust_params`. Seen in third-party drafts (the author's projects and CapCut's cache have
+none). An intro and outro longer than the clip are squeezed into it.
+
+We recognize presets by name and reproduce fade, typewriter (characters appear in place, the layout stays that of the
+whole text), slide, zoom in/out, pop, and blink/pulse loops; the rest are reported by name. The motion is our own,
+not yet calibrated against a CapCut export (#68).
+
 Captions (`type: subtitle`) are burned in only when CapCut's export option is on — the author exports
 both variants — hence our "Burn in captions" toggle.
 

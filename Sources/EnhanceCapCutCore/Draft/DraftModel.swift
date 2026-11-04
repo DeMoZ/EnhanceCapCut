@@ -211,6 +211,7 @@ public struct Materials: Decodable {
     public var vocalBeautifys: [VocalBeautifyMaterial] = []
     public var audioEffects: [AudioEffectMaterial] = []
     public var chromas: [ChromaMaterial] = []
+    public var materialAnimations: [AnimationMaterial] = []
     /// Every material of every category, with just the fields used for reporting.
     public var all: [String: [GenericMaterial]] = [:]
 
@@ -230,6 +231,7 @@ public struct Materials: Decodable {
         vocalBeautifys = c.list("vocal_beautifys")
         audioEffects = c.list("audio_effects")
         chromas = c.list("chromas")
+        materialAnimations = c.list("material_animations")
         for key in c.allKeys {
             let items: [GenericMaterial] = c.list(key.stringValue)
             if !items.isEmpty { all[key.stringValue] = items }
