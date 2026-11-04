@@ -23,6 +23,8 @@ docs/PLAN.md for the roadmap, docs/FORMAT.md for what we know about CapCut draft
   `swift build -c release --product ecc && .build/release/ecc render <project> --from 10 --duration 5 -o /tmp/x.mp4`.
 - The author's CapCut exports are in `/Volumes/NVME_4TB/VideoFromCapCut/` — the reference for visual
   calibration (text size, positions, colours).
+- Search for reference footage only among the 10 most recent exports there (`ls -t … | head -10`); never scan or
+  decode all of them — with several agents running at once that takes too much memory.
 
 ## Interface language
 

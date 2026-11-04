@@ -433,6 +433,29 @@ White Minimalist") is drawn natively (`ClockSticker`). Measured on the author's 
   hand at 3) the minute hand turns twice and the hour hand once, both slowing down, then they rest for ~4 frames.
   Both styles move identically. The angle table is in `ClockSticker`.
 
+## Video effects
+
+`materials.video_effects[]` (`type` `video_effect`, or `face_effect` for body effects such as "Laser Eyes"): `name`,
+`effect_id` = `resource_id` (the effect's id, also its cache folder `Cache/effect/<id>/<md5>` in `path`),
+`category_name`, `apply_target_type`, `adjust_params[{name, value, default_value}]` (`effects_adjust_speed` default ⅓,
+`effects_adjust_size`, `_intensity`, `_luminance`, `_distortion`, `_range`, all 0.5 by default), `value` (1),
+`time_range` (`{start: 0, duration: …}` or null; not understood yet), `common_keyframes`, `effect_mask` (empty in
+the author's projects).
+
+- `apply_target_type` 0: the effect is in a clip's `extra_material_refs` and changes that clip's picture inside its
+  own frame (a picture-in-picture clip stays in its rectangle). 2: a segment on an `effect` track (`material_id`),
+  over everything below it.
+- The packages of the effects the author used were gone from the cache by the time we looked, so the effects are
+  re-implemented from the export ("Мокрая прогулка", 30 fps grabs). Both are one-shot openings at the clip start,
+  nothing repeats later in the clip:
+  - "Pudding Bounce" (`7534579654615649553`): the first frame is mixed ≈50% towards white (mean luma 146 → 204),
+    halving every 2 frames; zoomed in ≈1.45× and blurred, back to 1× by ≈0.25 s with a small bounce; sharp by 0.4 s.
+  - "Hazy Rotation" (`7486402432189091127`): ≈0.13 s zoomed in ≈2×, tilted and out of focus (bokeh), then turns and
+    zooms back, settled by ≈0.36 s.
+- Seen but not rendered: "Stack Twist" (the frame as a grid of mirrored tiles), "BG Insert" (black/white block
+  glitch), "Card Slash" (slashes and flying shards at the start), "Flame Frame", and on effect tracks "Live Stream"
+  (punch-in towards the face), "Box Magnifier", "Magnify Glass".
+
 ## Compound clips
 
 `materials.drafts[]` (`type` `combination`) embed a complete nested draft in `draft`. A video segment

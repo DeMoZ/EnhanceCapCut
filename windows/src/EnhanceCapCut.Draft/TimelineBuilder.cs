@@ -18,6 +18,8 @@ public static class TimelineBuilder
         /// <summary>Nested drafts of compound clips, built once per combination material.</summary>
         readonly Dictionary<string, Timeline> nestedTimelines = [];
         readonly Dictionary<string, CombinationMaterial> combos = [];
+        /// <summary><c>video_effects</c> materials rendered on the clips that use them (not reported).</summary>
+        readonly HashSet<string> renderedEffects = [];
         /// <summary>Voice filter preset directories by material path and resource id (null: not usable).</summary>
         readonly Dictionary<string, string?> filterDirectories = [];
         /// <summary>Colour filters by material id (null: lookup table not found).</summary>
@@ -50,6 +52,10 @@ public static class TimelineBuilder
             var enhancements = ById(m.VocalBeautifys, e => e.Id);
             var audioEffects = ById(m.AudioEffects, e => e.Id);
             var chromas = ById(m.Chromas, c => c.Id);
+            var videoEffects = new Dictionary<string, VideoEffect>();
+            foreach (var e in m.VideoEffects)
+                if (VideoEffect.From(e) is { } effect) videoEffects.TryAdd(e.Id, effect);
+            renderedEffects.UnionWith(videoEffects.Keys);
             var animations = ById(m.MaterialAnimations, a => a.Id);
             var generic = new Dictionary<string, (string Key, GenericMaterial Item)>();
             foreach (var (key, items) in m.All)
@@ -167,6 +173,7 @@ public static class TimelineBuilder
                                 segment.TargetTimerange, timeMap, video?.Crop ?? new Crop(), segment.Clip ?? new Clip(),
                                 segment.UniformScale, Keyframes(segment), isMain ? First(refs, canvases) : null, cutout,
                                 First(refs, chromas) is { } chroma ? ChromaKey.From(chroma) : null);
+                            layer.Effects = refs.Select(r => videoEffects.GetValueOrDefault(r)).OfType<VideoEffect>().ToList();
                             layer.Filters = refs.Select(r => generic.TryGetValue(r, out var f) && f.Key == "effects" && f.Item.Type == "filter"
                                 ? MakeColorFilter(f.Item) : null).OfType<ColorFilter>().ToList();
                             layers.Add((layer, order));
@@ -511,7 +518,7 @@ public static class TimelineBuilder
                     if (LayerTransition.KindOf(item.Name, item.ResourceID) != TransitionKind.Flashback)
                         Note(L("Transition"), L("{0} (shown as a cross-fade)", name));
                     break;
-                case "video_effects": Note(L("Video effect"), name); break;
+                case "video_effects": if (!renderedEffects.Contains(item.Id)) Note(L("Video effect"), name); break;
                 case "stickers": Note(L("Sticker"), name); break;
                 case "common_mask" or "masks": Note(L("Mask"), name); break;
                 case "hsl": Note(L("HSL color"), L("color adjustment")); break;
