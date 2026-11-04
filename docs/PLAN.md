@@ -132,7 +132,12 @@ Usage counts from the author's 69 projects drive the order of the later mileston
 
 ## Milestone 5 — remaining effects by usage frequency
 
-- Video effects (`video_effects`, 11) and body effects (`effects/figure`, 55), most-used first.
+- [~] Video effects (`video_effects`, #36): "Pudding Bounce" and "Hazy Rotation" on clips (5 of the author's 12
+      uses), re-implemented as a time curve of zoom, tilt, blur and white flash (`VideoEffect.swift` /
+      `VideoEffect.cs`), fitted to frame grabs of the author's export. Open: Stack Twist, BG Insert, Card Slash,
+      Flame Frame, and effect-track effects over the whole frame (Live Stream, Box Magnifier, Magnify Glass) — their
+      packages are no longer in the author's cache; the effect's `time_range` and the other sliders (size, intensity).
+- Body effects (`effects/figure`, 55; "Laser Eyes" is a `face_effect` in `video_effects`), most-used first.
 - [~] Text effects (#35): an effect counts only while a style has its `effectStyle` (stale ones render as plain
       text, like CapCut); "… Glow" effects are approximated as a coloured halo. Open: other looks (3D, materials,
       melting…) and bubbles (`text_shape`) — their packages weren't in the author's cache to study.

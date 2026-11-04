@@ -34,6 +34,7 @@ public sealed class Compositor : IDisposable
     /// <summary>A copy of <see cref="Frame"/> for filter-track filters to read from.</summary>
     ID2D1Bitmap1? frameCopy;
     readonly Dictionary<string, ChromaKeyer> chromaKeys = [];
+    readonly VideoEffectRenderer effects;
     /// <summary>Bitmaps of the transitions on screen, by outgoing clip.</summary>
     readonly Dictionary<string, TransitionMixer> transitions = [];
     readonly StickerImageRenderer stickerRenderer;
@@ -60,6 +61,7 @@ public sealed class Compositor : IDisposable
         this.photos = photos ?? new ImageLoader(graphics);
         text = new TextImageRenderer(graphics);
         colorFilters = new ColorFilters(graphics);
+        effects = new VideoEffectRenderer(graphics);
         stickerRenderer = new StickerImageRenderer(graphics);
         Frame = graphics.CreateBitmap(width, height, BitmapOptions.Target);
     }
@@ -108,7 +110,7 @@ public sealed class Compositor : IDisposable
         var images = new List<(VisualLayer Layer, ID2D1Bitmap1 Image, float? TextScale)>();
         foreach (var layer in active)
         {
-            if (Content(layer, t) is { } content) images.Add((layer, Colored(layer, content.Image), content.TextScale));
+            if (Content(layer, t) is { } content) images.Add((layer, effects.Apply(layer, Colored(layer, content.Image), t), content.TextScale));
         }
         var main = images.FirstOrDefault(i => i.Layer.IsMainTrack);
         var mixed = MixTransitions(images, t);
@@ -381,6 +383,7 @@ public sealed class Compositor : IDisposable
         }
         foreach (var id in chromaKeys.Keys.Where(id => !active.Contains(id)).ToList()) { chromaKeys[id].Dispose(); chromaKeys.Remove(id); }
         foreach (var id in stickers.Keys.Where(id => !active.Contains(id)).ToList()) { stickers[id].Dispose(); stickers.Remove(id); }
+        effects.Release(active);
     }
 
     void Warn(string message)
@@ -472,6 +475,7 @@ public sealed class Compositor : IDisposable
         foreach (var m in transitions.Values) m.Dispose();
         foreach (var (a, b) in filtered.Values) { a.Dispose(); b.Dispose(); }
         colorFilters.Dispose();
+        effects.Dispose();
         frameCopy?.Dispose();
         foreach (var k in chromaKeys.Values) k.Dispose();
         foreach (var b in stickers.Values) b.Dispose();

@@ -33,7 +33,7 @@ with one click EnhanceCapCut opens the project you're working on and
 > your project uses):
 >
 > - transitions other than "Flashback" (shown as a cross-fade, [#64](../../issues/64)), colour adjustments and HSL
->   ([#39](../../issues/39)), video effects ([#36](../../issues/36)), stickers other than "Clock Time"
+>   ([#39](../../issues/39)), video effects other than "Pudding Bounce" and "Hazy Rotation" ([#36](../../issues/36)), stickers other than "Clock Time"
 >   ([#66](../../issues/66));
 > - text animations other than fade, typewriter, slide, zoom, pop, blink and pulse ([#68](../../issues/68)), text
 >   effects other than glows, and bubbles ([#35](../../issues/35)), vertical text ([#47](../../issues/47));
@@ -158,7 +158,7 @@ backup.
 <summary><b>Will the export look exactly like CapCut's?</b></summary>
 
 Cuts, overlays, speed (incl. curves), transforms and keyframes, canvas backgrounds, photos, compound clips, background
-removal, filters, the "Flashback" transition (others as a cross-fade), texts and captions, "Clock Time" stickers and the audio mix (incl. CapCut's voice isolation, noise reduction and voice filters) are rendered. The
+removal, filters, the "Flashback" transition (others as a cross-fade), texts and captions, "Clock Time" stickers, the "Pudding Bounce" and "Hazy Rotation" video effects and the audio mix (incl. CapCut's voice isolation, noise reduction and voice filters) are rendered. The
 features in **Not rendered yet** at the top of this page are not yet — the export window tells you when your project
 uses them. See the [roadmap](docs/PLAN.md).
 </details>

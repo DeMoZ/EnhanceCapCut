@@ -20,6 +20,8 @@ private struct Builder {
     /// Nested drafts of compound clips, built once per combination material.
     var nestedTimelines: [String: Timeline] = [:]
     var combos: [String: CombinationMaterial] = [:]
+    /// `video_effects` materials rendered on the clips that use them (not reported).
+    var renderedEffects: Set<String> = []
     /// Voice filter preset directories by material path and resource id (nil: not usable).
     var filterDirectories: [String: URL?] = [:]
     /// Colour filters by material id (nil: lookup table not found).
@@ -44,6 +46,9 @@ private struct Builder {
         let enhancements = Dictionary(m.vocalBeautifys.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         let audioEffects = Dictionary(m.audioEffects.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         let chromas = Dictionary(m.chromas.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        let videoEffects = Dictionary(m.videoEffects.compactMap { e in VideoEffect(material: e).map { (e.id, $0) } },
+                                      uniquingKeysWith: { a, _ in a })
+        renderedEffects.formUnion(videoEffects.keys)
         let animations = Dictionary(m.materialAnimations.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         var generic: [String: (String, GenericMaterial)] = [:]
         for (key, items) in m.all { for item in items { generic[item.id] = (key, item) } }
@@ -142,6 +147,7 @@ private struct Builder {
                         crop: video?.crop ?? Crop(), clip: segment.clip ?? Clip(), uniformScale: segment.uniformScale,
                         keyframes: keyframes(segment), canvas: isMain ? refs.lazy.compactMap { canvases[$0] }.first : nil,
                         cutout: cutout, chromaKey: refs.lazy.compactMap { chromas[$0] }.first.flatMap(ChromaKey.init))
+                    layer.effects = refs.compactMap { videoEffects[$0] }
                     layer.filters = refs.compactMap { ref in
                         generic[ref].flatMap { $0.0 == "effects" && $0.1.type == "filter" ? colorFilter($0.1) : nil }
                     }
@@ -446,7 +452,7 @@ private struct Builder {
             if LayerTransition.kind(name: item.name, resourceID: item.resourceID) != .flashback {
                 note(L("Transition"), L("{0} (shown as a cross-fade)", name))
             }
-        case "video_effects": note(L("Video effect"), name)
+        case "video_effects": if !renderedEffects.contains(item.id) { note(L("Video effect"), name) }
         case "stickers": note(L("Sticker"), name)
         case "common_mask", "masks": note(L("Mask"), name)
         case "hsl": note(L("HSL color"), L("color adjustment"))

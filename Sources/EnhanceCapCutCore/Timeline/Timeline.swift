@@ -107,6 +107,8 @@ public final class VisualLayer {
     public internal(set) var filters: [ColorFilter] = []
     /// "Chroma key", applied to the clip's frames before the cutout.
     public let chromaKey: ChromaKey?
+    /// Video effects on the clip that we render, in order.
+    public internal(set) var effects: [VideoEffect] = []
     /// The transition into the next clip on this track.
     public internal(set) var transitionOut: LayerTransition?
 

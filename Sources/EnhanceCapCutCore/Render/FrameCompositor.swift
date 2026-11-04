@@ -54,7 +54,7 @@ final class FrameCompositor {
         var layerImages: [(VisualLayer, CIImage)] = []
         for layer in active {
             guard let content = await content(of: layer, at: t) else { continue }
-            let image = colored(content, by: layer.filters)
+            let image = withEffects(colored(content, by: layer.filters), layer: layer, at: t)
             if layer.isMainTrack && mainImage == nil { mainImage = (layer, image) }
             layerImages.append((layer, image))
         }
