@@ -2,15 +2,15 @@ import AVFoundation
 
 /// Mixes all audio clips of a timeline into a 48 kHz stereo float file.
 ///
-/// AVFoundation does the heavy lifting: clips go into an AVMutableComposition (speed via
-/// `scaleTimeRange`, speed curves as many short constant-speed pieces), volumes and fades into an
-/// AVAudioMix. AVAudioMix volumes are limited to 0...1, so all volumes are divided by the loudest
+/// AVFoundation does the heavy lifting: clips go into an AVMutableComposition, volumes and fades into an
+/// AVAudioMix. Clips that change speed are first re-timed by `ClipSpeedRenderer` (the offline mixer deadlocks
+/// on `scaleTimeRange` edits), so every clip is inserted at 1×. AVAudioMix volumes are limited to 0...1, so all volumes are divided by the loudest
 /// clip's gain and the mixed float samples are multiplied back.
 enum AudioRenderer {
     static let sampleRate = 48_000.0
 
-    static func render(_ timeline: Timeline, to url: URL, isCancelled: () -> Bool,
-                       progress: (Double) -> Void) async throws {
+    static func render(_ timeline: Timeline, to url: URL, tracksPerMix: Int = maxTracksPerMix,
+                       isCancelled: () -> Bool, progress: (Double) -> Void) async throws {
         let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: sampleRate, channels: 2, interleaved: true)!
         let file = try AVAudioFile(forWriting: url, settings: format.settings, commonFormat: .pcmFormatFloat32,
                                    interleaved: true)
@@ -19,7 +19,6 @@ enum AudioRenderer {
                             limiter: PeakLimiter(sampleRate: sampleRate))
 
         let composition = AVMutableComposition()
-        let mix = AVMutableAudioMix()
         let gain = max(1, timeline.audioClips.map(\.volume).max() ?? 1)
         // One composition track per clip, each with its own pitch algorithm: CapCut keeps the pitch of
         // sped-up clips unless the clip's "pitch" toggle is on, which plays them like a tape (varispeed).
@@ -28,6 +27,7 @@ enum AudioRenderer {
         // assets (seen with processed .caf copies followed by camera AAC clips).
         var tracks: [AVMutableCompositionTrack] = []
         var inputs: [AVMutableAudioMixInputParameters] = []
+        var spans: [TimeRange] = []
         // Clips with "Isolate voice" / "Reduce noise" play a processed copy of their source.
         let voice = VoiceProcessor(directory: url.deletingLastPathComponent()
             .appendingPathComponent("voice-\(UUID().uuidString)"))
@@ -35,8 +35,18 @@ enum AudioRenderer {
 
         for clip in timeline.audioClips.sorted(by: { $0.target.start < $1.target.start }) {
             let processed = try await voice.process(clip, isCancelled: isCancelled)
-            let sourceShift = processed?.sourceOffset ?? 0
-            let asset = AVURLAsset(url: processed?.url ?? clip.url)
+            var sourceShift = processed?.sourceOffset ?? 0
+            var sourceURL = processed?.url ?? clip.url
+            var map = clip.timeMap
+            // Speed changes are rendered by us: scaled composition tracks deadlock the offline mixer (#55).
+            if ClipSpeedRenderer.changesSpeed(map) {
+                guard let url = try await ClipSpeedRenderer.render(clip, processed: processed, files: voice,
+                                                                   isCancelled: isCancelled) else { continue }
+                sourceURL = url
+                sourceShift = 0
+                map = TimeMap(sourceStart: 0, sourceDuration: clip.target.duration, targetDuration: clip.target.duration)
+            }
+            let asset = AVURLAsset(url: sourceURL)
             guard let source = try? await asset.loadTracks(withMediaType: .audio).first,
                   let sourceRange = try? await source.load(.timeRange) else { continue }
 
@@ -44,7 +54,6 @@ enum AudioRenderer {
                                                           preferredTrackID: kCMPersistentTrackID_Invalid) else { continue }
 
             // Pieces of (source range, timeline range); a speed curve is approximated in 50 ms steps.
-            let map = clip.timeMap
             let steps = map.isConstant ? 1 : max(1, Int(clip.target.duration / 50_000))
             var inserted = false
             for k in 0..<steps {
@@ -92,56 +101,114 @@ enum AudioRenderer {
             }
             tracks.append(track)
             inputs.append(params)
+            spans.append(clip.target)
         }
-        mix.inputParameters = inputs
-
         if !tracks.isEmpty {
-            let reader = try AVAssetReader(asset: composition)
-            reader.timeRange = CMTimeRange(start: .zero, duration: us(timeline.duration))
-            let output = AVAssetReaderAudioMixOutput(audioTracks: tracks, audioSettings: [
-                AVFormatIDKey: kAudioFormatLinearPCM,
-                AVSampleRateKey: sampleRate,
-                AVNumberOfChannelsKey: 2,
-                AVLinearPCMBitDepthKey: 32,
-                AVLinearPCMIsFloatKey: true,
-                AVLinearPCMIsNonInterleaved: false,
-                AVLinearPCMIsBigEndianKey: false,
-            ])
-            output.audioMix = mix
-            output.audioTimePitchAlgorithm = .spectral
-            reader.add(output)
-            guard reader.startReading() else { throw RenderError.writerFailed(reader.error?.localizedDescription ?? "audio") }
-
-            while let sample = output.copyNextSampleBuffer() {
-                if isCancelled() { reader.cancelReading(); throw RenderError.cancelled }
-                let frames = AVAudioFrameCount(CMSampleBufferGetNumSamples(sample))
-                guard frames > 0, let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames) else { continue }
-                buffer.frameLength = frames
-                guard CMSampleBufferCopyPCMDataIntoAudioBufferList(sample, at: 0, frameCount: Int32(frames),
-                                                                   into: buffer.mutableAudioBufferList) == noErr else { continue }
-                let pts = CMSampleBufferGetPresentationTimeStamp(sample)
-                let position = AVAudioFramePosition((pts.seconds * sampleRate).rounded())
-                if position > out.position { try out.silence(position - out.position) }
-                // Skip any overlap with what's already written.
-                let skip = max(0, out.position - position)
-                guard skip < AVAudioFramePosition(frames) else { continue }
-                let data = buffer.floatChannelData![0]
-                if gain != 1 {
-                    let g = Float(gain)
-                    for i in 0..<Int(frames) * 2 { data[i] *= g }
+            let range = CMTimeRange(start: .zero, duration: us(timeline.duration))
+            let groups = stride(from: 0, to: tracks.count, by: max(1, tracksPerMix))
+                .map { $0..<min($0 + max(1, tracksPerMix), tracks.count) }
+            if groups.count == 1 {
+                try readMix(composition, tracks: tracks, inputs: inputs, range: range, gain: Float(gain),
+                            isCancelled: isCancelled) { position, data, frames in
+                    if position > out.position { try out.silence(position - out.position) }
+                    // Skip any overlap with what's already written.
+                    let skip = Int(max(0, out.position - position))
+                    guard skip < frames,
+                          let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(frames - skip))
+                    else { return true }
+                    buffer.frameLength = AVAudioFrameCount(frames - skip)
+                    buffer.floatChannelData![0].update(from: data + skip * 2, count: (frames - skip) * 2)
+                    let more = try out.write(buffer)
+                    progress(Double(out.position) / Double(max(totalFrames, 1)))
+                    return more
                 }
-                if skip > 0 {
-                    let rest = Int(frames) - Int(skip)
-                    memmove(data, data + Int(skip) * 2, rest * 2 * MemoryLayout<Float>.size)
-                    buffer.frameLength = AVAudioFrameCount(rest)
+            } else {
+                // Many clips: mix them group by group into a timeline-long sum, then play the sum through the
+                // limiter. Clips are sorted by start, so a group's reader only covers that group's stretch.
+                let sum = try MixAccumulator(url: url.deletingLastPathComponent()
+                    .appendingPathComponent("mix-\(UUID().uuidString).raw"), totalFrames: totalFrames)
+                for (n, group) in groups.enumerated() {
+                    let start = group.map { spans[$0].start }.min()!, end = group.map { spans[$0].end }.max()!
+                    let groupRange = CMTimeRange(start: us(start), end: us(end)).intersection(range)
+                    guard groupRange.duration > .zero else { continue }
+                    let first = AVAudioFramePosition((groupRange.start.seconds * sampleRate).rounded())
+                    var written = first
+                    try readMix(composition, tracks: Array(tracks[group]), inputs: Array(inputs[group]),
+                                range: groupRange, gain: Float(gain), isCancelled: isCancelled) { position, data, frames in
+                        // Skip any overlap with what this group already added.
+                        let skip = Int(max(0, min(Int64(frames), written - position)))
+                        try sum.add(data + skip * 2, frames: frames - skip, at: position + Int64(skip))
+                        written = max(written, position + Int64(frames))
+                        let done = Double(written - first) / max(1, groupRange.duration.seconds * sampleRate)
+                        progress(0.9 * (Double(n) + min(1, done)) / Double(groups.count))
+                        return written < totalFrames
+                    }
                 }
-                if try !out.write(buffer) { break }
-                progress(Double(out.position) / Double(max(totalFrames, 1)))
+                let chunk = 48_000
+                guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(chunk)) else {
+                    throw RenderError.writerFailed("audio buffer")
+                }
+                while out.position < totalFrames {
+                    if isCancelled() { throw RenderError.cancelled }
+                    let samples = try sum.read(from: out.position, frames: chunk)
+                    guard !samples.isEmpty else { break }
+                    buffer.frameLength = AVAudioFrameCount(samples.count / 2)
+                    buffer.floatChannelData![0].update(from: samples, count: samples.count)
+                    if try !out.write(buffer) { break }
+                    progress(0.9 + 0.1 * Double(out.position) / Double(max(totalFrames, 1)))
+                }
             }
-            if reader.status == .failed { throw RenderError.writerFailed(reader.error?.localizedDescription ?? "audio mix") }
         }
         try out.finish()
         progress(1)
+    }
+
+    /// Most composition tracks one AVAssetReaderAudioMixOutput mixes. With many more (GymCrowd's compound
+    /// clips bring ~70) its audio queues deadlock every few runs even without speed changes: copyNextSampleBuffer
+    /// blocks forever at 0% CPU (issue #55). Larger timelines are mixed in groups of this many tracks.
+    static let maxTracksPerMix = 16
+
+    /// Reads the mix of `tracks` over `range`, scaled by `gain`, and hands each buffer to `sink` as
+    /// (timeline frame, interleaved stereo samples, frame count); `sink` returns false to stop.
+    private static func readMix(_ composition: AVComposition, tracks: [AVCompositionTrack],
+                                inputs: [AVAudioMixInputParameters], range: CMTimeRange, gain: Float,
+                                isCancelled: () -> Bool,
+                                sink: (AVAudioFramePosition, UnsafeMutablePointer<Float>, Int) throws -> Bool) throws {
+        let reader = try AVAssetReader(asset: composition)
+        reader.timeRange = range
+        let output = AVAssetReaderAudioMixOutput(audioTracks: tracks, audioSettings: [
+            AVFormatIDKey: kAudioFormatLinearPCM,
+            AVSampleRateKey: sampleRate,
+            AVNumberOfChannelsKey: 2,
+            AVLinearPCMBitDepthKey: 32,
+            AVLinearPCMIsFloatKey: true,
+            AVLinearPCMIsNonInterleaved: false,
+            AVLinearPCMIsBigEndianKey: false,
+        ])
+        let mix = AVMutableAudioMix()
+        mix.inputParameters = inputs
+        output.audioMix = mix
+        output.audioTimePitchAlgorithm = .spectral
+        reader.add(output)
+        guard reader.startReading() else { throw RenderError.writerFailed(reader.error?.localizedDescription ?? "audio") }
+        let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: sampleRate, channels: 2, interleaved: true)!
+
+        while let sample = output.copyNextSampleBuffer() {
+            if isCancelled() { reader.cancelReading(); throw RenderError.cancelled }
+            let frames = AVAudioFrameCount(CMSampleBufferGetNumSamples(sample))
+            guard frames > 0, let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames) else { continue }
+            buffer.frameLength = frames
+            guard CMSampleBufferCopyPCMDataIntoAudioBufferList(sample, at: 0, frameCount: Int32(frames),
+                                                               into: buffer.mutableAudioBufferList) == noErr else { continue }
+            let pts = CMSampleBufferGetPresentationTimeStamp(sample)
+            let position = AVAudioFramePosition((pts.seconds * sampleRate).rounded())
+            let data = buffer.floatChannelData![0]
+            if gain != 1 {
+                for i in 0..<Int(frames) * 2 { data[i] *= gain }
+            }
+            if try !sink(position, data, Int(frames)) { reader.cancelReading(); return }
+        }
+        if reader.status == .failed { throw RenderError.writerFailed(reader.error?.localizedDescription ?? "audio mix") }
     }
 
     /// Writes the mix through the master limiter, compensating its latency so timing is unchanged.

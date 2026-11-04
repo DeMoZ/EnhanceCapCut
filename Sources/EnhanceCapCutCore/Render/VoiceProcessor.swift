@@ -34,7 +34,7 @@ final class VoiceProcessor {
     /// be measured from the clip itself (e.g. no voice).
     static let isolationLatency = 6_360
 
-    private let directory: URL
+    let directory: URL
     private var cache: [Key: Output] = [:]
     private var counter = 0
 
@@ -117,7 +117,7 @@ final class VoiceProcessor {
 
     /// Decodes `[start, end)` µs of the media's first audio track to a 48 kHz stereo float file.
     /// Returns the file and the source time of its first sample, or nil if there's no audio.
-    private func decode(_ url: URL, from start: Int64, to end: Int64) async throws -> (URL, Int64)? {
+    func decode(_ url: URL, from start: Int64, to end: Int64) async throws -> (URL, Int64)? {
         let asset = AVURLAsset(url: url)
         guard let track = try await asset.loadTracks(withMediaType: .audio).first else { return nil }
         let reader = try AVAssetReader(asset: asset)
@@ -305,7 +305,7 @@ final class VoiceProcessor {
 
     // MARK: Files
 
-    private func newFile(_ name: String) -> URL {
+    func newFile(_ name: String) -> URL {
         counter += 1
         return directory.appendingPathComponent("\(counter)-\(name).caf")
     }
