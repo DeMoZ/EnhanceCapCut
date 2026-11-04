@@ -111,11 +111,13 @@ public final class VisualLayer {
     public internal(set) var effects: [VideoEffect] = []
     /// The transition into the next clip on this track.
     public internal(set) var transitionOut: LayerTransition?
+    /// Clip masks (shapes, brush); what any of them keeps is shown.
+    public let masks: [ClipMask]
 
     init(id: String, content: VisualContent, trackIndex: Int, renderIndex: Int, isMainTrack: Bool,
          target: TimeRange, timeMap: TimeMap, crop: Crop, clip: Clip, uniformScale: Bool,
          keyframes: [LayerProperty: KeyframeTrack], canvas: CanvasMaterial?, cutout: Cutout? = nil,
-         chromaKey: ChromaKey? = nil) {
+         chromaKey: ChromaKey? = nil, masks: [ClipMask] = []) {
         self.id = id
         self.content = content
         self.trackIndex = trackIndex
@@ -130,6 +132,7 @@ public final class VisualLayer {
         self.canvas = canvas
         self.cutout = cutout
         self.chromaKey = chromaKey
+        self.masks = masks
     }
 
     public func isActive(at t: Int64) -> Bool { t >= target.start && t < target.end }

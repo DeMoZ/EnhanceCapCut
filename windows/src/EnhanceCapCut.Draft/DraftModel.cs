@@ -142,11 +142,14 @@ public sealed class KeyframeGroup
     /// <summary>e.g. "KFTypePositionX", "KFTypeScaleX", "KFTypeRotation", "KFTypeAlpha", "KFTypeVolume".</summary>
     public string PropertyType { get; set; } = "";
     public List<Keyframe> Keyframes { get; set; } = [];
+    /// <summary>For mask keyframes: the mask's <c>constant_material_id</c>.</summary>
+    public string MaterialId { get; set; } = "";
 
     public static KeyframeGroup? From(JsonElement c) => c.ValueKind != JsonValueKind.Object ? null : new()
     {
         PropertyType = c.Str("property_type") ?? "",
         Keyframes = c.List("keyframe_list", Keyframe.From),
+        MaterialId = c.Str("material_id") ?? "",
     };
 }
 
@@ -207,6 +210,8 @@ public sealed class Materials
     public List<RealtimeDenoiseMaterial> RealtimeDenoises { get; set; } = [];
     public List<VocalBeautifyMaterial> VocalBeautifys { get; set; } = [];
     public List<AudioEffectMaterial> AudioEffects { get; set; } = [];
+    /// <summary>Clip masks (<c>common_mask</c>, older drafts <c>masks</c>).</summary>
+    public List<MaskMaterial> Masks { get; set; } = [];
     public List<ChromaMaterial> Chromas { get; set; } = [];
     public List<VideoEffectMaterial> VideoEffects { get; set; } = [];
     public List<AnimationMaterial> MaterialAnimations { get; set; } = [];
@@ -229,6 +234,7 @@ public sealed class Materials
             RealtimeDenoises = c.List("realtime_denoises", RealtimeDenoiseMaterial.From),
             VocalBeautifys = c.List("vocal_beautifys", VocalBeautifyMaterial.From),
             AudioEffects = c.List("audio_effects", AudioEffectMaterial.From),
+            Masks = [.. c.List("common_mask", MaskMaterial.From), .. c.List("masks", MaskMaterial.From)],
             Chromas = c.List("chromas", ChromaMaterial.From),
             VideoEffects = c.List("video_effects", VideoEffectMaterial.From),
             MaterialAnimations = c.List("material_animations", AnimationMaterial.From),

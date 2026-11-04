@@ -382,6 +382,43 @@ The result folder holds one subfolder per cutout run:
 - A compound clip's material is its rendered video and can be cut out itself; its frames are transparent
   where nothing is drawn, so cut-out clips inside it show the layers below (GymCrowd).
 
+## Masks
+
+`materials.common_mask[]` (`type` `mask`; older drafts may call the list `masks`), referenced from the video
+segment's `extra_material_refs`. A clip can have several: CapCut shows what any of them keeps (Pullups7, GymCrowd: a
+"Split" plus a rectangle, up to three rectangles and a brush on one clip). Fields: `name` ("Split", "Rectangle",
+"Brush", …), `resource_type` (`line`, `mirror`, `circle`, `rectangle`, `custom` = brush; `geometric_shape` is assumed
+for "Heart" / "Star", which none of the author's projects uses), `constant_material_id`, `loader_work_space`,
+`track_segment` and `config`:
+
+- `centerX`, `centerY`: the mask's center in half-frame units of the clip's own frame (before the clip's scale,
+  rotation, flip and position, so the mask moves with the clip), +y up;
+- `width`, `height`: fractions of the frame's width and height (can exceed 1); "Split" ignores both, "Mirror" uses
+  `height` as the band's thickness;
+- `rotation`: degrees, clockwise; "Split" at 0 keeps what is above the line;
+- `feather` 0…1 (we fade over `feather × 0.5 ×` the frame's shorter side, centred on the edge, which matched
+  Pullups7); `roundCorner` 0…1 of half the shorter side; `invert`; `expansion` (always 0 in the author's projects);
+  `aspectRatio` (always 1).
+
+Mask keyframes are in the segment's `common_keyframes` with `property_type` `KFTypeCommonMask` + `PositionX`,
+`PositionY`, `SizeWidth`, `SizeHeight`, `Rotation`, `Feather`, `RoundCorner`, `Expansion` (the same units as
+`config`). Their `material_id` is the mask's `constant_material_id`, not its `id`, and unlike the clip keyframes their
+`time_offset` is on the clip's **source** time axis (a clip with `source_timerange.start` 51.5 s has mask keyframes
+from 51 500 000).
+
+"Brush" (`custom`): CapCut tracks the painted strokes over the clip and saves the result in
+`loader_work_space` = `##_draftpath_placeholder_…_##/adjust_mask/<id>/`: one raw 8-bit frame per file (0 = hidden,
+255 = shown, soft edges), upright, named by its source time in µs (512×288 for 16:9 footage, the size is in
+`data.json` `data[].width/height`, with each frame's `pts` and the strokes' normalized bounds), plus `desc.json`
+(`startTime`, `endTime`), `interactiveFrame` (the frame as drawn) and `config_*.ini` (binary plists of the brush
+settings). A brush that was never tracked has a single frame. The brush's `config` keeps its defaults (0.28 × 0.5,
+center 0) and isn't used. Five GymCrowd brushes have an empty `loader_work_space`; we report them.
+
+We draw the masks ourselves (`MaskRaster` on both platforms): each shape as a signed distance field on a raster of at
+most 1024 px, the feather as a linear ramp across the edge, brush frames bilinearly scaled, the union of all masks as
+the clip's alpha, applied after "Chroma key" and "Remove background" and before the crop. Not reproduced: `expansion`
+and a brush's feather (reported).
+
 ## Chroma key
 
 `materials.chromas[]` (`type` `chroma`), referenced from the video segment's `extra_material_refs`: `color`
@@ -467,4 +504,5 @@ references it via `extra_material_refs`. Nested drafts can reference combination
 58 vocal separations (35 keep vocal, 23 remove vocal), 52 "Reduce noise",
 151 loudness, 135 effects (makeup/figure/"Sparkly Skin"/"ART EN 3D" text effects/"Cherry Cola" filter),
 46 stickers (44 "Clock Time"), 26 transitions (18 "Flashback"), 19 hsl, 16 audio_effects,
-11 video_effects, 10 masks, 52 compound clips.
+11 video_effects, 10 masks (139 uses: brush 83, rectangle 48, split 8; 18 clips with mask keyframes), 52 compound
+clips.

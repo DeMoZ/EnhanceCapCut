@@ -57,6 +57,7 @@ public static class TimelineBuilder
                 if (VideoEffect.From(e) is { } effect) videoEffects.TryAdd(e.Id, effect);
             renderedEffects.UnionWith(videoEffects.Keys);
             var animations = ById(m.MaterialAnimations, a => a.Id);
+            var maskMaterials = ById(m.Masks, k => k.Id);
             var generic = new Dictionary<string, (string Key, GenericMaterial Item)>();
             foreach (var (key, items) in m.All)
             {
@@ -163,6 +164,7 @@ public static class TimelineBuilder
                             if (video is not null) ReportVideo(video);
                             // A compound clip's material is its rendered video; a cutout on it uses the compound's time.
                             var cutout = video is { Matting.Flag: not 0 } ? MakeCutout(video.Matting) : null;
+                            var masks = MakeMasks(refs.Where(maskMaterials.ContainsKey).Select(r => maskMaterials[r]).ToList(), segment);
                             if (isMain && First(refs, canvases) is { } canvas
                                 && canvas.Type is not ("canvas_color" or "canvas_blur" or "canvas_image"))
                             {
@@ -172,7 +174,7 @@ public static class TimelineBuilder
                             var layer = new VisualLayer(segment.Id, content, trackIndex, segment.RenderIndex, isMain,
                                 segment.TargetTimerange, timeMap, video?.Crop ?? new Crop(), segment.Clip ?? new Clip(),
                                 segment.UniformScale, Keyframes(segment), isMain ? First(refs, canvases) : null, cutout,
-                                First(refs, chromas) is { } chroma ? ChromaKey.From(chroma) : null);
+                                First(refs, chromas) is { } chroma ? ChromaKey.From(chroma) : null, masks);
                             layer.Effects = refs.Select(r => videoEffects.GetValueOrDefault(r)).OfType<VideoEffect>().ToList();
                             layer.Filters = refs.Select(r => generic.TryGetValue(r, out var f) && f.Key == "effects" && f.Item.Type == "filter"
                                 ? MakeColorFilter(f.Item) : null).OfType<ColorFilter>().ToList();
@@ -446,8 +448,7 @@ public static class TimelineBuilder
         }
 
         /// <summary>
-        /// Keyframed properties the renderer doesn't animate. Mask keyframes are one entry: the mask itself
-        /// is reported from its material.
+        /// Keyframed properties the renderer doesn't animate. Unknown mask properties are one entry.
         /// </summary>
         void ReportKeyframes(Segment segment)
         {
@@ -456,8 +457,11 @@ public static class TimelineBuilder
             {
                 var type = group.PropertyType;
                 if (LayerProperties.FromType(type) is not null) continue;
-                if (type.StartsWith("KFTypeCommonMask", StringComparison.Ordinal) || type.StartsWith("KFTypeMask", StringComparison.Ordinal))
-                    names.Add("mask animation");
+                if (MaskProperties.IsMask(type))
+                {
+                    // Known mask properties are animated with their mask (see MakeMasks).
+                    if (MaskProperties.FromType(type) is null) names.Add("mask animation");
+                }
                 else
                     names.Add(type.StartsWith("KFType", StringComparison.Ordinal) ? type[6..] : type);
             }
@@ -497,11 +501,59 @@ public static class TimelineBuilder
             return new Cutout(directory, matting.Reverse);
         }
 
+        /// <summary>A video clip's masks; what can't be reproduced is reported.</summary>
+        List<ClipMask> MakeMasks(List<MaskMaterial> materials, Segment segment)
+        {
+            var result = new List<ClipMask>();
+            foreach (var mask in materials)
+            {
+                // Keyframes name their mask by its constant id; older drafts with one mask may leave it out.
+                var keyframes = new Dictionary<MaskProperty, KeyframeTrack>();
+                foreach (var group in segment.Keyframes.Where(g => MaskProperties.IsMask(g.PropertyType)
+                    && (g.MaterialId == mask.ConstantId || (g.MaterialId.Length == 0 && materials.Count == 1))))
+                {
+                    if (MaskProperties.FromType(group.PropertyType) is { } property && KeyframeTrack.From(group) is { } track)
+                        keyframes[property] = track;
+                }
+                bool Animated(MaskProperty p, double value) =>
+                    value != 0 || (keyframes.TryGetValue(p, out var track) && track.Values.Any(v => v != 0));
+                if (Animated(MaskProperty.Expansion, mask.Expansion)) Note(L("Mask"), L("expansion"));
+                var geometry = new MaskGeometry(mask.CenterX, mask.CenterY, mask.Width, mask.Height, mask.Rotation,
+                    mask.Feather, mask.RoundCorner);
+                MaskShape? shape = null;
+                string? folder = null;
+                if (mask.ResourceType == "custom")
+                {
+                    if (DraftLoader.ResolvePath(mask.LoaderWorkSpace, projectFolder) is not { } strokes
+                        || ClipMask.BrushTimes(strokes).Count == 0)
+                    {
+                        Note(L("Mask"), L("brush strokes not saved in the project"));
+                        continue;
+                    }
+                    if (Animated(MaskProperty.Feather, mask.Feather)) Note(L("Mask"), L("brush feather"));
+                    folder = strokes;
+                }
+                else if (ClipMask.ShapeOf(mask.ResourceType, mask.Name) is { } known)
+                {
+                    shape = known;
+                }
+                else
+                {
+                    Note(L("Mask"), mask.Name.Length == 0 ? mask.ResourceType : mask.Name);
+                    continue;
+                }
+                result.Add(new ClipMask(shape, folder, geometry, mask.Invert, keyframes));
+            }
+            return result;
+        }
+
         static readonly HashSet<string> Ignored =
         [
             "speeds", "placeholder_infos", "sound_channel_mappings", "material_colors", "canvases", "beats",
             "loudnesses", "audio_fades", "drafts", "videos", "audios", "texts", "ai_translates", "smart_crops",
             "realtime_denoises_placeholder",
+            // Rendered as clip masks (what can't be drawn is noted in MakeMasks).
+            "common_mask", "masks",
             // Rendered by the voice processing (voice filters whose preset can't be run are noted where they're read).
             "vocal_separations", "realtime_denoises", "vocal_beautifys", "audio_effects",
             // Rendered as the clip's chroma key.
@@ -520,7 +572,6 @@ public static class TimelineBuilder
                     break;
                 case "video_effects": if (!renderedEffects.Contains(item.Id)) Note(L("Video effect"), name); break;
                 case "stickers": Note(L("Sticker"), name); break;
-                case "common_mask" or "masks": Note(L("Mask"), name); break;
                 case "hsl": Note(L("HSL color"), L("color adjustment")); break;
                 case "manual_deformations": Note(L("Manual deformation"), L("body/face reshape")); break;
                 case "material_animations":

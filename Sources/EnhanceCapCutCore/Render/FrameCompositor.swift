@@ -22,6 +22,7 @@ final class FrameCompositor {
     /// Filters' readable lookup tables.
     private var luts: [ColorFilter: [ColorLUT]] = [:]
     private var chromaKeys: [String: ChromaKeyFilter] = [:]
+    private var clipMasks: [String: (frames: ClipMaskFrames, image: CIImage?)] = [:]
     private var textImages: [String: (image: CIImage, scale: CGFloat, visible: Int)] = [:]
     /// Messages about clips that could not be decoded (reported once each).
     private(set) var warnings: [String] = []
@@ -109,11 +110,11 @@ final class FrameCompositor {
         case let .video(url):
             guard let source = await source(for: layer, url: url) else { return nil }
             let time = layer.timeMap.sourceTime(atOffset: offset)
-            return cropped(cutOut(source.image(at: time), layer: layer, at: time), layer.crop)
+            return cropped(masked(cutOut(source.image(at: time), layer: layer, at: time), layer: layer, at: time), layer.crop)
 
         case let .photo(url):
-            return cropped(cutOut(photos.image(url, maxDimension: max(size.width, size.height)), layer: layer, at: 0),
-                           layer.crop)
+            return cropped(masked(cutOut(photos.image(url, maxDimension: max(size.width, size.height)), layer: layer, at: 0),
+                                  layer: layer, at: layer.timeMap.sourceTime(atOffset: offset)), layer.crop)
 
         case let .compound(inner):
             let compositor: FrameCompositor
@@ -128,7 +129,7 @@ final class FrameCompositor {
                 nested[layer.id] = compositor
             }
             let time = layer.timeMap.sourceTime(atOffset: offset)
-            return cutOut(await compositor.frame(at: time), layer: layer, at: time)
+            return masked(cutOut(await compositor.frame(at: time), layer: layer, at: time), layer: layer, at: time)
 
         case let .text(spec):
             let reveal = spec.animations.state(atOffset: offset, duration: layer.target.duration).reveal
@@ -189,7 +190,31 @@ final class FrameCompositor {
         return chromaKeys[layer.id]?.apply(image) ?? image
     }
 
+    /// Clip masks: the frame with the union of its masks at source time `t` as its alpha.
+    private func masked(_ image: CIImage?, layer: VisualLayer, at t: Int64) -> CIImage? {
+        guard let image, !layer.masks.isEmpty else { return image }
+        let extent = image.extent
+        var entry = clipMasks[layer.id] ?? (ClipMaskFrames(layer.masks), nil)
+        guard extent.width > 0, extent.height > 0,
+              let frame = entry.frames.frame(at: t, width: extent.width, height: extent.height) else { return image }
+        if frame.changed || entry.image == nil {
+            entry.image = CIImage(bitmapData: Data(frame.pixels), bytesPerRow: frame.width,
+                                  size: CGSize(width: frame.width, height: frame.height), format: .L8, colorSpace: nil)
+        }
+        clipMasks[layer.id] = entry
+        guard let mask = entry.image else { return image }
+        let scaled = mask.clampedToExtent()
+            .transformed(by: CGAffineTransform(scaleX: extent.width / CGFloat(frame.width), y: extent.height / CGFloat(frame.height))
+                .concatenating(CGAffineTransform(translationX: extent.minX, y: extent.minY)))
+            .cropped(to: extent)
+        return image.applyingFilter("CIBlendWithRedMask", parameters: [
+            kCIInputBackgroundImageKey: CIImage.empty(),
+            kCIInputMaskImageKey: scaled,
+        ])
+    }
+
     private func releaseInactive(active: Set<String>) {
+        for id in clipMasks.keys where !active.contains(id) { clipMasks[id] = nil }
         for id in sources.keys where !active.contains(id) { sources[id] = nil }
         for id in masks.keys where !active.contains(id) { masks[id] = nil }
         for id in chromaKeys.keys where !active.contains(id) { chromaKeys[id] = nil }
