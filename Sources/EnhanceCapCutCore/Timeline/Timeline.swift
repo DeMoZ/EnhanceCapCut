@@ -109,6 +109,8 @@ public final class VisualLayer {
     public internal(set) var toneMapsHDR = true
     /// "Chroma key", applied to the clip's frames before the cutout.
     public let chromaKey: ChromaKey?
+    /// CapCut's automatic skin retouch ("Sparkly Skin", smoothing) is on: approximated by `SkinRetouch`.
+    public internal(set) var retouchesSkin = false
     /// Video effects on the clip that we render, in order.
     public internal(set) var effects: [VideoEffect] = []
     /// The transition into the next clip on this track.

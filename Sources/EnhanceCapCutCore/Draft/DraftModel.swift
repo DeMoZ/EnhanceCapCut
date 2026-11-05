@@ -256,6 +256,8 @@ public struct Materials: Decodable {
 public struct GenericMaterial: Decodable {
     public var id: String
     public var type: String
+    /// For `effects`: e.g. "auto_beauty" (skin retouch) or "exclusion_face" (a makeup look) on a "figure".
+    public var subType: String = ""
     public var name: String
     public var path: String
     /// For `material_animations`: the names of the text/sticker animations it holds.
@@ -285,6 +287,7 @@ public struct GenericMaterial: Decodable {
         }
         self.id = id
         type = c.str("type") ?? ""
+        subType = c.str("sub_type") ?? ""
         name = c.str("name") ?? c.str("effect_name") ?? c.str("material_name") ?? ""
         path = c.str("path") ?? ""
         animationNames = c.list("animations", of: NamedItem.self).map(\.name)

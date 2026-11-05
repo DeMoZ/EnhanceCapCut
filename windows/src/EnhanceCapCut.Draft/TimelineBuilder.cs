@@ -177,6 +177,8 @@ public static class TimelineBuilder
                                 First(refs, chromas) is { } chroma ? ChromaKey.From(chroma) : null, masks);
                             layer.Effects = refs.Select(r => videoEffects.GetValueOrDefault(r)).OfType<VideoEffect>().ToList();
                             layer.ToneMapsHdr = segment.HdrMode != 0;
+                            layer.RetouchesSkin = refs.Any(r => generic.TryGetValue(r, out var g) && g.Key == "effects"
+                                && g.Item.Type == "figure" && g.Item.SubType == SkinRetouchSubType);
                             layer.Filters = refs.Select(r => generic.TryGetValue(r, out var f) && f.Key == "effects" && f.Item.Type == "filter"
                                 ? MakeColorFilter(f.Item) : null).OfType<ColorFilter>().ToList();
                             layers.Add((layer, order));
@@ -548,6 +550,9 @@ public static class TimelineBuilder
             return result;
         }
 
+        /// <summary><c>effects</c> "figure" sub-type of CapCut's automatic skin retouch ("Sparkly Skin", smoothing).</summary>
+        const string SkinRetouchSubType = "auto_beauty";
+
         static readonly HashSet<string> Ignored =
         [
             "speeds", "placeholder_infos", "sound_channel_mappings", "material_colors", "canvases", "beats",
@@ -586,6 +591,10 @@ public static class TimelineBuilder
                     else if (t == "text_effect") { }  // Reported with its text, where it's known whether it applies.
                     else if (t == "text_shape") { if (item.Name.Length > 0) Note(L("Text shape"), item.Name); }
                     else if (t is "color_correct" or "smart_color_adjust") Note(L("Color adjustment"), t.Replace('_', ' '));
+                    // The container of a clip's beauty effects; it draws nothing itself.
+                    else if (t == "makeup_root") { }
+                    // Skin retouch ("Sparkly Skin", smoothing): approximated by SkinRetouch.
+                    else if (t == "figure" && item.SubType == SkinRetouchSubType) { }
                     else if (t.Contains("makeup") || t.Contains("beauty") || t == "figure" || t.Contains("face"))
                         Note(L("Beauty / makeup"), name);
                     else Note(L("Effect"), name);
