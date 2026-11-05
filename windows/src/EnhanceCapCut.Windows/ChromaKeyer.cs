@@ -13,7 +13,7 @@ namespace EnhanceCapCut.Windows;
 /// <see cref="ChromaKeyMath"/> matte and spill tables as Direct2D 3D lookup tables, the matte blurred for "Edge feather"
 /// and applied as the frame's alpha.
 /// </summary>
-sealed class ChromaKeyer : IDisposable
+public sealed class ChromaKeyer : IDisposable
 {
     readonly Graphics graphics;
     readonly ID2D1LookupTable3D matte;
@@ -54,13 +54,19 @@ sealed class ChromaKeyer : IDisposable
             dc.Clear(new Color4(0, 0, 0, 0));
             using var matteEffect = new LookupTable3D(dc) { LUT = matte, AlphaMode = Vortice.DCommon.AlphaMode.Straight };
             matteEffect.SetInput(0, image, true);
+            // The table gives the opacity as a grey; the alpha mask reads alpha: white with alpha = red.
+            using var toAlpha = new ColorMatrix(dc)
+            {
+                Matrix = new Matrix5x4(0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0),
+            };
+            toAlpha.SetInput(0, matteEffect.Output, true);
             using var border = new Border(dc) { EdgeModeX = BorderEdgeMode.Clamp, EdgeModeY = BorderEdgeMode.Clamp };
             using var blur = new GaussianBlur(dc)
             {
                 StandardDeviation = (float)(ChromaKeyMath.EdgeSmoothRadius * Key.EdgeSmooth * Math.Min(size.Width, size.Height)),
                 BorderMode = BorderMode.Hard,
             };
-            ID2D1Image mask = matteEffect.Output;
+            ID2D1Image mask = toAlpha.Output;
             if (Key.EdgeSmooth > 0)
             {
                 border.SetInput(0, mask, true);

@@ -20,13 +20,13 @@ public class SkinRetouchMathTests
     }
 
     [Fact]
-    public void TableHasTheWeightAsAlpha()
+    public void TableHasTheWeightAsGrey()
     {
         var table = SkinRetouchMath.MatteTable(4);
         Assert.Equal(4 * 4 * 4 * 4, table.Length);
         // Blue changes fastest: entry (r, g, b) is at ((r·4 + g)·4 + b)·4.
         var i = ((3 * 4 + 2) * 4 + 1) * 4;
-        Assert.Equal((float)SkinRetouchMath.Weight(1, 2 / 3.0, 1 / 3.0), table[i + 3]);
-        Assert.Equal(1, table[i]);
+        Assert.Equal((float)SkinRetouchMath.Weight(1, 2 / 3.0, 1 / 3.0), table[i]);
+        Assert.Equal(1, table[i + 3]);
     }
 }

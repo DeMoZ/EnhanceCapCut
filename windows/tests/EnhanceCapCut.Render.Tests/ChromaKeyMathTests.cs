@@ -44,8 +44,9 @@ public class ChromaKeyMathTests
         var color = ChromaKeyMath.ColorTable(key, 3);
         Assert.Equal(3 * 3 * 3 * 4, matte.Length);
         // Entry (r, g, b) is at ((r * 3 + g) * 3 + b) * 4; pure green (0, 2, 0) is removed, pure blue (0, 0, 2) kept.
-        Assert.Equal(0f, matte[(2 * 3 + 0) * 4 + 3]);
-        Assert.Equal(1f, matte[(0 * 3 + 0) * 3 * 4 + 2 * 4 + 3]);
+        Assert.Equal(0f, matte[(2 * 3 + 0) * 4]);
+        Assert.Equal(1f, matte[(0 * 3 + 0) * 3 * 4 + 2 * 4]);
+        Assert.Equal(1f, matte[(2 * 3 + 0) * 4 + 3]);
         Assert.Equal(1f, color[3]);
         Assert.Equal(1f, color[(2 * 9 + 2 * 3 + 2) * 4]);
     }
