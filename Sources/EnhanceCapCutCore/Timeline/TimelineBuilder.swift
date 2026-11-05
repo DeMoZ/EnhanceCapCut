@@ -151,6 +151,7 @@ private struct Builder {
                         cutout: cutout, chromaKey: refs.lazy.compactMap { chromas[$0] }.first.flatMap(ChromaKey.init),
                         masks: masks)
                     layer.effects = refs.compactMap { videoEffects[$0] }
+                    layer.toneMapsHDR = segment.hdrMode != 0
                     layer.filters = refs.compactMap { ref in
                         generic[ref].flatMap { $0.0 == "effects" && $0.1.type == "filter" ? colorFilter($0.1) : nil }
                     }

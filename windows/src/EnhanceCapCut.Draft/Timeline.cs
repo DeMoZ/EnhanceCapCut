@@ -92,6 +92,8 @@ public sealed class VisualLayer(string id, VisualContent content, int trackIndex
     public Cutout? Cutout { get; } = cutout;
     /// <summary>The clip's own filters, in order.</summary>
     public IReadOnlyList<ColorFilter> Filters { get; set; } = [];
+    /// <summary>False when CapCut shows the clip's HDR signal as is (<c>hdr_settings.mode</c> 0) instead of tone-mapping it.</summary>
+    public bool ToneMapsHdr { get; set; } = true;
     /// <summary>"Chroma key", applied to the clip's frames before the cutout.</summary>
     public ChromaKey? ChromaKey { get; } = chromaKey;
     /// <summary>Clip masks (shapes, brush); what any of them keeps is shown.</summary>

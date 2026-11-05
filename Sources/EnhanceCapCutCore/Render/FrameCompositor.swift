@@ -150,7 +150,8 @@ final class FrameCompositor {
         let map = layer.timeMap
         do {
             let source = try await VideoFrameSource.open(url: url, from: map.sourceStart,
-                                                         to: map.sourceStart + map.sourceDuration)
+                                                         to: map.sourceStart + map.sourceDuration,
+                                                         toneMapsHDR: layer.toneMapsHDR)
             sources[layer.id] = source
             return source
         } catch {
