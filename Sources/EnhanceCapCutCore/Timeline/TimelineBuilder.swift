@@ -152,6 +152,9 @@ private struct Builder {
                         masks: masks)
                     layer.effects = refs.compactMap { videoEffects[$0] }
                     layer.toneMapsHDR = segment.hdrMode != 0
+                    layer.retouchesSkin = refs.contains { ref in
+                        generic[ref].map { $0.0 == "effects" && $0.1.type == "figure" && $0.1.subType == Builder.skinRetouchSubType } ?? false
+                    }
                     layer.filters = refs.compactMap { ref in
                         generic[ref].flatMap { $0.0 == "effects" && $0.1.type == "filter" ? colorFilter($0.1) : nil }
                     }
@@ -476,6 +479,9 @@ private struct Builder {
         return result
     }
 
+    /// `effects` "figure" sub-type of CapCut's automatic skin retouch ("Sparkly Skin", smoothing).
+    static let skinRetouchSubType = "auto_beauty"
+
     static let ignored: Set<String> = [
         "speeds", "placeholder_infos", "sound_channel_mappings", "material_colors", "canvases", "beats",
         "loudnesses", "audio_fades", "drafts", "videos", "audios", "texts", "ai_translates", "smart_crops",
@@ -510,6 +516,10 @@ private struct Builder {
             case "text_effect": break  // Reported with its text, where it's known whether it applies.
             case "text_shape": if !item.name.isEmpty { note(L("Text shape"), item.name) }
             case "color_correct", "smart_color_adjust": note(L("Color adjustment"), item.type.replacingOccurrences(of: "_", with: " "))
+            // The container of a clip's beauty effects; it draws nothing itself.
+            case "makeup_root": break
+            // Skin retouch ("Sparkly Skin", smoothing): approximated by SkinRetouch.
+            case "figure" where item.subType == Builder.skinRetouchSubType: break
             case let t where t.contains("makeup") || t.contains("beauty") || t == "figure" || t.contains("face"):
                 note(L("Beauty / makeup"), name)
             default: note(L("Effect"), name)

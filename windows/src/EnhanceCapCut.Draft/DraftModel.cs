@@ -259,6 +259,8 @@ public sealed class GenericMaterial
 {
     public string Id { get; set; } = "";
     public string Type { get; set; } = "";
+    /// <summary>For <c>effects</c>: e.g. "auto_beauty" (skin retouch) or "exclusion_face" (a makeup look) on a "figure".</summary>
+    public string SubType { get; set; } = "";
     public string Name { get; set; } = "";
     public string Path { get; set; } = "";
     /// <summary>For <c>material_animations</c>: the names of the text/sticker animations it holds.</summary>
@@ -288,6 +290,7 @@ public sealed class GenericMaterial
         {
             Id = id,
             Type = c.Str("type") ?? "",
+            SubType = c.Str("sub_type") ?? "",
             Name = c.Str("name") ?? c.Str("effect_name") ?? c.Str("material_name") ?? "",
             Path = c.Str("path") ?? "",
             AnimationNames = c.List("animations", a => a.ValueKind != JsonValueKind.Object ? null

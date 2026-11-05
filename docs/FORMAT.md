@@ -514,6 +514,32 @@ the author's projects).
   glitch), "Card Slash" (slashes and flying shards at the start), "Flame Frame", and on effect tracks "Live Stream"
   (punch-in towards the face), "Box Magnifier", "Magnify Glass".
 
+## Retouch and makeup
+
+Beauty effects are `materials.effects[]` referenced from a video segment's `extra_material_refs` (Мокрая прогулка,
+TwoHoursGay). Each has `algorithm_artifact_path` = `##_draftpath_placeholder_…_##/video/figure_algorithm/<video
+material id>` (a folder with one `FreidBuffer.dat`, CapCut's face-tracking cache, not readable as is) and `path` to the
+effect in CapCut's cache (`AmazingFeature/` scenes, shaders, Lua, textures; `config.json` names the neural models:
+`tt_fsnew_base_jianying`, `tt_freid`, `glass_skin`, …).
+
+- `type` `makeup_root`, `sub_type` `auto_beauty`, name "makeup-root": present on every retouched clip; the container
+  of the makeup scene, no visual of its own.
+- `type` `figure`, `sub_type` `auto_beauty` (`item_effect_type` 21, `category_id` `auto-beauty2`): automatic skin
+  retouch — "Sparkly Skin" (`adjust_params` [{name "0", value 0}]) and an unnamed one with `intensity_key`
+  `face_adjust_fuling`. `value` is 0 in all uses; the strength is the effect's own default. In TwoHoursGay's export
+  the colours are unchanged and the face's fine detail drops (wrinkles, pores) — we approximate it with a skin-colour
+  matte over a blurred copy (`SkinRetouch`).
+- `type` `figure`, `sub_type` `exclusion_face` (`item_effect_type` 22, `category_id` `makeup`): a makeup look —
+  "Cherry Cola", "Newyear Burgundy", unnamed ones. `face_adjust_params` [{`face_id` "0", `adjust_params` [{name
+  `face_adjust_whole`, value 0.8}]}] = strength per face; `exclusion_group` lists the parts it replaces
+  (`face_adjust_lip`, `face_adjust_eyeshadow`, `face_adjust_blusher`, …). The look draws textures (lips, eyeshadow,
+  eyeliner, lashes, blusher, brows) on CapCut's face mesh, only on the faces listed (Мокрая прогулка 25.8 s: one of
+  three faces gets white skin, red lips and dark eyes). Not rendered.
+- `materials.videos[].is_set_beauty_mode` true on a clip with makeup; reported as "retouch".
+- `materials.manual_deformations[]` (manual face reshape): `size`, `intensity`, `hardness`, `resource_path` (inside
+  CapCut.app, e.g. `figure/beauty_head/manual_small_face`), `vertex_list_path` (a file in the project's
+  `materials/manual_deformation_algorithm`), `face_recognition_algorithm_path`. Not rendered.
+
 ## Compound clips
 
 `materials.drafts[]` (`type` `combination`) embed a complete nested draft in `draft`. A video segment

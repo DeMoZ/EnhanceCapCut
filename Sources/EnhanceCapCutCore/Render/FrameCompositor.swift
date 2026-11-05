@@ -22,6 +22,7 @@ final class FrameCompositor {
     /// Filters' readable lookup tables.
     private var luts: [ColorFilter: [ColorLUT]] = [:]
     private var chromaKeys: [String: ChromaKeyFilter] = [:]
+    private lazy var skinRetouch = SkinRetouch()
     private var clipMasks: [String: (frames: ClipMaskFrames, image: CIImage?)] = [:]
     private var textImages: [String: (image: CIImage, scale: CGFloat, visible: Int)] = [:]
     /// Messages about clips that could not be decoded (reported once each).
@@ -161,9 +162,10 @@ final class FrameCompositor {
         }
     }
 
-    /// "Chroma key", then "Remove background": the frame with CapCut's mask at source time `t` as its alpha.
+    /// Skin retouch and "Chroma key", then "Remove background": the frame with CapCut's mask at source time `t` as its
+    /// alpha.
     private func cutOut(_ image: CIImage?, layer: VisualLayer, at t: Int64) -> CIImage? {
-        let image = chromaKeyed(image, layer: layer)
+        let image = chromaKeyed(layer.retouchesSkin ? image.map(skinRetouch.apply) : image, layer: layer)
         guard let image, let cutout = layer.cutout else { return image }
         if masks[layer.id] == nil {
             guard let mask = CutoutMask(cutout) else { return image }

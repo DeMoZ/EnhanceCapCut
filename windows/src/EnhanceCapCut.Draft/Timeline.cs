@@ -96,6 +96,8 @@ public sealed class VisualLayer(string id, VisualContent content, int trackIndex
     public bool ToneMapsHdr { get; set; } = true;
     /// <summary>"Chroma key", applied to the clip's frames before the cutout.</summary>
     public ChromaKey? ChromaKey { get; } = chromaKey;
+    /// <summary>CapCut's automatic skin retouch ("Sparkly Skin", smoothing) is on: approximated by <c>SkinRetouch</c>.</summary>
+    public bool RetouchesSkin { get; set; }
     /// <summary>Clip masks (shapes, brush); what any of them keeps is shown.</summary>
     public IReadOnlyList<ClipMask> Masks { get; } = masks ?? [];
     /// <summary>Video effects on the clip that we render, in order.</summary>

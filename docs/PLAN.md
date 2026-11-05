@@ -157,7 +157,15 @@ Usage counts from the author's 69 projects drive the order of the later mileston
 
 ## Milestone 6 — beauty / makeup approximations
 
-- Approximate CapCut's beauty and makeup (`makeup_root`, "Sparkly Skin", smoothing) using Apple Vision
+- [x] Skin retouch (`effects` "figure" sub-type `auto_beauty`: "Sparkly Skin", smoothing; 50 uses in TwoHoursGay):
+      approximated on both platforms by blending skin-coloured pixels with a blurred copy (`SkinRetouch`, colour
+      cube + blur, no face model); `makeup_root` draws nothing itself and is no longer reported. Open: CapCut finds
+      skin with face parsing, ours by colour (a ginger beard is softened too); "Enhance quality" (#45) on the same
+      clips sharpens CapCut's export, so the calibration is relative.
+- Makeup looks ([#78](https://github.com/DeMoZ/EnhanceCapCut/issues/78); `sub_type` `exclusion_face`: "Cherry Cola", "Newyear Burgundy"; textures drawn on CapCut's 106-point
+  face mesh, per face) and manual deformation / reshape (`manual_deformations`) are still reported: they need face
+  landmarks (Apple Vision on the Mac, a landmark model on Windows) mapped to that mesh. The original plan:
+  approximate CapCut's beauty and makeup (`makeup_root`, "Sparkly Skin", smoothing) using Apple Vision
   face landmarks and Core Image filters.
 
 ## Milestone 7 — audio effects

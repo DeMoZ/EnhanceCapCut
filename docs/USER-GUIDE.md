@@ -49,7 +49,7 @@ For scripting, the Mac app accepts `open ~/Applications/EnhanceCapCut.app --args
 too. On Windows: `EnhanceCapCut.exe [--project <name>] [--auto-export] [--subtitles]`.
 
 **What is rendered:** cuts, overlays, speed (incl. curves), transforms and keyframes, canvas backgrounds, photos,
-compound clips, background removal (from the cutout CapCut saved in the project), masks (shapes and brush, with feather and keyframes), filters (from CapCut's effect cache), chroma key, the "Flashback" transition (other transitions as a cross-fade), texts and captions, "Clock Time" stickers, the "Pudding Bounce" and "Hazy Rotation" video effects, and the audio mix (incl. "Isolate voice" — keep or remove vocal — "Reduce noise",
+compound clips, background removal (from the cutout CapCut saved in the project), masks (shapes and brush, with feather and keyframes), filters (from CapCut's effect cache), chroma key, the "Flashback" transition (other transitions as a cross-fade), texts and captions, "Clock Time" stickers, the "Pudding Bounce" and "Hazy Rotation" video effects, skin retouch ("Sparkly Skin", smoothing — approximated), and the audio mix (incl. "Isolate voice" — keep or remove vocal — "Reduce noise",
 "Enhance voice" and voice filters such as "Booming"). What isn't rendered yet is listed under **Not rendered yet** in
 the [README](../README.md); see also [PLAN.md](PLAN.md).
 
