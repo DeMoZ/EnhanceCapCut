@@ -78,11 +78,11 @@ public static class ChromaKeyMath
     }
 
     /// <summary>
-    /// Straight RGBA floats for Direct2D's 3D lookup table, blue changing fastest and red slowest: white with the
-    /// pixel's opacity as alpha.
+    /// RGBA floats for Direct2D's 3D lookup table, blue changing fastest and red slowest: the pixel's opacity as a grey,
+    /// opaque (the LookupTable3D effect keeps the input's alpha, so the opacity is moved to alpha afterwards).
     /// </summary>
     public static float[] MatteTable(ChromaKey key, int size = CubeSize) =>
-        Table(size, (r, g, b) => { var a = (float)Alpha(key, r, g, b); return (1, 1, 1, a); });
+        Table(size, (r, g, b) => { var a = (float)Alpha(key, r, g, b); return (a, a, a, 1); });
 
     /// <summary>Straight RGBA floats, blue changing fastest: the despilled colour, opaque.</summary>
     public static float[] ColorTable(ChromaKey key, int size = CubeSize) =>
