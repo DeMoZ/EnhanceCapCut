@@ -172,6 +172,9 @@ public struct Segment: Decodable {
     public var keyframes: [KeyframeGroup]
     /// "Loop" playback of a clip shorter than its segment (not supported).
     public var isLoop: Bool
+    /// `hdr_settings.mode`: 4 = an HDR clip tone-mapped to SDR, 0 = an HDR clip shown as is (no tone mapping),
+    /// 1 = SDR and compound clips (see FORMAT.md › Colour).
+    public var hdrMode: Int?
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.anyKeyed()
@@ -195,6 +198,8 @@ public struct Segment: Decodable {
         trackRenderIndex = Int(c.num("track_render_index") ?? 0)
         keyframes = c.list("common_keyframes")
         isLoop = c.bool("is_loop") ?? false
+        hdrMode = (try? c.nestedContainer(keyedBy: AnyKey.self, forKey: AnyKey("hdr_settings")))
+            .flatMap { $0.num("mode") }.map { Int($0) }
     }
 }
 

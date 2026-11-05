@@ -8,20 +8,24 @@ final class VideoFrameSource {
     private let reader: AVAssetReader
     private let output: AVAssetReaderTrackOutput
     private let orientation: CGImagePropertyOrientation
+    /// False: HDR frames keep their code values, like SDR ones (CapCut's `hdr_settings.mode` 0).
+    private let toneMapsHDR: Bool
     private var current: CIImage?
     private var pending: (pts: Int64, buffer: CVPixelBuffer)?
     private var finished = false
 
-    private init(reader: AVAssetReader, output: AVAssetReaderTrackOutput, orientation: CGImagePropertyOrientation) {
+    private init(reader: AVAssetReader, output: AVAssetReaderTrackOutput, orientation: CGImagePropertyOrientation,
+                 toneMapsHDR: Bool) {
         self.reader = reader
         self.output = output
         self.orientation = orientation
+        self.toneMapsHDR = toneMapsHDR
     }
 
     deinit { reader.cancelReading() }
 
     /// Opens `url` for reading source times in `from..<to` (µs).
-    static func open(url: URL, from: Int64, to: Int64) async throws -> VideoFrameSource {
+    static func open(url: URL, from: Int64, to: Int64, toneMapsHDR: Bool = true) async throws -> VideoFrameSource {
         let asset = AVURLAsset(url: url)
         guard let track = try await asset.loadTracks(withMediaType: .video).first else {
             throw RenderError.noVideoTrack(url)
@@ -42,7 +46,8 @@ final class VideoFrameSource {
         guard reader.canAdd(output) else { throw RenderError.cannotRead(url) }
         reader.add(output)
         guard reader.startReading() else { throw RenderError.cannotRead(url) }
-        return VideoFrameSource(reader: reader, output: output, orientation: orientation(for: transform))
+        return VideoFrameSource(reader: reader, output: output, orientation: orientation(for: transform),
+                                toneMapsHDR: toneMapsHDR)
     }
 
     /// The frame displayed at source time `t` (µs), already rotated upright.
@@ -78,7 +83,7 @@ final class VideoFrameSource {
         let transfer = CVBufferCopyAttachment(buffer, kCVImageBufferTransferFunctionKey, nil) as? String
         let isHLG = transfer == (kCVImageBufferTransferFunction_ITU_R_2100_HLG as String)
         let isPQ = transfer == (kCVImageBufferTransferFunction_SMPTE_ST_2084_PQ as String)
-        if isHLG || isPQ {
+        if (isHLG || isPQ) && toneMapsHDR {
             // HDR footage (iPhone HLG): decode to linear light, tone-map into SDR, then shape it like
             // CapCut's SDR rendition (flatter: lifted shadows, compressed highlights).
             image = CIImage(cvPixelBuffer: buffer)
@@ -93,7 +98,8 @@ final class VideoFrameSource {
                     "inputColorSpace": FrameCompositor.outputColorSpace,
                 ])
         } else {
-            // SDR footage: keep the code values as they are (only the YCbCr matrix is applied), like CapCut.
+            // SDR footage, or HDR that CapCut shows as is: keep the code values as they are (only the YCbCr
+            // matrix is applied), like CapCut.
             // The renderer's output space is the same, so cuts without effects are pixel-faithful.
             image = CIImage(cvPixelBuffer: buffer, options: [.colorSpace: FrameCompositor.outputColorSpace])
         }

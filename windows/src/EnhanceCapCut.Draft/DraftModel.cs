@@ -172,6 +172,11 @@ public sealed class Segment
     public List<KeyframeGroup> Keyframes { get; set; } = [];
     /// <summary>"Loop" playback of a clip shorter than its segment (not supported).</summary>
     public bool IsLoop { get; set; }
+    /// <summary>
+    /// <c>hdr_settings.mode</c>: 4 = an HDR clip tone-mapped to SDR, 0 = an HDR clip shown as is (no tone mapping),
+    /// 1 = SDR and compound clips (see FORMAT.md › Colour).
+    /// </summary>
+    public int? HdrMode { get; set; }
 
     public static Segment? From(JsonElement c) => c.ValueKind != JsonValueKind.Object ? null : new()
     {
@@ -191,6 +196,7 @@ public sealed class Segment
         TrackRenderIndex = (int)(c.Num("track_render_index") ?? 0),
         Keyframes = c.List("common_keyframes", KeyframeGroup.From),
         IsLoop = c.Bool("is_loop") ?? false,
+        HdrMode = c.Obj("hdr_settings")?.Num("mode") is { } mode ? (int)mode : null,
     };
 }
 

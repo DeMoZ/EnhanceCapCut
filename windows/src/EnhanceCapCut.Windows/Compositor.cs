@@ -348,7 +348,8 @@ public sealed class Compositor : IDisposable
         try
         {
             var reader = new MfVideoReader(path, layer.TimeMap.SourceStart);
-            if (reader.IsHdr) Warn($"{Path.GetFileName(path)}: HDR video is converted without tone mapping (colours differ from CapCut)");
+            // Media Foundation keeps HDR code values, which is what CapCut shows for hdr_settings.mode 0.
+            if (reader.IsHdr && layer.ToneMapsHdr) Warn($"{Path.GetFileName(path)}: HDR video is converted without tone mapping (colours differ from CapCut)");
             var stored = graphics.CreateBitmap(reader.Width, reader.Height);
             var turned = reader.Rotation is 90 or 270;
             var upright = reader.Rotation == 0 ? null

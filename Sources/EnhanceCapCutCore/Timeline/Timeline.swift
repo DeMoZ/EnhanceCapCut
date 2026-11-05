@@ -105,6 +105,8 @@ public final class VisualLayer {
     public let cutout: Cutout?
     /// The clip's own filters, in order.
     public internal(set) var filters: [ColorFilter] = []
+    /// False when CapCut shows the clip's HDR signal as is (`hdr_settings.mode` 0) instead of tone-mapping it.
+    public internal(set) var toneMapsHDR = true
     /// "Chroma key", applied to the clip's frames before the cutout.
     public let chromaKey: ChromaKey?
     /// Video effects on the clip that we render, in order.

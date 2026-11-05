@@ -176,6 +176,7 @@ public static class TimelineBuilder
                                 segment.UniformScale, Keyframes(segment), isMain ? First(refs, canvases) : null, cutout,
                                 First(refs, chromas) is { } chroma ? ChromaKey.From(chroma) : null, masks);
                             layer.Effects = refs.Select(r => videoEffects.GetValueOrDefault(r)).OfType<VideoEffect>().ToList();
+                            layer.ToneMapsHdr = segment.HdrMode != 0;
                             layer.Filters = refs.Select(r => generic.TryGetValue(r, out var f) && f.Key == "effects" && f.Item.Type == "filter"
                                 ? MakeColorFilter(f.Item) : null).OfType<ColorFilter>().ToList();
                             layers.Add((layer, order));

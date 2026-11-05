@@ -198,7 +198,10 @@ Calibrated against the author's CapCut exports (HEVC Main10, BT.709 tagged):
 - HDR clips (iPhone HLG): CapCut's SDR rendition is flatter than a reference-white tone map — lifted
   shadows, compressed highlights. After `CIToneMapHeadroom` we apply a measured curve (`HDRLook` in
   `FrameSource.swift`); luma quantiles then match within ~1.5/255.
-- CapCut ignores `segment.hdr_settings` differences we've seen (`mode` 4, 1000 nits) — not modelled.
+- `segment.hdr_settings` (`mode`, `intensity` 1, `nits` 1000): `mode` 4 on HLG clips = the tone map above (984
+  segments); `mode` 1 on SDR and compound clips (no effect); `mode` 0 on HLG clips (Laughing, GymCrowd; 69
+  segments) = no tone mapping: CapCut keeps the HLG code values like an SDR clip's — luma quantiles of
+  Laughing's export equal the raw source's within 1/255. We do the same (`VisualLayer.toneMapsHDR`).
 
 ## Audio
 
