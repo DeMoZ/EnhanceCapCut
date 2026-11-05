@@ -83,7 +83,10 @@ on Windows): Whisper catches more words in noisy dialogue, and its model is down
    the window's **Timeline** list (it follows the main window's choice).
 
 The style and position are copied from captions already in the timeline; otherwise CapCut's default caption
-look is used. Running again replaces the tracks added before (your own captions stay). The project file is
+look is used. Thai captions are made twice as large as that style (Thai letters come out small in CapCut's
+caption font) unless the copied caption is Thai already. Lines break only between words (on the Mac at the words the
+system finds in Thai and other scripts without spaces), a number stays with the word after it, and a long caption
+gets a third line rather than running past the screen's width. Running again replaces the tracks added before (your own captions stay). The project file is
 backed up first to `~/Library/Application Support/EnhanceCapCut/Backups/<project>/<time>/`, and `.srt`
 files can be saved to the export folder too. The first time a language is used, macOS downloads its speech
 or translation model once. On Windows the same window uses Whisper, NLLB and Windows voices (see

@@ -33,6 +33,18 @@ public static class DraftSubtitleWriter
     const double DefaultStyleSize = 8.0;
     const double DefaultPositionY = -0.65;
 
+    /// <summary>
+    /// Caption size per language, relative to the copied or default style. Thai glyphs come out about half the size of
+    /// Latin ones in CapCut's caption font, and the author doubled every Thai caption by hand. Not applied when the style
+    /// is copied from a caption that is already Thai.
+    /// </summary>
+    internal static double SizeFactor(string language, JsonElement? template)
+    {
+        if (!language.StartsWith("th", StringComparison.Ordinal)) return 1;
+        return template?.Get("language") is { ValueKind: JsonValueKind.String } l
+            && l.GetString()!.StartsWith("th", StringComparison.Ordinal) ? 1 : 2;
+    }
+
     public sealed record Result(IReadOnlyList<string> Files, string BackupFolder, int CueCount);
 
     public static string BackupRoot => Path.Combine(
@@ -253,13 +265,17 @@ public static class DraftSubtitleWriter
         }
         style ??= JsonText.Object(DefaultStyle);
         style["range"] = new List<object?> { 0, text.EnumerateRunes().Count() };
+        if (style.GetValueOrDefault("size") is JsonRaw size
+            && double.TryParse(size.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var s))
+        {
+            var factor = SizeFactor(track.Language.Code, template);
+            if (factor != 1) style["size"] = s *= factor;
+            m["font_size"] = s;
+        }
         m["content"] = JsonText.Encode(new SortedDictionary<string, object?>(StringComparer.Ordinal)
         {
             ["styles"] = new List<object?> { style }, ["text"] = text,
         });
-        if (style.GetValueOrDefault("size") is JsonRaw size
-            && double.TryParse(size.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var s))
-            m["font_size"] = s;
 
         // Word timings in milliseconds from the clip start; CapCut spreads translated words evenly too.
         var words = text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
