@@ -10,7 +10,7 @@ namespace EnhanceCapCut.Windows;
 /// CapCut's automatic skin retouch, approximated (port of the macOS SkinRetouch; see FORMAT.md › Retouch and makeup):
 /// a blurred copy of the frame drawn over it through the <see cref="SkinRetouchMath"/> skin matte.
 /// </summary>
-sealed class SkinRetoucher : IDisposable
+public sealed class SkinRetoucher : IDisposable
 {
     readonly Graphics graphics;
     readonly ID2D1LookupTable3D matte;
