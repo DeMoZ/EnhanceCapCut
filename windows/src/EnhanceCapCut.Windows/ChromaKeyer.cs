@@ -13,7 +13,7 @@ namespace EnhanceCapCut.Windows;
 /// <see cref="ChromaKeyMath"/> matte and spill tables as Direct2D 3D lookup tables, the matte blurred for "Edge feather"
 /// and applied as the frame's alpha.
 /// </summary>
-sealed class ChromaKeyer : IDisposable
+public sealed class ChromaKeyer : IDisposable
 {
     readonly Graphics graphics;
     readonly ID2D1LookupTable3D matte;

@@ -41,8 +41,8 @@ public static class SkinRetouchMath
     }
 
     /// <summary>
-    /// Straight RGBA floats for Direct2D's 3D lookup table, blue changing fastest and red slowest: white with the
-    /// pixel's weight as alpha.
+    /// RGBA floats for Direct2D's 3D lookup table, blue changing fastest and red slowest: the pixel's weight as a grey,
+    /// opaque (the LookupTable3D effect keeps the input's alpha, so the weight is moved to alpha afterwards).
     /// </summary>
     public static float[] MatteTable(int size = CubeSize)
     {
@@ -53,8 +53,8 @@ public static class SkinRetouchMath
         for (var g = 0; g < size; g++)
         for (var b = 0; b < size; b++)
         {
-            data[i] = 1; data[i + 1] = 1; data[i + 2] = 1;
-            data[i + 3] = (float)Weight(r * step, g * step, b * step);
+            var w = (float)Weight(r * step, g * step, b * step);
+            data[i] = w; data[i + 1] = w; data[i + 2] = w; data[i + 3] = 1;
             i += 4;
         }
         return data;

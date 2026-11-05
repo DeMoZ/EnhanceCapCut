@@ -49,8 +49,14 @@ public sealed class SkinRetoucher : IDisposable
             blur.SetInput(0, border.Output, true);
             using var matteEffect = new LookupTable3D(dc) { LUT = matte, AlphaMode = Vortice.DCommon.AlphaMode.Straight };
             matteEffect.SetInput(0, image, true);
+            // The table gives the weight as a grey; the alpha mask reads alpha: white with alpha = red.
+            using var toAlpha = new ColorMatrix(dc)
+            {
+                Matrix = new Matrix5x4(0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0),
+            };
+            toAlpha.SetInput(0, matteEffect.Output, true);
             using var matteBorder = new Border(dc) { EdgeModeX = BorderEdgeMode.Clamp, EdgeModeY = BorderEdgeMode.Clamp };
-            matteBorder.SetInput(0, matteEffect.Output, true);
+            matteBorder.SetInput(0, toAlpha.Output, true);
             using var matteBlur = new GaussianBlur(dc) { StandardDeviation = sigma, BorderMode = BorderMode.Hard };
             matteBlur.SetInput(0, matteBorder.Output, true);
             using var alphaMask = new AlphaMask(dc);
