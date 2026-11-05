@@ -112,6 +112,41 @@ public class SubtitleWriterTests
     }
 
     [Fact]
+    public void ThaiCaptionsAreTwiceAsLarge()
+    {
+        var thai = new SubtitleTrack(SubtitleLanguage.Find("th")!, [new(0.5, 2, "สวัสดี")], IsOriginal: false, IsVisible: true);
+        var output = DraftSubtitleWriter.Apply([.. Tracks(), thai], Bytes(Draft), replacePrevious: true);
+        var texts = Json(output).GetProperty("materials").GetProperty("texts").EnumerateArray().ToList();
+        JsonElement Material(string language) => texts.First(t => t.GetProperty("language").GetString() == language);
+        var th = Material("th-TH");
+        Assert.Equal(16, th.GetProperty("font_size").GetDouble());
+        using var content = JsonDocument.Parse(th.GetProperty("content").GetString()!);
+        Assert.Equal(16, content.RootElement.GetProperty("styles")[0].GetProperty("size").GetDouble());
+        Assert.Equal(8, Material("en-US").GetProperty("font_size").GetDouble());
+
+        // Copied from a caption that is already Thai: its size is kept, not doubled again.
+        Assert.Equal(1, DraftSubtitleWriter.SizeFactor("th", Json(Bytes("{\"language\":\"th-TH\"}"))));
+        Assert.Equal(2, DraftSubtitleWriter.SizeFactor("th", Json(Bytes("{\"language\":\"ru-RU\"}"))));
+        Assert.Equal(1, DraftSubtitleWriter.SizeFactor("en", null));
+    }
+
+    [Fact]
+    public void ThaiNumbersStayWithTheirWord() =>
+        Assert.Equal(["ปรุงเป็นเวลา ", "1 นาที"], LineWrapper.KeepNumbersWithNext(["ปรุงเป็นเวลา ", "1 ", "นาที"]));
+
+    [Fact]
+    public void WrapsLongTextIntoMoreLinesOnlyWhenNeeded()
+    {
+        var lines = LineWrapper.Wrap(string.Join(' ', Enumerable.Repeat("word", 30)), "en").Split('\n');
+        Assert.Equal(4, lines.Length);
+        Assert.All(lines, l => Assert.True(l.Length <= Segmenter.MaxCharsPerLine));
+        // Thai with spaces between phrases (the .NET version breaks at those): whole phrases, within the limit.
+        var thai = LineWrapper.Wrap("ผมได้ยินมาว่า หมึกกล้วย และหมึกกระดอง ต้องย่างแค่ หนึ่งนาที หรือยี่สิบนาที เท่านั้น", "th");
+        Assert.True(thai.Split('\n').Length > 2);
+        Assert.Contains("หรือยี่สิบนาที", thai);
+    }
+
+    [Fact]
     public void WrapsLongLinesIntoTwoBalancedOnes()
     {
         var wrapped = LineWrapper.Wrap("They add a little sugar and form such sausages for the market.", "en");

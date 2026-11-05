@@ -128,7 +128,9 @@ public enum Segmenter {
     }
 }
 
-/// Breaks subtitle text into at most two balanced lines.
+/// Breaks subtitle text into balanced lines: two when the text fits them, more only when it doesn't, so a line never
+/// runs past CapCut's width (CapCut would then wrap it itself, cutting through words of Thai and other scripts).
+/// Lines break only between words.
 public enum LineWrapper {
     /// Languages written without spaces between words.
     static let noSpaceLanguages: Set<String> = ["th", "zh", "ja", "lo", "km", "my"]
@@ -137,7 +139,9 @@ public enum LineWrapper {
         switch language?.prefix(2) {
         case "zh", "ja": return 18
         case "ko": return 24
-        case "th": return 35
+        // Thai captions are written twice as large (`DraftSubtitleWriter.sizeFactor`), so half of the 35 that fit at
+        // the normal size.
+        case "th": return 17
         default: return Segmenter.maxCharsPerLine
         }
     }
@@ -148,12 +152,15 @@ public enum LineWrapper {
         guard flat.count > limit else { return flat }
 
         let noSpaces = language.map { noSpaceLanguages.contains(String($0.prefix(2))) } ?? false
-        let tokens = noSpaces ? wordUnits(flat, language: language!) : flat.split(separator: " ").map { String($0) + " " }
+        var tokens = noSpaces ? wordUnits(flat, language: language!) : flat.split(separator: " ").map { String($0) + " " }
+        if noSpaces { tokens = keepNumbersWithNext(tokens) }
+
+        let total = tokens.reduce(0) { $0 + $1.count }
+        if total > 2 * limit { return lines(tokens, count: (total + limit - 1) / limit) }
 
         // Find the split point that balances both lines best.
         var best = (score: Int.max, index: tokens.count / 2)
         var left = 0
-        let total = tokens.reduce(0) { $0 + $1.count }
         for i in 1..<max(tokens.count, 2) where i < tokens.count {
             left += tokens[i - 1].count
             let score = abs(total - 2 * left)
@@ -162,6 +169,38 @@ public enum LineWrapper {
         let line1 = tokens[..<best.index].joined().trimmingCharacters(in: .whitespaces)
         let line2 = tokens[best.index...].joined().trimmingCharacters(in: .whitespaces)
         return line2.isEmpty ? line1 : "\(line1)\n\(line2)"
+    }
+
+    /// A number stays on the line of the word after it ("20 นาที", 20 minutes).
+    static func keepNumbersWithNext(_ tokens: [String]) -> [String] {
+        var out: [String] = []
+        for token in tokens {
+            if let last = out.last, last.trimmingCharacters(in: .whitespaces).allSatisfy(\.isNumber),
+               !last.trimmingCharacters(in: .whitespaces).isEmpty {
+                out[out.count - 1] += token
+            } else {
+                out.append(token)
+            }
+        }
+        return out
+    }
+
+    /// `tokens` in `count` lines as even as possible: the narrowest width that still needs no more lines.
+    private static func lines(_ tokens: [String], count: Int) -> String {
+        func fill(_ width: Int) -> [String] {
+            var out: [String] = [], current = ""
+            for token in tokens {
+                if !current.isEmpty, (current + token).trimmingCharacters(in: .whitespaces).count > width {
+                    out.append(current); current = ""
+                }
+                current += token
+            }
+            if !current.isEmpty { out.append(current) }
+            return out
+        }
+        var width = max(tokens.map(\.count).max() ?? 1, tokens.reduce(0) { $0 + $1.count } / count)
+        while fill(width).count > count { width += 1 }
+        return fill(width).map { $0.trimmingCharacters(in: .whitespaces) }.joined(separator: "\n")
     }
 
     /// Word units for scripts without spaces, keeping the original characters (including spaces).
