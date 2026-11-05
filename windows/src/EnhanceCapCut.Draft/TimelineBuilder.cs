@@ -573,7 +573,8 @@ public static class TimelineBuilder
                     break;
                 case "video_effects": if (!renderedEffects.Contains(item.Id)) Note(L("Video effect"), name); break;
                 case "stickers": Note(L("Sticker"), name); break;
-                case "hsl": Note(L("HSL color"), L("color adjustment")); break;
+                // A neutral HSL changes nothing (all of the author's projects have only those).
+                case "hsl": if (!item.IsNeutralHsl) Note(L("HSL color"), L("color adjustment")); break;
                 case "manual_deformations": Note(L("Manual deformation"), L("body/face reshape")); break;
                 case "material_animations":
                     foreach (var animation in item.AnimationNames) Note(L("Animation"), animation);

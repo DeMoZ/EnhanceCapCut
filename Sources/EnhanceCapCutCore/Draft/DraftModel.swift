@@ -270,6 +270,13 @@ public struct GenericMaterial: Decodable {
     public var value: Double?
     /// For `transitions`: the length in µs.
     public var duration: Int64
+    /// For `hsl`: the hue, saturation and lightness shifts of one colour range (0 = unchanged).
+    public var hue: Double = 0
+    public var saturation: Double = 0
+    public var lightness: Double = 0
+
+    /// An `hsl` material whose sliders are all at 0: CapCut adds one when the HSL panel is opened.
+    public var isNeutralHSL: Bool { hue == 0 && saturation == 0 && lightness == 0 }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.anyKeyed()
@@ -287,6 +294,9 @@ public struct GenericMaterial: Decodable {
         resourceID = c.str("resource_id") ?? c.str("effect_id") ?? ""
         value = c.num("value")
         duration = c.int64("duration") ?? 0
+        hue = c.num("hue") ?? 0
+        saturation = c.num("saturation") ?? 0
+        lightness = c.num("lightness") ?? 0
     }
 
     struct NamedItem: Decodable {

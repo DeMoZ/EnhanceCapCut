@@ -273,6 +273,13 @@ public sealed class GenericMaterial
     public double? Value { get; set; }
     /// <summary>For <c>transitions</c>: the length in µs.</summary>
     public long Duration { get; set; }
+    /// <summary>For <c>hsl</c>: the hue, saturation and lightness shifts of one colour range (0 = unchanged).</summary>
+    public double Hue { get; set; }
+    public double Saturation { get; set; }
+    public double Lightness { get; set; }
+
+    /// <summary>An <c>hsl</c> material whose sliders are all at 0: CapCut adds one when the HSL panel is opened.</summary>
+    public bool IsNeutralHsl => Hue == 0 && Saturation == 0 && Lightness == 0;
 
     public static GenericMaterial? From(JsonElement c)
     {
@@ -291,6 +298,9 @@ public sealed class GenericMaterial
             ResourceID = c.Str("resource_id") ?? c.Str("effect_id") ?? "",
             Value = c.Num("value"),
             Duration = c.Int64("duration") ?? 0,
+            Hue = c.Num("hue") ?? 0,
+            Saturation = c.Num("saturation") ?? 0,
+            Lightness = c.Num("lightness") ?? 0,
         };
     }
 }
