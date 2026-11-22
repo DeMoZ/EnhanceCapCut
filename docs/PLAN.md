@@ -133,6 +133,10 @@ Usage counts from the author's 69 projects drive the order of the later mileston
 - [x] "Chroma key" (`materials.chromas`): our own Y′CbCr colour-distance keyer with "Intensity", "Shadow",
       "Edge feather" and "Spill" (colour cubes in Core Image, 3D lookup tables in Direct2D). Open: calibrating it
       against a CapCut export (none of the author's projects uses it); checking the Direct2D table order on Windows.
+- [x] AI "Enhance quality" (`QualityEnhance`, #45): CapCut's cached result (`Resources/videoAlg`) is encrypted (see
+      FORMAT.md › AI processing), so it is approximated on both platforms: Lanczos ×2, a light blur, an unsharp mask
+      (`QualityEnhance`), calibrated on TwoHoursGay. Open: the detail the model invents; AI smart edit
+      (`GenAiSmartEdit`, a cloud generation whose result wasn't in the project) and other AI processing (#87).
 
 ## Milestone 5 — remaining effects by usage frequency
 

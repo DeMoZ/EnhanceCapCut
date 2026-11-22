@@ -159,6 +159,7 @@ private struct Builder {
                     layer.retouchesSkin = refs.contains { ref in
                         generic[ref].map { $0.0 == "effects" && $0.1.type == "figure" && $0.1.subType == Builder.skinRetouchSubType } ?? false
                     }
+                    layer.enhancesQuality = video?.algorithms.contains(Builder.qualityEnhance) ?? false
                     layer.filters = refs.compactMap { ref in
                         generic[ref].flatMap { $0.0 == "effects" && $0.1.type == "filter" ? colorFilter($0.1) : nil }
                     }
@@ -433,7 +434,9 @@ private struct Builder {
         if video.type != "video", video.type != "photo" { note(L("Media"), "\(video.type) clip") }
         if video.beautyMode { note(L("Beauty / makeup"), L("retouch")) }
         // AI-generated images are already baked into the material's file.
-        for algorithm in Set(video.algorithms).sorted() where !algorithm.hasPrefix("AigcTypeGen") {
+        // "Enhance quality" is approximated by QualityEnhance.
+        for algorithm in Set(video.algorithms).sorted()
+            where !algorithm.hasPrefix("AigcTypeGen") && algorithm != Builder.qualityEnhance {
             note(L("AI processing"), algorithm)
         }
     }
@@ -496,6 +499,9 @@ private struct Builder {
 
     /// `effects` "figure" sub-type of CapCut's automatic skin retouch ("Sparkly Skin", smoothing).
     static let skinRetouchSubType = "auto_beauty"
+
+    /// `video_algorithm.algorithms[].type` of CapCut's AI "Enhance quality".
+    static let qualityEnhance = "QualityEnhance"
 
     static let ignored: Set<String> = [
         "speeds", "placeholder_infos", "sound_channel_mappings", "material_colors", "canvases", "beats",

@@ -37,6 +37,7 @@ public sealed class Compositor : IDisposable
     ID2D1Bitmap1? frameCopy;
     readonly Dictionary<string, ChromaKeyer> chromaKeys = [];
     SkinRetoucher? skinRetoucher;
+    QualityEnhancer? qualityEnhancer;
     readonly VideoEffectRenderer effects;
     /// <summary>Bitmaps of the transitions on screen, by outgoing clip.</summary>
     readonly Dictionary<string, TransitionMixer> transitions = [];
@@ -303,10 +304,11 @@ public sealed class Compositor : IDisposable
         return m.Apply(graphics, image, t);
     }
 
-    /// <summary>Skin retouch and "Chroma key", then "Remove background": <paramref name="image"/> with CapCut's mask at
+    /// <summary>"Enhance quality", skin retouch and "Chroma key", then "Remove background": <paramref name="image"/> with CapCut's mask at
     /// source time <paramref name="t"/> as its alpha.</summary>
     ID2D1Bitmap1 CutOut(VisualLayer layer, ID2D1Bitmap1 image, long t)
     {
+        if (layer.EnhancesQuality) image = (qualityEnhancer ??= new QualityEnhancer(graphics)).Apply(layer.Id, image);
         if (layer.RetouchesSkin) image = (skinRetoucher ??= new SkinRetoucher(graphics)).Apply(layer.Id, image);
         image = ChromaKeyed(layer, image);
         if (layer.Cutout is not { } cutout) return image;
@@ -422,6 +424,7 @@ public sealed class Compositor : IDisposable
         foreach (var id in stickers.Keys.Where(id => !active.Contains(id)).ToList()) { stickers[id].Dispose(); stickers.Remove(id); }
         effects.Release(active);
         skinRetoucher?.Release(active);
+        qualityEnhancer?.Release(active);
     }
 
     void Warn(string message)
@@ -559,6 +562,7 @@ public sealed class Compositor : IDisposable
         frameCopy?.Dispose();
         foreach (var k in chromaKeys.Values) k.Dispose();
         skinRetoucher?.Dispose();
+        qualityEnhancer?.Dispose();
         foreach (var b in stickers.Values) b.Dispose();
         stickerRenderer.Dispose();
         blendLayer?.Dispose();

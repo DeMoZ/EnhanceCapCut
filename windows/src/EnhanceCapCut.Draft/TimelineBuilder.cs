@@ -186,6 +186,7 @@ public static class TimelineBuilder
                             layer.ToneMapsHdr = segment.HdrMode != 0;
                             layer.RetouchesSkin = refs.Any(r => generic.TryGetValue(r, out var g) && g.Key == "effects"
                                 && g.Item.Type == "figure" && g.Item.SubType == SkinRetouchSubType);
+                            layer.EnhancesQuality = video?.Algorithms.Contains(QualityEnhance) ?? false;
                             layer.Filters = refs.Select(r => generic.TryGetValue(r, out var f) && f.Key == "effects" && f.Item.Type == "filter"
                                 ? MakeColorFilter(f.Item) : null).OfType<ColorFilter>().ToList();
                             if (video is { StableLevel: > 0 and var level })
@@ -506,7 +507,9 @@ public static class TimelineBuilder
             // AI-generated images are already baked into the material's file.
             foreach (var algorithm in video.Algorithms.Distinct().Order(StringComparer.Ordinal))
             {
-                if (!algorithm.StartsWith("AigcTypeGen", StringComparison.Ordinal)) Note(L("AI processing"), algorithm);
+                // "Enhance quality" is approximated by QualityEnhancer.
+                if (!algorithm.StartsWith("AigcTypeGen", StringComparison.Ordinal) && algorithm != QualityEnhance)
+                    Note(L("AI processing"), algorithm);
             }
         }
 
@@ -578,6 +581,9 @@ public static class TimelineBuilder
 
         /// <summary><c>effects</c> "figure" sub-type of CapCut's automatic skin retouch ("Sparkly Skin", smoothing).</summary>
         const string SkinRetouchSubType = "auto_beauty";
+
+        /// <summary><c>video_algorithm.algorithms[].type</c> of CapCut's AI "Enhance quality".</summary>
+        const string QualityEnhance = "QualityEnhance";
 
         static readonly HashSet<string> Ignored =
         [

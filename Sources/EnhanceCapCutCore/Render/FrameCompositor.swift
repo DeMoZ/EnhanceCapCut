@@ -178,10 +178,11 @@ final class FrameCompositor {
         return VideoStabilization.apply(plan.correction(at: t), to: image)
     }
 
-    /// Skin retouch and "Chroma key", then "Remove background": the frame with CapCut's mask at source time `t` as its
-    /// alpha.
+    /// "Enhance quality", skin retouch and "Chroma key", then "Remove background": the frame with CapCut's mask at
+    /// source time `t` as its alpha.
     private func cutOut(_ image: CIImage?, layer: VisualLayer, at t: Int64) -> CIImage? {
-        let image = chromaKeyed(layer.retouchesSkin ? image.map(skinRetouch.apply) : image, layer: layer)
+        let enhanced = layer.enhancesQuality ? image.map(QualityEnhance.apply) : image
+        let image = chromaKeyed(layer.retouchesSkin ? enhanced.map(skinRetouch.apply) : enhanced, layer: layer)
         guard let image, let cutout = layer.cutout else { return image }
         if masks[layer.id] == nil {
             guard let mask = CutoutMask(cutout) else { return image }
