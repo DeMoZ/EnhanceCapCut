@@ -108,6 +108,8 @@ public sealed class VisualLayer(string id, VisualContent content, int trackIndex
     public IReadOnlyList<ClipAnimation> Animations { get; internal set; } = [];
     /// <summary>The overlay's blend mode (<c>mix_mode</c>); null = normal.</summary>
     public BlendMode? BlendMode { get; init; }
+    /// <summary>"Stabilize" level (<c>stable.stable_level</c>, 1…3), 0 = off; done by <c>Stabilizer</c> on video clips.</summary>
+    public int Stabilization { get; set; }
 
     public bool IsActive(long t) => t >= Target.Start && t < Target.End;
 

@@ -161,6 +161,13 @@ Usage counts from the author's 69 projects drive the order of the later mileston
       Overlay, Hard light, Soft light, Linear burn, Color burn, Color dodge, Multiply) with the standard formulas on
       sRGB values, on both platforms (`BlendMode.swift` / `BlendMode.cs`). Open: none of the author's projects uses
       them, so the draft item and the look aren't checked against a real CapCut project and export.
+- [x] Stabilization (`stable.stable_level`, #44; 11 clips of ShrimpFishing1, level 3): CapCut keeps no result in
+      the project (`matrix_path` empty), so the camera path is our own: block matching on downscaled luma, a robust
+      affine fit per frame (rotation and zoom from the x direction only, so a rolling-shutter pan isn't read as
+      rotation), Gaussian smoothing and a zoom that follows the shake, on both platforms (`Stabilizer.swift` /
+      `Stabilizer.cs`). Checked against the ShrimpFishing1 export: the framing of a shaky close-up matches CapCut's
+      (zoom 1.05–1.21 against 1.09–1.28). Open: CapCut barely moves a steady pan (zoom 1.035) where we zoom up to
+      1.2; levels 1 and 2 aren't in the author's projects (guessed); stabilized compound clips are still reported.
 - Manual deformation.
 
 ## Milestone 6 — beauty / makeup approximations

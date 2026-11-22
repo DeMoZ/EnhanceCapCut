@@ -188,6 +188,11 @@ public static class TimelineBuilder
                                 && g.Item.Type == "figure" && g.Item.SubType == SkinRetouchSubType);
                             layer.Filters = refs.Select(r => generic.TryGetValue(r, out var f) && f.Key == "effects" && f.Item.Type == "filter"
                                 ? MakeColorFilter(f.Item) : null).OfType<ColorFilter>().ToList();
+                            if (video is { StableLevel: > 0 and var level })
+                            {
+                                // Stabilized by us on video clips; a compound clip's rendered video isn't analysed yet.
+                                if (content is VideoContent) layer.Stabilization = level; else Note(L("Stabilization"), $"level {level}");
+                            }
                             layers.Add((layer, order));
                             if (previous is ({ } from, { } material))
                                 from.TransitionOut = LayerTransition.Make(material.Name, material.ResourceID, material.Duration, from, layer);
@@ -497,7 +502,6 @@ public static class TimelineBuilder
         void ReportVideo(VideoMaterial video)
         {
             if (video.Type != "video" && video.Type != "photo") Note(L("Media"), $"{video.Type} clip");
-            if (video.StableLevel > 0) Note(L("Stabilization"), $"level {video.StableLevel}");
             if (video.BeautyMode) Note(L("Beauty / makeup"), L("retouch"));
             // AI-generated images are already baked into the material's file.
             foreach (var algorithm in video.Algorithms.Distinct().Order(StringComparer.Ordinal))

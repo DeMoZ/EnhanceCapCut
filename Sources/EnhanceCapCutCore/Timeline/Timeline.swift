@@ -121,6 +121,8 @@ public final class VisualLayer {
     public internal(set) var animations: [ClipAnimation] = []
     /// The overlay's blend mode (`mix_mode`); nil = normal.
     public internal(set) var blendMode: BlendMode?
+    /// "Stabilize" level (`stable.stable_level`, 1…3), 0 = off; done by `Stabilizer` on video clips.
+    public internal(set) var stabilization = 0
 
     init(id: String, content: VisualContent, trackIndex: Int, renderIndex: Int, isMainTrack: Bool,
          target: TimeRange, timeMap: TimeMap, crop: Crop, clip: Clip, uniformScale: Bool,

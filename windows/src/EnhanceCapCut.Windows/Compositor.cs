@@ -28,6 +28,7 @@ public sealed class Compositor : IDisposable
     readonly Dictionary<string, Compositor> nested = [];
     readonly Dictionary<string, (ID2D1Bitmap1? Bitmap, float Scale, int Visible)> texts = [];
     readonly Dictionary<string, CutoutLayer> cutouts = [];
+    readonly Dictionary<string, VideoStabilization> stabilizations = [];
     readonly Dictionary<string, ClipMaskLayer> clipMasks = [];
     readonly ColorFilters colorFilters;
     /// <summary>Clips' frames through their own filters (two bitmaps to chain several).</summary>
@@ -229,7 +230,7 @@ public sealed class Compositor : IDisposable
                     if (v.Upright is { } upright) TurnUpright(v.Stored, upright, v.Reader.Rotation);
                 }
                 var sourceTime = layer.TimeMap.SourceTime(offset);
-                return (Masked(layer, CutOut(layer, v.Image, sourceTime), sourceTime), null);
+                return (Masked(layer, Stabilized(layer, video.Path, CutOut(layer, v.Image, sourceTime), sourceTime), sourceTime), null);
             }
             case PhotoContent photo:
                 return photos.Load(photo.Path) is { } bitmap
@@ -372,6 +373,22 @@ public sealed class Compositor : IDisposable
         }
     }
 
+    /// <summary>"Stabilize": the frame moved onto the smoothed camera path (planned once per clip, see <see cref="Stabilizer"/>).</summary>
+    ID2D1Bitmap1 Stabilized(VisualLayer layer, string path, ID2D1Bitmap1 image, long t)
+    {
+        if (layer.Stabilization <= 0) return image;
+        if (!stabilizations.TryGetValue(layer.Id, out var s))
+        {
+            var map = layer.TimeMap;
+            StabilizationPlan plan;
+            try { plan = VideoStabilization.Analyze(path, map.SourceStart, map.SourceStart + map.SourceDuration, layer.Stabilization); }
+            catch (Exception e) when (e is SharpGen.Runtime.SharpGenException or IOException) { plan = new StabilizationPlan([], []); }
+            s = new VideoStabilization(plan);
+            stabilizations[layer.Id] = s;
+        }
+        return s.Apply(graphics, image, t);
+    }
+
     /// <summary>Draws a stored frame into its upright bitmap, turned clockwise by <paramref name="rotation"/> degrees.</summary>
     void TurnUpright(ID2D1Bitmap1 stored, ID2D1Bitmap1 upright, int rotation)
     {
@@ -392,6 +409,7 @@ public sealed class Compositor : IDisposable
         foreach (var id in nested.Keys.Where(id => !active.Contains(id)).ToList()) { nested[id].Dispose(); nested.Remove(id); }
         foreach (var id in texts.Keys.Where(id => !active.Contains(id)).ToList()) { texts[id].Bitmap?.Dispose(); texts.Remove(id); }
         foreach (var id in cutouts.Keys.Where(id => !active.Contains(id)).ToList()) { cutouts[id].Dispose(); cutouts.Remove(id); }
+        foreach (var id in stabilizations.Keys.Where(id => !active.Contains(id)).ToList()) { stabilizations[id].Dispose(); stabilizations.Remove(id); }
         foreach (var id in clipMasks.Keys.Where(id => !active.Contains(id)).ToList()) { clipMasks[id].Dispose(); clipMasks.Remove(id); }
         foreach (var id in transitions.Keys.Where(id => !active.Contains(id)).ToList()) { transitions[id].Dispose(); transitions.Remove(id); }
         foreach (var id in filtered.Keys.Where(id => !active.Contains(id)).ToList())

@@ -19,6 +19,7 @@ final class FrameCompositor {
     private var failed: Set<String> = []
     private var nested: [String: FrameCompositor] = [:]
     private var masks: [String: CutoutMask] = [:]
+    private var stabilizations: [String: StabilizationPlan] = [:]
     /// Filters' readable lookup tables.
     private var luts: [ColorFilter: [ColorLUT]] = [:]
     private var chromaKeys: [String: ChromaKeyFilter] = [:]
@@ -111,7 +112,9 @@ final class FrameCompositor {
         case let .video(url):
             guard let source = await source(for: layer, url: url) else { return nil }
             let time = layer.timeMap.sourceTime(atOffset: offset)
-            return cropped(masked(cutOut(source.image(at: time), layer: layer, at: time), layer: layer, at: time), layer.crop)
+            let frame = await stabilized(cutOut(source.image(at: time), layer: layer, at: time), layer: layer, url: url,
+                                         at: time)
+            return cropped(masked(frame, layer: layer, at: time), layer.crop)
 
         case let .photo(url):
             return cropped(masked(cutOut(photos.image(url, maxDimension: max(size.width, size.height)), layer: layer, at: 0),
@@ -160,6 +163,19 @@ final class FrameCompositor {
             warnings.append("\(url.lastPathComponent): \(error.localizedDescription)")
             return nil
         }
+    }
+
+    /// "Stabilize": the frame moved onto the smoothed camera path (planned once per clip, see `Stabilizer`).
+    private func stabilized(_ image: CIImage?, layer: VisualLayer, url: URL, at t: Int64) async -> CIImage? {
+        guard let image, layer.stabilization > 0 else { return image }
+        if stabilizations[layer.id] == nil {
+            let map = layer.timeMap
+            stabilizations[layer.id] = await VideoStabilization.analyze(
+                url: url, from: map.sourceStart, to: map.sourceStart + map.sourceDuration, level: layer.stabilization)
+                ?? StabilizationPlan(times: [], corrections: [])
+        }
+        guard let plan = stabilizations[layer.id], !plan.times.isEmpty else { return image }
+        return VideoStabilization.apply(plan.correction(at: t), to: image)
     }
 
     /// Skin retouch and "Chroma key", then "Remove background": the frame with CapCut's mask at source time `t` as its
@@ -231,6 +247,7 @@ final class FrameCompositor {
         for id in clipMasks.keys where !active.contains(id) { clipMasks[id] = nil }
         for id in sources.keys where !active.contains(id) { sources[id] = nil }
         for id in masks.keys where !active.contains(id) { masks[id] = nil }
+        for id in stabilizations.keys where !active.contains(id) { stabilizations[id] = nil }
         for id in chromaKeys.keys where !active.contains(id) { chromaKeys[id] = nil }
         for id in nested.keys where !active.contains(id) { nested[id] = nil }
         for id in textImages.keys where !active.contains(id) { textImages[id] = nil }

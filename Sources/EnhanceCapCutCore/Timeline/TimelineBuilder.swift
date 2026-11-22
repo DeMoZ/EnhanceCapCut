@@ -163,6 +163,10 @@ private struct Builder {
                         generic[ref].flatMap { $0.0 == "effects" && $0.1.type == "filter" ? colorFilter($0.1) : nil }
                     }
                     layer.blendMode = blendMode(refs, generic: generic)
+                    if let level = video?.stableLevel, level > 0 {
+                        // Stabilized by us on video clips; a compound clip's rendered video isn't analysed yet.
+                        if case .video = content { layer.stabilization = level } else { note(L("Stabilization"), "level \(level)") }
+                    }
                     layers.append((layer, order))
                     if let from = previous?.layer, let material = previous?.transition {
                         from.transitionOut = LayerTransition.make(
@@ -427,7 +431,6 @@ private struct Builder {
     /// Per-clip processing stored on the video material itself.
     mutating func reportVideo(_ video: VideoMaterial) {
         if video.type != "video", video.type != "photo" { note(L("Media"), "\(video.type) clip") }
-        if video.stableLevel > 0 { note(L("Stabilization"), "level \(video.stableLevel)") }
         if video.beautyMode { note(L("Beauty / makeup"), L("retouch")) }
         // AI-generated images are already baked into the material's file.
         for algorithm in Set(video.algorithms).sorted() where !algorithm.hasPrefix("AigcTypeGen") {
