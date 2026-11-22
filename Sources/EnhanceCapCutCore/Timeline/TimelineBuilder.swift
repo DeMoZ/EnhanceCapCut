@@ -91,9 +91,9 @@ private struct Builder {
                     }
                 }
                 func reportAll() {
-                    // Text animations are rendered; the ones that aren't are noted where the text layer is built.
-                    reportRefs(track.type == "text" ? refs.filter { generic[$0]?.0 != "material_animations" } : refs,
-                               generic: generic)
+                    // Text and clip animations are rendered; the ones that aren't are noted where the layer is built.
+                    let animated = track.type == "text" || track.type == "video"
+                    reportRefs(animated ? refs.filter { generic[$0]?.0 != "material_animations" } : refs, generic: generic)
                     if let filterIssue { note(L("Audio effect"), filterIssue) }
                 }
                 if track.type != "audio" { reportAll() }
@@ -150,6 +150,10 @@ private struct Builder {
                         keyframes: keyframes(segment), canvas: isMain ? refs.lazy.compactMap { canvases[$0] }.first : nil,
                         cutout: cutout, chromaKey: refs.lazy.compactMap { chromas[$0] }.first.flatMap(ChromaKey.init),
                         masks: masks)
+                    let (clipAnimations, unsupportedClipAnimations) = ClipAnimation.make(
+                        refs.lazy.compactMap { animations[$0] }.first, segmentDuration: segment.targetTimerange.duration)
+                    for name in unsupportedClipAnimations { note(L("Animation"), name) }
+                    layer.animations = clipAnimations
                     layer.effects = refs.compactMap { videoEffects[$0] }
                     layer.toneMapsHDR = segment.hdrMode != 0
                     layer.retouchesSkin = refs.contains { ref in

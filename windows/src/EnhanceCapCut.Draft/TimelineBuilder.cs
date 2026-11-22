@@ -107,8 +107,8 @@ public static class TimelineBuilder
                     }
                     void ReportAll()
                     {
-                        // Text animations are rendered; the ones that aren't are noted where the text layer is built.
-                        ReportRefs(track.Type == "text"
+                        // Text and clip animations are rendered; the ones that aren't are noted where the layer is built.
+                        ReportRefs(track.Type is "text" or "video"
                             ? refs.Where(r => !(generic.TryGetValue(r, out var g) && g.Key == "material_animations")) : refs, generic);
                         if (filterIssue is not null) Note(L("Audio effect"), filterIssue);
                     }
@@ -175,6 +175,10 @@ public static class TimelineBuilder
                                 segment.TargetTimerange, timeMap, video?.Crop ?? new Crop(), segment.Clip ?? new Clip(),
                                 segment.UniformScale, Keyframes(segment), isMain ? First(refs, canvases) : null, cutout,
                                 First(refs, chromas) is { } chroma ? ChromaKey.From(chroma) : null, masks);
+                            var (clipAnimations, unsupportedClipAnimations) =
+                                ClipAnimation.Make(First(refs, animations), segment.TargetTimerange.Duration);
+                            foreach (var name in unsupportedClipAnimations) Note(L("Animation"), name);
+                            layer.Animations = clipAnimations;
                             layer.Effects = refs.Select(r => videoEffects.GetValueOrDefault(r)).OfType<VideoEffect>().ToList();
                             layer.ToneMapsHdr = segment.HdrMode != 0;
                             layer.RetouchesSkin = refs.Any(r => generic.TryGetValue(r, out var g) && g.Key == "effects"

@@ -104,6 +104,8 @@ public sealed class VisualLayer(string id, VisualContent content, int trackIndex
     public IReadOnlyList<VideoEffect> Effects { get; set; } = [];
     /// <summary>The transition into the next clip on this track.</summary>
     public LayerTransition? TransitionOut { get; set; }
+    /// <summary>Video clip In / Out animations, applied on top of the transform.</summary>
+    public IReadOnlyList<ClipAnimation> Animations { get; internal set; } = [];
 
     public bool IsActive(long t) => t >= Target.Start && t < Target.End;
 
@@ -119,9 +121,9 @@ public sealed class VisualLayer(string id, VisualContent content, int trackIndex
             if (Keyframes.ContainsKey(LayerProperty.ScaleX)) sy = sx;
             else if (Keyframes.ContainsKey(LayerProperty.ScaleY)) sx = sy;
         }
-        return new(sx, sy, Kf(LayerProperty.Rotation) ?? Clip.Rotation,
+        return ClipAnimation.Apply(Animations, new(sx, sy, Kf(LayerProperty.Rotation) ?? Clip.Rotation,
             Kf(LayerProperty.PositionX) ?? Clip.Transform.X, Kf(LayerProperty.PositionY) ?? Clip.Transform.Y,
-            Clip.FlipHorizontal, Clip.FlipVertical, Kf(LayerProperty.Alpha) ?? Clip.Alpha);
+            Clip.FlipHorizontal, Clip.FlipVertical, Kf(LayerProperty.Alpha) ?? Clip.Alpha), offset);
     }
 }
 
