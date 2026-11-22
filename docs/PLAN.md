@@ -153,7 +153,11 @@ Usage counts from the author's 69 projects drive the order of the later mileston
       our own `MaskRaster` on both platforms; checked against the Pullups7 export. Open: `expansion` (reported, always 0 in the
       author's projects) and brush feather (reported, 5 GymCrowd clips); heart and star aren't in the author's projects, so their outline
       isn't calibrated.
-- Video clip animations, manual deformation.
+- [x] Video / photo clip In and Out animations (`material_animations`, #41): fade, zoom in/out, slide, rotate and
+      shake, recognized by name and applied on top of the clip transform on both platforms (`ClipAnimation.swift` /
+      `ClipAnimation.cs`). Open (#83): Combo (`group`), the other presets (reported by name) and calibrating the motion
+      against a CapCut export (none of the author's projects uses clip animations).
+- Manual deformation.
 
 ## Milestone 6 — beauty / makeup approximations
 

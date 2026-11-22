@@ -117,6 +117,8 @@ public final class VisualLayer {
     public internal(set) var transitionOut: LayerTransition?
     /// Clip masks (shapes, brush); what any of them keeps is shown.
     public let masks: [ClipMask]
+    /// Video clip In / Out animations, applied on top of the transform.
+    public internal(set) var animations: [ClipAnimation] = []
 
     init(id: String, content: VisualContent, trackIndex: Int, renderIndex: Int, isMainTrack: Bool,
          target: TimeRange, timeMap: TimeMap, crop: Crop, clip: Clip, uniformScale: Bool,
@@ -150,13 +152,13 @@ public final class VisualLayer {
         if uniformScale {
             if keyframes[.scaleX] != nil { sy = sx } else if keyframes[.scaleY] != nil { sx = sy }
         }
-        return LayerTransform(
+        return ClipAnimation.apply(animations, to: LayerTransform(
             scaleX: sx, scaleY: sy,
             rotation: kf(.rotation) ?? clip.rotation,
             positionX: kf(.positionX) ?? clip.transform.x,
             positionY: kf(.positionY) ?? clip.transform.y,
             flipH: clip.flipHorizontal, flipV: clip.flipVertical,
-            alpha: kf(.alpha) ?? clip.alpha)
+            alpha: kf(.alpha) ?? clip.alpha), offset: offset)
     }
 }
 

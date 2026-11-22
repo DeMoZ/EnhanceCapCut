@@ -109,6 +109,16 @@ We recognize presets by name and reproduce fade, typewriter (characters appear i
 whole text), slide, zoom in/out, pop, and blink/pulse loops; the rest are reported by name. The motion is our own,
 not yet calibrated against a CapCut export (#68).
 
+### Clip animations
+
+A video or photo segment links a `material_animations[]` entry the same way (`type` `sticker_animation`), with
+`animations[]` of `type` `in`, `out` or `group` (Combo, which runs over the whole clip). We assume the same fields and
+timing as for texts: `start` is 0 and an Out plays in the clip's last `duration`; an In and Out longer than the clip
+are squeezed into it. Neither the author's projects nor CapCut's cache have any, so this is not yet checked against a
+real draft. We recognize In / Out presets by name — fade, zoom in/out, slide left/right/up/down, rotate (clockwise or
+counterclockwise) and shake — and apply them as scale, rotation, offset and opacity curves on top of the clip
+transform (keyframes included); Combo and the other presets are reported by name (#83).
+
 Captions (`type: subtitle`) are burned in only when CapCut's export option is on — the author exports
 both variants — hence our "Burn in captions" toggle.
 
