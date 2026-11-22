@@ -41,6 +41,8 @@ public sealed class Compositor : IDisposable
     readonly Dictionary<string, TransitionMixer> transitions = [];
     readonly StickerImageRenderer stickerRenderer;
     readonly Dictionary<string, ID2D1Bitmap1> stickers = [];
+    /// <summary>Scratch frames for overlay blend modes: the placed layer and a copy of what's below it.</summary>
+    ID2D1Bitmap1? blendLayer, blendBackdrop;
     /// <summary>False for a compound clip's frames: transparent where nothing is drawn, like in CapCut (cut-out clips
     /// inside it show the layers below).</summary>
     readonly bool opaque;
@@ -137,6 +139,7 @@ public sealed class Compositor : IDisposable
                 foreach (var (layer, image, textScale) in run)
                 {
                     if (mixed.Plates.TryGetValue(layer.Id, out var plate)) dc.DrawBitmap(plate, 1, InterpolationMode.NearestNeighbor);
+                    else if (layer.BlendMode is { } mode && mode != Draft.BlendMode.Normal) Blend(dc, layer, image, textScale, t, mode);
                     else Place(dc, layer, image, textScale, t);
                 }
             });
@@ -437,6 +440,47 @@ public sealed class Compositor : IDisposable
         dc.Transform = Matrix3x2.Identity;
     }
 
+    /// <summary>Places <paramref name="layer"/> like <see cref="Place"/>, but blended with what's below it: the layer is
+    /// drawn into its own frame, the frame so far is copied, and the Direct2D blend effect of the two replaces the
+    /// frame. Like CapCut, it blends sRGB-encoded values.</summary>
+    void Blend(ID2D1DeviceContext dc, VisualLayer layer, ID2D1Bitmap1 image, float? textScale, long t, Draft.BlendMode mode)
+    {
+        blendLayer ??= graphics.CreateBitmap(Width, Height, BitmapOptions.Target);
+        blendBackdrop ??= graphics.CreateBitmap(Width, Height);
+        dc.Flush(out _, out _);
+        dc.Target = blendLayer;
+        dc.Clear(new Color4(0, 0, 0, 0));
+        Place(dc, layer, image, textScale, t);
+        dc.Flush(out _, out _);
+        blendBackdrop.CopyFromBitmap(Frame).CheckError();
+        dc.Target = Frame;
+        DrawBlended(dc, blendBackdrop, blendLayer, mode);
+    }
+
+    /// <summary>Replaces the target with <paramref name="layer"/> blended over <paramref name="backdrop"/> (both
+    /// target-sized).</summary>
+    public static void DrawBlended(ID2D1DeviceContext dc, ID2D1Bitmap1 backdrop, ID2D1Bitmap1 layer, Draft.BlendMode mode)
+    {
+        using var blend = new Vortice.Direct2D1.Effects.Blend(dc) { Mode = D2DBlendMode(mode) };
+        blend.SetInput(0, backdrop, true);
+        blend.SetInput(1, layer, true);
+        dc.DrawImage(blend.Output, null, null, InterpolationMode.NearestNeighbor, CompositeMode.SourceCopy);
+    }
+
+    static Vortice.Direct2D1.BlendMode D2DBlendMode(Draft.BlendMode mode) => mode switch
+    {
+        Draft.BlendMode.Screen => Vortice.Direct2D1.BlendMode.Screen,
+        Draft.BlendMode.Darken => Vortice.Direct2D1.BlendMode.Darken,
+        Draft.BlendMode.Lighten => Vortice.Direct2D1.BlendMode.Lighten,
+        Draft.BlendMode.Overlay => Vortice.Direct2D1.BlendMode.Overlay,
+        Draft.BlendMode.HardLight => Vortice.Direct2D1.BlendMode.HardLight,
+        Draft.BlendMode.SoftLight => Vortice.Direct2D1.BlendMode.SoftLight,
+        Draft.BlendMode.LinearBurn => Vortice.Direct2D1.BlendMode.LinearBurn,
+        Draft.BlendMode.ColorBurn => Vortice.Direct2D1.BlendMode.ColorBurn,
+        Draft.BlendMode.ColorDodge => Vortice.Direct2D1.BlendMode.ColorDodge,
+        _ => Vortice.Direct2D1.BlendMode.Multiply,
+    };
+
     void Background(ID2D1DeviceContext dc, CanvasMaterial canvas, ID2D1Bitmap1 source)
     {
         switch (canvas.Type)
@@ -499,6 +543,8 @@ public sealed class Compositor : IDisposable
         skinRetoucher?.Dispose();
         foreach (var b in stickers.Values) b.Dispose();
         stickerRenderer.Dispose();
+        blendLayer?.Dispose();
+        blendBackdrop?.Dispose();
         text.Dispose();
         if (ownsPhotos) photos.Dispose();
         Frame.Dispose();

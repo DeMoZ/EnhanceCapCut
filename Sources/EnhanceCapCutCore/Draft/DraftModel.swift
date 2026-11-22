@@ -260,6 +260,8 @@ public struct GenericMaterial: Decodable {
     public var subType: String = ""
     public var name: String
     public var path: String
+    /// CapCut's library `effect_id` (also matched for blend modes, see `resourceID`).
+    public var effectID: String
     /// For `material_animations`: the names of the text/sticker animations it holds.
     public var animationNames: [String]
     /// Toggles used by audio-processing materials (`enable`, `is_denoise`, `choice`).
@@ -290,6 +292,7 @@ public struct GenericMaterial: Decodable {
         subType = c.str("sub_type") ?? ""
         name = c.str("name") ?? c.str("effect_name") ?? c.str("material_name") ?? ""
         path = c.str("path") ?? ""
+        effectID = c.str("effect_id") ?? ""
         animationNames = c.list("animations", of: NamedItem.self).map(\.name)
         enable = c.bool("enable")
         isDenoise = c.bool("is_denoise")

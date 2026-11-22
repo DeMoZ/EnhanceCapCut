@@ -162,6 +162,7 @@ private struct Builder {
                     layer.filters = refs.compactMap { ref in
                         generic[ref].flatMap { $0.0 == "effects" && $0.1.type == "filter" ? colorFilter($0.1) : nil }
                     }
+                    layer.blendMode = blendMode(refs, generic: generic)
                     layers.append((layer, order))
                     if let from = previous?.layer, let material = previous?.transition {
                         from.transitionOut = LayerTransition.make(
@@ -231,6 +232,7 @@ private struct Builder {
                         trackIndex: trackIndex, renderIndex: segment.renderIndex, isMainTrack: false,
                         target: segment.targetTimerange, timeMap: timeMap, crop: Crop(), clip: segment.clip ?? Clip(),
                         uniformScale: segment.uniformScale, keyframes: keyframes(segment), canvas: nil)
+                    layer.blendMode = blendMode(refs, generic: generic)
                     layers.append((layer, order))
 
                 default:
@@ -400,6 +402,12 @@ private struct Builder {
         }
     }
 
+    /// The blend mode of the segment's `mix_mode` material, if any (unknown modes are reported in `report`).
+    func blendMode(_ refs: [String], generic: [String: (String, GenericMaterial)]) -> BlendMode? {
+        refs.lazy.compactMap { generic[$0] }.first { $0.0 == "effects" && $0.1.type == "mix_mode" }
+            .flatMap { BlendMode(material: $0.1) }
+    }
+
     /// Keyframed properties the renderer doesn't animate. Unknown mask properties are one entry.
     mutating func reportKeyframes(_ segment: Segment) {
         var names: Set<String> = []
@@ -519,6 +527,7 @@ private struct Builder {
             case "filter": if colorFilter(item) == nil { note(L("Filter"), name) }
             case "text_effect": break  // Reported with its text, where it's known whether it applies.
             case "text_shape": if !item.name.isEmpty { note(L("Text shape"), item.name) }
+            case "mix_mode": if BlendMode(material: item) == nil { note(L("Blend mode"), name) }
             case "color_correct", "smart_color_adjust": note(L("Color adjustment"), item.type.replacingOccurrences(of: "_", with: " "))
             // The container of a clip's beauty effects; it draws nothing itself.
             case "makeup_root": break

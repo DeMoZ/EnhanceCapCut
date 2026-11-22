@@ -106,6 +106,8 @@ public sealed class VisualLayer(string id, VisualContent content, int trackIndex
     public LayerTransition? TransitionOut { get; set; }
     /// <summary>Video clip In / Out animations, applied on top of the transform.</summary>
     public IReadOnlyList<ClipAnimation> Animations { get; internal set; } = [];
+    /// <summary>The overlay's blend mode (<c>mix_mode</c>); null = normal.</summary>
+    public BlendMode? BlendMode { get; init; }
 
     public bool IsActive(long t) => t >= Target.Start && t < Target.End;
 

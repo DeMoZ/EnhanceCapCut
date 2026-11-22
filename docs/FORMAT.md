@@ -464,6 +464,33 @@ white, grey or black one), with a soft band; "Shadow" keeps pixels below a brigh
 key's hue out of what's kept; "Edge feather" blurs the matte. The keying runs on the clip's frames before the
 cutout and the crop. Its constants are not calibrated against a CapCut export yet.
 
+## Blend modes
+
+The "Blend" panel of an overlay clip: a `materials.effects[]` item with `type` `mix_mode`, referenced from the
+segment's `extra_material_refs` (`name`, `effect_id`, `resource_id`, `path` to the package). The panel's opacity slider
+is the clip's `clip.alpha`. None of the author's projects uses it, so the item's exact fields are not confirmed from a
+real draft; the modes and their ids come from CapCut's built-in list (`CapCut.app/Contents/Resources/MixMode/
+MixMode.json`, names in `po/en.po`):
+
+| UI name | internal name | `effect_id` | `resource_id` |
+|---|---|---|---|
+| Screen | `color_filter` | 871339 | 6758325170760323597 |
+| Darken | `dark_en` | 871342 | 6758324839670354445 |
+| Brighten (lighten) | `bright_en` | 871341 | 6758324919789949453 |
+| Overlay | `over_lay` | 871340 | 6758324989931295240 |
+| Hard light | `glare_pc` | 871338 | 6758325264670790152 |
+| Soft light | `soft_light` | 871337 | 6758325439212556814 |
+| Linear burn | `linear_deepening` | 871336 | 6758325619253056013 |
+| Color burn | `darken_color` | 871335 | 6758325724848853518 |
+| Color dodge | `color_dodge` | 871334 | 6758325800031752712 |
+| Multiply | `multiply_blend_mode` | 871333 | 6758325895519277582 |
+
+Each package is a compiled shader (`blend.xshader`), not readable. We match `effect_id`, then `resource_id`, then the
+name (internal or English, any case; "Normal" = no blend) and draw the clip with the standard separable blend formula
+(W3C Compositing) on sRGB-encoded values, composited source-over with the clip's opacity: Core Image's
+`CI…BlendMode` filters between sRGB tone curves on the Mac (the working space is linear), the Direct2D Blend effect on
+Windows. Unknown modes are reported as "Blend mode". Not yet compared with a CapCut export.
+
 ## Transitions
 
 `materials.transitions[]`: `{id, type: "transition", name, effect_id / resource_id, path (effect cache), duration (µs),

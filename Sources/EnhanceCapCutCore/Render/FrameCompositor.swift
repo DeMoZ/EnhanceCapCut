@@ -86,7 +86,7 @@ final class FrameCompositor {
                                                 progress: transition.progress(at: t), rect: rect)
                 result = mixed.composited(over: result)
             } else {
-                result = place(image, layer: layer, at: t).composited(over: result)
+                result = Self.blended(place(image, layer: layer, at: t), over: result, mode: layer.blendMode)
             }
         }
         result = colored(result, by: filters.map(\.filter))
@@ -214,6 +214,17 @@ final class FrameCompositor {
             kCIInputBackgroundImageKey: CIImage.empty(),
             kCIInputMaskImageKey: scaled,
         ])
+    }
+
+    /// `image` composited over `backdrop` with an overlay blend mode. The working space is linear, so the blend runs
+    /// on sRGB-encoded values like CapCut's (and Direct2D's).
+    static func blended(_ image: CIImage, over backdrop: CIImage, mode: BlendMode?) -> CIImage {
+        guard let filter = mode?.coreImageFilter else { return image.composited(over: backdrop) }
+        return image.applyingFilter("CILinearToSRGBToneCurve")
+            .applyingFilter(filter, parameters: [
+                kCIInputBackgroundImageKey: backdrop.applyingFilter("CILinearToSRGBToneCurve"),
+            ])
+            .applyingFilter("CISRGBToneCurveToLinear")
     }
 
     private func releaseInactive(active: Set<String>) {

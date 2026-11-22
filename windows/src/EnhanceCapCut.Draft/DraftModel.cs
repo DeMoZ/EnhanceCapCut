@@ -263,6 +263,8 @@ public sealed class GenericMaterial
     public string SubType { get; set; } = "";
     public string Name { get; set; } = "";
     public string Path { get; set; } = "";
+    /// <summary>CapCut's library <c>effect_id</c> (also matched for blend modes, see <see cref="ResourceID"/>).</summary>
+    public string EffectId { get; set; } = "";
     /// <summary>For <c>material_animations</c>: the names of the text/sticker animations it holds.</summary>
     public List<string> AnimationNames { get; set; } = [];
     /// <summary>Toggles used by audio-processing materials (<c>enable</c>, <c>is_denoise</c>, <c>choice</c>).</summary>
@@ -293,6 +295,7 @@ public sealed class GenericMaterial
             SubType = c.Str("sub_type") ?? "",
             Name = c.Str("name") ?? c.Str("effect_name") ?? c.Str("material_name") ?? "",
             Path = c.Str("path") ?? "",
+            EffectId = c.Str("effect_id") ?? "",
             AnimationNames = c.List("animations", a => a.ValueKind != JsonValueKind.Object ? null
                 : a.Str("name") ?? a.Str("type") ?? "animation"),
             Enable = c.Bool("enable"),

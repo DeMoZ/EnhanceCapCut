@@ -157,6 +157,10 @@ Usage counts from the author's 69 projects drive the order of the later mileston
       shake, recognized by name and applied on top of the clip transform on both platforms (`ClipAnimation.swift` /
       `ClipAnimation.cs`). Open (#83): Combo (`group`), the other presets (reported by name) and calibrating the motion
       against a CapCut export (none of the author's projects uses clip animations).
+- [x] Blend modes (`mix_mode` in `effects`, #42): the ten modes of CapCut's Blend panel (Screen, Darken, Brighten,
+      Overlay, Hard light, Soft light, Linear burn, Color burn, Color dodge, Multiply) with the standard formulas on
+      sRGB values, on both platforms (`BlendMode.swift` / `BlendMode.cs`). Open: none of the author's projects uses
+      them, so the draft item and the look aren't checked against a real CapCut project and export.
 - Manual deformation.
 
 ## Milestone 6 — beauty / makeup approximations
