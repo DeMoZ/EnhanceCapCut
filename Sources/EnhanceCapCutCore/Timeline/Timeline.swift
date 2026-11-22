@@ -119,6 +119,8 @@ public final class VisualLayer {
     public let masks: [ClipMask]
     /// Video clip In / Out animations, applied on top of the transform.
     public internal(set) var animations: [ClipAnimation] = []
+    /// The overlay's blend mode (`mix_mode`); nil = normal.
+    public internal(set) var blendMode: BlendMode?
 
     init(id: String, content: VisualContent, trackIndex: Int, renderIndex: Int, isMainTrack: Bool,
          target: TimeRange, timeMap: TimeMap, crop: Crop, clip: Clip, uniformScale: Bool,

@@ -174,7 +174,10 @@ public static class TimelineBuilder
                             var layer = new VisualLayer(segment.Id, content, trackIndex, segment.RenderIndex, isMain,
                                 segment.TargetTimerange, timeMap, video?.Crop ?? new Crop(), segment.Clip ?? new Clip(),
                                 segment.UniformScale, Keyframes(segment), isMain ? First(refs, canvases) : null, cutout,
-                                First(refs, chromas) is { } chroma ? ChromaKey.From(chroma) : null, masks);
+                                First(refs, chromas) is { } chroma ? ChromaKey.From(chroma) : null, masks)
+                            {
+                                BlendMode = BlendModeOf(refs, generic),
+                            };
                             var (clipAnimations, unsupportedClipAnimations) =
                                 ClipAnimation.Make(First(refs, animations), segment.TargetTimerange.Duration);
                             foreach (var name in unsupportedClipAnimations) Note(L("Animation"), name);
@@ -255,7 +258,10 @@ public static class TimelineBuilder
                             foreach (var name in unsupportedAnimations) Note(L("Animation"), name);
                             var layer = new VisualLayer(segment.Id, new TextContentLayer(new TextLayerSpec(text, parsed, textAnimations, glow)),
                                 trackIndex, segment.RenderIndex, false, segment.TargetTimerange, timeMap, new Crop(),
-                                segment.Clip ?? new Clip(), segment.UniformScale, Keyframes(segment), null);
+                                segment.Clip ?? new Clip(), segment.UniformScale, Keyframes(segment), null)
+                            {
+                                BlendMode = BlendModeOf(refs, generic),
+                            };
                             layers.Add((layer, order));
                             break;
                         }
@@ -446,6 +452,18 @@ public static class TimelineBuilder
             names[name] = names.GetValueOrDefault(name) + 1;
         }
 
+        /// <summary>The blend mode of the segment's <c>mix_mode</c> material, if any (unknown modes are reported in
+        /// <c>Report</c>).</summary>
+        static BlendMode? BlendModeOf(IEnumerable<string> refs, Dictionary<string, (string Key, GenericMaterial Item)> generic)
+        {
+            foreach (var r in refs)
+            {
+                if (generic.TryGetValue(r, out var g) && g.Key == "effects" && g.Item.Type == "mix_mode")
+                    return BlendModes.From(g.Item);
+            }
+            return null;
+        }
+
         void ReportRefs(IEnumerable<string> refs, Dictionary<string, (string Key, GenericMaterial Item)> generic)
         {
             foreach (var r in refs)
@@ -594,6 +612,7 @@ public static class TimelineBuilder
                     if (t == "filter") { if (MakeColorFilter(item) is null) Note(L("Filter"), name); }
                     else if (t == "text_effect") { }  // Reported with its text, where it's known whether it applies.
                     else if (t == "text_shape") { if (item.Name.Length > 0) Note(L("Text shape"), item.Name); }
+                    else if (t == "mix_mode") { if (BlendModes.From(item) is null) Note(L("Blend mode"), name); }
                     else if (t is "color_correct" or "smart_color_adjust") Note(L("Color adjustment"), t.Replace('_', ' '));
                     // The container of a clip's beauty effects; it draws nothing itself.
                     else if (t == "makeup_root") { }

@@ -27,7 +27,7 @@ with one click EnhanceCapCut opens the project you're working on and
   spoken on your computer, even in the speaker's own voice.
 
 > [!WARNING]
-> **Not rendered yet.** Cuts, overlays, speed, transforms, keyframes, background removal, masks, filters, chroma key,
+> **Not rendered yet.** Cuts, overlays, blend modes, speed, transforms, keyframes, background removal, masks, filters, chroma key,
 > common clip animations, the "Flashback" transition, texts, captions, "Clock Time" stickers, skin retouch (approximated) and the audio mix are
 > rendered;
 > these CapCut features are not yet — a project that uses them exports without them (the export window lists the ones
@@ -38,8 +38,8 @@ with one click EnhanceCapCut opens the project you're working on and
 >   ([#66](../../issues/66));
 > - text animations other than fade, typewriter, slide, zoom, pop, blink and pulse ([#68](../../issues/68)), text
 >   effects other than glows, and bubbles ([#35](../../issues/35)), vertical text ([#47](../../issues/47));
-> - blend modes ([#42](../../issues/42)), clip animations other than the In / Out fade, zoom, slide, rotate and shake
->   (Combo included, [#83](../../issues/83)), keyframe easing ([#46](../../issues/46));
+> - clip animations other than the In / Out fade, zoom, slide, rotate and shake (Combo included,
+>   [#83](../../issues/83)), keyframe easing ([#46](../../issues/46));
 > - stabilization ([#44](../../issues/44)), AI "Enhance quality" ([#45](../../issues/45)), makeup looks and face/body
 >   reshape ([#78](../../issues/78));
 > - voice filters other than Booming, Live House and Old Hollywood ([#48](../../issues/48)); on Windows, all voice
@@ -159,7 +159,7 @@ backup.
 <summary><b>Will the export look exactly like CapCut's?</b></summary>
 
 Cuts, overlays, speed (incl. curves), transforms and keyframes, canvas backgrounds, photos, compound clips, background
-removal, masks, filters, common clip In / Out animations, the "Flashback" transition (others as a cross-fade), texts and captions, "Clock Time" stickers, the "Pudding Bounce" and "Hazy Rotation" video effects, skin retouch (approximated) and the audio mix (incl. CapCut's voice isolation, noise reduction and voice filters) are rendered. The
+removal, masks, blend modes, filters, common clip In / Out animations, the "Flashback" transition (others as a cross-fade), texts and captions, "Clock Time" stickers, the "Pudding Bounce" and "Hazy Rotation" video effects, skin retouch (approximated) and the audio mix (incl. CapCut's voice isolation, noise reduction and voice filters) are rendered. The
 features in **Not rendered yet** at the top of this page are not yet — the export window tells you when your project
 uses them. See the [roadmap](docs/PLAN.md).
 </details>
