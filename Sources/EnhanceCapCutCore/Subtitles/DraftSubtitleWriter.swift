@@ -54,6 +54,14 @@ public enum DraftSubtitleWriter {
     static let defaultStyleSize = 8.0
     static let defaultPositionY = -0.65
 
+    /// Caption size per language, relative to the copied or default style. Thai glyphs come out about half the size of
+    /// Latin ones in CapCut's caption font, and the author doubled every Thai caption by hand. Not applied when the style
+    /// is copied from a caption that is already Thai.
+    static func sizeFactor(for language: String, template: [String: Any]?) -> Double {
+        guard language.hasPrefix("th") else { return 1 }
+        return (template?["language"] as? String)?.hasPrefix("th") == true ? 1 : 2
+    }
+
     public struct Result {
         /// Every draft file that was rewritten.
         public var files: [URL]
@@ -250,6 +258,7 @@ public enum DraftSubtitleWriter {
         }
         var style = (templateContent?["styles"] as? [[String: Any]])?.first ?? defaultStyle
         style["range"] = [0, text.unicodeScalars.count]
+        if let size = style["size"] as? Double { style["size"] = size * sizeFactor(for: track.language.code, template: template) }
         m["content"] = JSONText.encode(["styles": [style], "text": text] as [String: Any])
         if let size = style["size"] as? Double { m["font_size"] = size }
 

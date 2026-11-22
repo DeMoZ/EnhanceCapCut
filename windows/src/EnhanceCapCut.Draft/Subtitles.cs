@@ -204,7 +204,11 @@ public static class Segmenter
     }
 }
 
-/// <summary>Breaks subtitle text into at most two balanced lines.</summary>
+/// <summary>
+/// Breaks subtitle text into balanced lines: two when the text fits them, more only when it doesn't, so a line never
+/// runs past CapCut's width (CapCut would then wrap it itself, cutting through words of Thai and other scripts).
+/// Lines break only between words.
+/// </summary>
 public static class LineWrapper
 {
     /// <summary>Languages written without spaces between words.</summary>
@@ -214,7 +218,9 @@ public static class LineWrapper
     {
         "zh" or "ja" => 18,
         "ko" => 24,
-        "th" => 35,
+        // Thai captions are written twice as large (DraftSubtitleWriter.SizeFactor), so half of the 35 that fit at the
+        // normal size.
+        "th" => 17,
         _ => Segmenter.MaxCharsPerLine,
     };
 
@@ -226,11 +232,14 @@ public static class LineWrapper
 
         var noSpaces = language is not null && NoSpaceLanguages.Contains(language[..Math.Min(2, language.Length)]);
         var tokens = noSpaces ? WordUnits(flat) : flat.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(t => t + " ").ToList();
+        if (noSpaces) tokens = KeepNumbersWithNext(tokens);
+
+        var total = tokens.Sum(Segmenter.Length);
+        if (total > 2 * limit) return Lines(tokens, (total + limit - 1) / limit);
 
         // Find the split point that balances both lines best.
         var best = (Score: int.MaxValue, Index: tokens.Count / 2);
         var left = 0;
-        var total = tokens.Sum(Segmenter.Length);
         for (var i = 1; i < tokens.Count; i++)
         {
             left += Segmenter.Length(tokens[i - 1]);
@@ -240,6 +249,44 @@ public static class LineWrapper
         var line1 = string.Concat(tokens.Take(best.Index)).Trim(' ');
         var line2 = string.Concat(tokens.Skip(best.Index)).Trim(' ');
         return line2.Length == 0 ? line1 : $"{line1}\n{line2}";
+    }
+
+    /// <summary>A number stays on the line of the word after it ("20 นาที", 20 minutes).</summary>
+    internal static List<string> KeepNumbersWithNext(List<string> tokens)
+    {
+        var output = new List<string>();
+        foreach (var token in tokens)
+        {
+            var last = output.Count > 0 ? output[^1].Trim(' ') : "";
+            if (last.Length > 0 && last.All(char.IsDigit)) output[^1] += token;
+            else output.Add(token);
+        }
+        return output;
+    }
+
+    /// <summary><paramref name="tokens"/> in <paramref name="count"/> lines as even as possible: the narrowest width that
+    /// still needs no more lines.</summary>
+    static string Lines(List<string> tokens, int count)
+    {
+        List<string> Fill(int width)
+        {
+            var output = new List<string>();
+            var current = "";
+            foreach (var token in tokens)
+            {
+                if (current.Length > 0 && Segmenter.Length((current + token).Trim(' ')) > width)
+                {
+                    output.Add(current);
+                    current = "";
+                }
+                current += token;
+            }
+            if (current.Length > 0) output.Add(current);
+            return output;
+        }
+        var width = Math.Max(tokens.Max(Segmenter.Length), tokens.Sum(Segmenter.Length) / count);
+        while (Fill(width).Count > count) width++;
+        return string.Join("\n", Fill(width).Select(l => l.Trim(' ')));
     }
 
     /// <summary>

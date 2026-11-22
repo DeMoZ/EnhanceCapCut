@@ -90,6 +90,53 @@ final class SubtitleWriterTests: XCTestCase {
         XCTAssertEqual(material["font_size"] as? Double, 13)
     }
 
+    func testThaiCaptionsAreTwiceAsLarge() throws {
+        let th = SubtitleLanguage(Locale.Language(identifier: "th"))
+        let thai = SubtitleTrack(language: th, cues: [CaptionCue(start: 0.5, end: 2, text: "สวัสดี")], isOriginal: false, isVisible: true)
+        let out = try DraftSubtitleWriter.apply(tracks() + [thai], to: Data(draft.utf8), replacePrevious: true)
+        let texts = try XCTUnwrap((try json(out)["materials"] as? [String: Any])?["texts"] as? [[String: Any]])
+        func size(_ language: String) throws -> (Double?, Double?) {
+            let m = try XCTUnwrap(texts.first { $0["language"] as? String == language })
+            let content = try json(Data(try XCTUnwrap(m["content"] as? String).utf8))
+            return (m["font_size"] as? Double, (content["styles"] as? [[String: Any]])?.first?["size"] as? Double)
+        }
+        XCTAssertEqual(try size("th-TH").0, 16)
+        XCTAssertEqual(try size("th-TH").1, 16)
+        XCTAssertEqual(try size("en-US").0, 8)
+
+        // Copied from a caption that is already Thai: its size is kept, not doubled again.
+        XCTAssertEqual(DraftSubtitleWriter.sizeFactor(for: "th", template: ["language": "th-TH"]), 1)
+        XCTAssertEqual(DraftSubtitleWriter.sizeFactor(for: "th", template: ["language": "ru-RU"]), 2)
+        XCTAssertEqual(DraftSubtitleWriter.sizeFactor(for: "en", template: nil), 1)
+    }
+
+    func testWrapsThaiAtWordsWithinTheLineLimit() {
+        let text = "ผมได้ยินมาว่าปลาหมึกกล้วยและปลาหมึกกระดองต้องย่างแค่หนึ่งนาทีหรือยี่สิบนาทีเท่านั้น"
+        let wrapped = LineWrapper.wrap(text, language: "th")
+        let lines = wrapped.split(separator: "\n").map(String.init)
+        XCTAssertGreaterThan(lines.count, 2)
+        XCTAssertEqual(lines.joined(), text)                       // nothing lost or added
+        for line in lines { XCTAssertLessThanOrEqual(line.count, LineWrapper.lineLimit(for: "th") + 4) }
+        for word in ["ปลาหมึก", "หนึ่ง", "ยี่สิบ", "เท่านั้น"] {   // whole words, never cut between lines
+            XCTAssertTrue(lines.contains { $0.contains(word) }, word)
+        }
+    }
+
+    func testThaiNumbersStayWithTheirWord() {
+        XCTAssertEqual(LineWrapper.keepNumbersWithNext(["ปรุงเป็นเวลา ", "1 ", "นาที"]), ["ปรุงเป็นเวลา ", "1 นาที"])
+        let wrapped = LineWrapper.wrap("ปรุงเป็นเวลา 1 นาทีหรือ 20 นาทีเท่านั้นนะครับ", language: "th")
+        XCTAssertFalse(wrapped.contains("1\n") || wrapped.contains("20\n"), wrapped)
+    }
+
+    func testWrapsLongTextIntoMoreLinesOnlyWhenNeeded() {
+        let two = LineWrapper.wrap("They add a little sugar and form such sausages for the market.", language: "en")
+        XCTAssertEqual(two.split(separator: "\n").count, 2)
+        let long = String(repeating: "word ", count: 30).trimmingCharacters(in: .whitespaces)
+        let lines = LineWrapper.wrap(long, language: "en").split(separator: "\n")
+        XCTAssertEqual(lines.count, 4)
+        for line in lines { XCTAssertLessThanOrEqual(line.count, Segmenter.maxCharsPerLine) }
+    }
+
     func testScannerHandlesStringsWithBrackets() throws {
         let data = Data(#"{"a":"x]}\"[{","b":[1,{"c":"]"},[2]],"d":null}"#.utf8)
         let s = JSONScanner(data)
