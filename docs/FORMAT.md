@@ -577,6 +577,18 @@ effect in CapCut's cache (`AmazingFeature/` scenes, shaders, Lua, textures; `con
   CapCut.app, e.g. `figure/beauty_head/manual_small_face`), `vertex_list_path` (a file in the project's
   `materials/manual_deformation_algorithm`), `face_recognition_algorithm_path`. Not rendered.
 
+## Stabilization
+
+`materials.videos[].stable`: `stable_level` (0 = off; 1–3, CapCut's "Least cropping", "Recommended", "Most
+stable" — only 3 is in the author's projects), `matrix_path`, `time_range` ({0, 0}). `matrix_path` is empty in all
+11 stabilized clips (ShrimpFishing1), and neither the project folder nor CapCut's cache (`Cache/stable`, empty) holds
+a result, so the renderer estimates the camera motion itself (`Stabilizer`).
+
+What CapCut's export does (ShrimpFishing1, level 3, each export frame matched against the same source frame): the
+whole 16:9 source frame is moved, turned and enlarged before the clip's own transform; the zoom changes with the
+shake — 1.035 and almost no correction on a steady pan (IMG_5029), 1.09–1.28 with ±0.03 frame-height shifts and up
+to ±3° turns on a shaky close-up (IMG_5031).
+
 ## Compound clips
 
 `materials.drafts[]` (`type` `combination`) embed a complete nested draft in `draft`. A video segment
