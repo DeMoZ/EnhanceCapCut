@@ -9,7 +9,9 @@ and C# (`windows/src/EnhanceCapCut.Draft`) code into one Rust crate. The plan, i
   (`env::CoreEnvironment`), and the core's texts (`tr!` over `Localization/ru.json`).
   `timeline`: draft → `Timeline` (`TimelineBuilder`, with the report of what isn't rendered), evaluation over time
   (`TimeMap`, `KeyframeTrack`, animations, masks, transitions, effects) and `Timeline::frame(t)`, everything the
-  compositors ask at one moment. `info`: the `ecc info` text.
+  compositors ask at one moment. `info`: the `ecc info` text. `subtitles`: cues from words, line wrapping (ICU4X word
+  breaks for no-space scripts) and SRT. `writers`: captions, voice-over and dubbed timelines written into drafts
+  byte-preservingly, with backups and the "open in CapCut" refusal; ids and time are inputs (`IdSource`, `now_us`).
 - `ecc-golden`: the Rust side of the golden-parity runner: `ecc-golden info [project] [--timeline name|number]`
   prints what `ecc info` prints.
 

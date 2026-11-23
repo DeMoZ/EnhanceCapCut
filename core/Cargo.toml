@@ -15,6 +15,8 @@ ecc-core = { path = "ecc-core" }
 serde_json = { version = "1", features = ["float_roundtrip"] }
 uuid = { version = "1", features = ["v4"] }
 unicode-segmentation = "1"
+# Word breaks for Thai, Lao, Khmer and Burmese: LSTM data only (design decision 7).
+icu_segmenter = { version = "2.4", default-features = false, features = ["compiled_data", "lstm"] }
 
 # Design decision 2.
 [profile.release]

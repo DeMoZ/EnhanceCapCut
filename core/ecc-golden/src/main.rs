@@ -40,6 +40,15 @@ fn main() -> ExitCode {
                 ExitCode::FAILURE
             }
         },
+        // Hidden: wraps every stdin line like captions in `language`, line breaks shown as " | ".
+        "wrap" => {
+            use std::io::BufRead;
+            let language = project.unwrap_or("en");
+            for line in std::io::stdin().lock().lines().map_while(Result::ok) {
+                println!("{}", ecc::subtitles::LineWrapper::wrap(&line, Some(language)).replace('\n', " | "));
+            }
+            ExitCode::SUCCESS
+        }
         "timelines" => match ecc::info::resolve(project, None, &env) {
             Ok((project, _)) => {
                 for t in project.timelines() {
