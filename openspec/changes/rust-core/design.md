@@ -233,6 +233,14 @@ Only the enums with data are written by hand, about ten conversions. Other choic
   segmentation, `format_info`. That includes `frame`, so a core bug fails one frame instead of crashing the app;
   Swift would `fatalError` on a panic in a non-throwing call. Getters of an already built timeline only copy data
   and don't throw. `debug_panic` exists so the binding smoke tests can check the panic path.
+- **Swift error text.** UniFFI 0.32's Swift `errorDescription` is `String(reflecting: self)`, for flat errors too.
+  The stage-0 note above held only for C#: there `CoreException.Message` is the text. A hand-written
+  `Sources/EccCore/CoreError+Message.swift`, in the same module as the generated file, makes `CoreError`
+  `CustomDebugStringConvertible` with the message. `String(reflecting:)` uses that conformance, so
+  `localizedDescription` is the localized text, and the generated file stays untouched.
+- **Re-export without clashes.** `@_exported import EccCore` in `EnhanceCapCutCore` builds while the old Swift types
+  still exist. A module's own declarations shadow those of a module it re-exports, so the app and the CLI keep
+  getting `EnhanceCapCutCore.Timeline` until stage 3 deletes it. The smoke tests import `EccCore` alone.
 - **Names.** `r#type` and `r#loop` come out as `type` / `loop` in Swift and `Type` / `Loop` in C#, so call sites
   keep today's names. Clock hands become a `ClockHands { minute, hour }` record, and voice-over lines a
   `LineRange { start, end }` record. The generated Swift compiles in Swift 5 and Swift 6 modes, and the C#
@@ -329,7 +337,9 @@ quality, at the price of identical Thai/CJK breaks on both platforms; (c) a comp
   `.target(name: "EccCore", dependencies: ["EccCoreFFI"])`; `EnhanceCapCutCore` depends on `EccCore`.
 - `scripts/build-app.sh` runs `build-core.sh` first (`--universal` with `--pkg`). Static linking puts the core
   inside the `ecc` and `EnhanceCapCut` executables: nothing new to copy into `Contents/Frameworks`, sign or
-  notarize separately; the existing codesign/notarytool steps are unchanged.
+  notarize separately; the existing codesign/notarytool steps are unchanged. (Stage 2 replaced this with a
+  dynamic `EccCoreFFI.framework`, because Xcode 26 can't link the static one in a universal build; see the
+  stage-2 change below.)
 - Swift 6 toolchain in Swift 5 mode: generated code builds in both modes; the spike checks it with the current
   Xcode command line tools, without `-warnings-as-errors`.
 - Spike-verified (Xcode 27.1, Swift 6.4 locally; `macos-15` runner in CI): `cargo build` for both Apple triples →
@@ -339,6 +349,34 @@ quality, at the price of identical Thai/CJK breaks on both platforms; (c) a comp
   x86_64` links it, `lipo -info` shows both arches, and the x86_64 slice runs under Rosetta. Xcode 27 prints
   "x86_64 architecture is deprecated" for universal builds — a warning only, but a sign the x86_64 slice has a
   limited future.
+
+**Stage-2 change: a dynamic framework, not a static library.** The static library builds and links with
+Xcode 27.1 (the author's Mac), in both the single- and the multi-architecture build. Xcode 26.6 is the newest on
+the `macos-26` runner image. In the release's `swift build --arch arm64 --arch x86_64` (XCBuild), it prelinks
+`EccCore_Module.o` with `-lecc_core`, but without the XCFramework's folder: `ld: library not found`. Naming the
+library after the XCFramework didn't help.
+
+`whisper.framework`, a dynamic framework from an XCFramework, links in that same build, so the core takes the same
+shape:
+- `build-core.sh` `lipo`s the two `libecc_core.dylib` (the cdylib) into `EccCoreFFI.framework/Versions/A/EccCoreFFI`,
+  sets its install name to `@rpath/EccCoreFFI.framework/Versions/A/EccCoreFFI`, and adds the header, a
+  `framework module` map and an `Info.plist`. It then wraps it with `xcodebuild -create-xcframework -framework`.
+- `build-app.sh` copies it into `Contents/Frameworks` and signs it, like whisper. The executables already have
+  `@executable_path/../Frameworks` in their rpath.
+
+This is also smaller: one copy of the core (2.3 MB per architecture, from the dylib's dead-code stripping and the
+release profile) instead of one inside each executable.
+
+Measured on `scripts/build-app.sh --pkg`:
+- `lipo -info` shows `x86_64 arm64` for the framework, `ecc` and `EnhanceCapCut`.
+- `codesign --verify --deep --strict` passes.
+- A copy of the app outside the checkout runs `ecc` natively and under Rosetta.
+- The `.pkg` is 27.1 MB, against 23.8 MB without the core (+3.3 MB of the +6 MB budget). Each executable also
+  grows by about 2 MB of compiled generated Swift, and nothing calls the core yet.
+
+Notarization isn't checked: the project has no Developer ID, and releases are ad-hoc signed (`DEV_ID_APP` unset in
+`release.yml`). The new framework is signed the same way as `whisper.framework`. Check `notarytool` the first time
+a Developer ID is set up.
 
 Alternatives rejected: a SwiftPM build-tool plugin running `cargo` (sandboxed, no network for the registry, no
 writes outside the plugin work dir); committing prebuilt `.a` files (repo bloat, unclear provenance); a remote

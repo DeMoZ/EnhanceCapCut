@@ -25,6 +25,7 @@ echo "Building the CLIs…"
 RUST="$REPO/core/target/release/ecc-golden"
 CLIS=("rust:$RUST")
 if [ "${SKIP_SWIFT:-0}" != 1 ]; then
+    scripts/build-core.sh >/dev/null
     swift build --quiet -c release --product ecc
     CLIS+=("swift:$(swift build -c release --show-bin-path)/ecc")
 fi

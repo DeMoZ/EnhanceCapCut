@@ -25,6 +25,8 @@ bundle_id=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" App/Info.plis
 arch_flags=()
 [[ "$mode" == "--pkg" ]] && arch_flags=(--arch arm64 --arch x86_64)
 
+# The Rust core first: both executables link its framework (scripts/build-core.sh, design decision 8).
+if [[ "$mode" == "--pkg" ]]; then scripts/build-core.sh --universal; else scripts/build-core.sh; fi
 # The CLI first: building a product prunes frameworks only the other one links (Sparkle is the app's).
 swift build -c release "${arch_flags[@]}" --product ecc
 swift build -c release "${arch_flags[@]}" --product EnhanceCapCut
@@ -46,6 +48,8 @@ cp "$bin/ecc" "$app/Contents/MacOS/ecc"
 # whisper.cpp (speech recognition) is a dynamic framework: ship it and let both binaries find it.
 mkdir -p "$app/Contents/Frameworks"
 ditto "$bin/whisper.framework" "$app/Contents/Frameworks/whisper.framework"
+# The Rust core (EccCoreFFI.framework), the same way.
+ditto "$bin/EccCoreFFI.framework" "$app/Contents/Frameworks/EccCoreFFI.framework"
 # Sparkle (app updates), signed inside out as its documentation lists.
 ditto "$bin/Sparkle.framework" "$app/Contents/Frameworks/Sparkle.framework"
 # ONNX Runtime (voice cloning) from Microsoft's NuGet package, Apple silicon only; OnnxRuntime.swift loads it.
@@ -63,6 +67,7 @@ cp Tools/SiriVoice/siri-voice.swift "$app/Contents/Resources/"
 # Interface translations (Localization.swift), shared with the Windows version.
 cp -R Localization "$app/Contents/Resources/"
 sign "$app/Contents/Frameworks/whisper.framework"
+sign "$app/Contents/Frameworks/EccCoreFFI.framework"
 sign "$app/Contents/Frameworks/libonnxruntime.dylib"
 sparkle="$app/Contents/Frameworks/Sparkle.framework/Versions/B"
 sign "$sparkle/XPCServices/Installer.xpc"
