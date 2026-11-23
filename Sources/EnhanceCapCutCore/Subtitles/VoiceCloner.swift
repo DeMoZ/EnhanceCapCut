@@ -1,21 +1,23 @@
 import Foundation
-import OnnxRuntimeBindings
 
 public enum VoiceClonerError: LocalizedError {
     case badModel(String)
     case runFailed(String)
+    /// This Mac can't run it (`VoiceCloner.unavailableReason`).
+    case unavailable(String)
 
     public var errorDescription: String? {
         switch self {
         case .badModel(let file): return L("The voice cloning model is damaged ({0}). Delete its folder in the models folder and try again.", file)
         case .runFailed(let what): return L("Voice cloning failed: {0}", what)
+        case .unavailable(let reason): return reason
         }
     }
 }
 
 /// Speaks text in the voice of a short reference recording, keeping its manner (tone, energy, emotion): Chatterbox
-/// Multilingual V3 by Resemble AI (MIT), run with ONNX Runtime from the four-graph export in `ModelStore.voiceCloning`.
-/// The Windows version's `VoiceCloner` is the same code in C#.
+/// Multilingual V3 by Resemble AI (MIT), run with ONNX Runtime (`OnnxRuntime`, Apple silicon only) from the
+/// four-graph export in `ModelStore.voiceCloning`. The Windows version's `VoiceCloner` is the same code in C#.
 ///
 /// 1. `speech_encoder`: the reference (24 kHz, first 6 s) → conditioning for the language model, its speech tokens,
 ///    a speaker embedding and mel features.
@@ -51,19 +53,36 @@ public final class VoiceCloner {
 
     private static let layers = 30, kvHeads = 16, headDim = 64, hidden = 1024
 
-    private let encoder: ORTSession
-    private let embedder: ORTSession
-    private let languageModel: ORTSession
-    private let decoder: ORTSession
+    /// Why voice cloning can't run on this Mac, nil when it can: ONNX Runtime comes for Apple silicon only.
+    public static var unavailableReason: String? {
+        #if arch(arm64)
+        return OnnxRuntime.shared == nil ? L("Voice cloning needs ONNX Runtime, which this build of the app doesn't include.") : nil
+        #else
+        return L("Voice cloning needs a Mac with Apple silicon.")
+        #endif
+    }
+
+    public static var isAvailable: Bool { unavailableReason == nil }
+
+    /// Throws `unavailable` when this Mac can't clone voices: check before downloading the model.
+    public static func checkAvailable() throws {
+        if let reason = unavailableReason { throw VoiceClonerError.unavailable(reason) }
+    }
+
+    private let runtime: OnnxRuntime
+    private let encoder: OnnxSession
+    private let embedder: OnnxSession
+    private let languageModel: OnnxSession
+    private let decoder: OnnxSession
     private let tokenizer: ChatterboxTokenizer
     private let presentNames: [String]
 
     /// A reference voice, encoded once and reused for every line.
     public struct Voice {
-        fileprivate let conditioning: ORTValue
+        fileprivate let conditioning: OnnxTensor
         fileprivate let promptTokens: [Int64]
-        fileprivate let speakerEmbedding: ORTValue
-        fileprivate let speakerFeatures: ORTValue
+        fileprivate let speakerEmbedding: OnnxTensor
+        fileprivate let speakerFeatures: OnnxTensor
     }
 
     public struct Speech {
@@ -74,19 +93,17 @@ public final class VoiceCloner {
         public var duration: Double { Double(samples.count) / VoiceCloner.sampleRate }
     }
 
-    private static let environment: ORTEnv? = try? ORTEnv(loggingLevel: .error)
-
     /// Loads the model from `folder` (see `ModelStore.voiceCloning`). Takes up to a minute: ONNX Runtime optimizes
     /// the graphs on load.
     public init(folder: URL = ModelStore.folder(of: ModelStore.voiceCloning)) throws {
-        guard let env = Self.environment else { throw VoiceClonerError.runFailed("ONNX Runtime didn't start") }
-        func session(_ name: String) throws -> ORTSession {
+        try Self.checkAvailable()
+        guard let runtime = OnnxRuntime.shared else { throw VoiceClonerError.runFailed("ONNX Runtime didn't start") }
+        self.runtime = runtime
+        func session(_ name: String) throws -> OnnxSession {
             let path = folder.appendingPathComponent(name).path
             guard FileManager.default.fileExists(atPath: path) else { throw VoiceClonerError.badModel(name) }
-            let options = try ORTSessionOptions()
-            try options.setGraphOptimizationLevel(.all)
             do {
-                return try ORTSession(env: env, modelPath: path, sessionOptions: options)
+                return try runtime.session(path: path)
             } catch {
                 throw VoiceClonerError.badModel(name)
             }
@@ -130,7 +147,7 @@ public final class VoiceCloner {
         // The first step sees the reference conditioning, then the text.
         embeds = try concatenate(voice.conditioning, embeds)
         var length = try shape(embeds)[1]
-        var cache: [String: ORTValue] = [:]
+        var cache: [String: OnnxTensor] = [:]
         let empty = try tensor([Float](), [1, Self.kvHeads, 0, Self.headDim])
         for layer in 0..<Self.layers {
             cache["past_key_values.\(layer).key"] = empty
@@ -239,47 +256,29 @@ public final class VoiceCloner {
 
     // MARK: ONNX Runtime helpers
 
-    private func run(_ session: ORTSession, _ inputs: [String: ORTValue], _ outputs: Set<String>) throws -> [String: ORTValue] {
-        do {
-            return try session.run(withInputs: inputs, outputNames: outputs, runOptions: nil)
-        } catch {
-            throw VoiceClonerError.runFailed(error.localizedDescription)
-        }
+    private func run(_ session: OnnxSession, _ inputs: [String: OnnxTensor], _ outputs: Set<String>) throws -> [String: OnnxTensor] {
+        let out = try session.run(inputs, outputs)
+        for name in outputs where out[name] == nil { throw VoiceClonerError.runFailed("no output \(name)") }
+        return out
     }
 
-    private func tensor<T>(_ values: [T], _ shape: [Int]) throws -> ORTValue {
-        let type: ORTTensorElementDataType = T.self == Float.self ? .float : .int64
-        let data = values.withUnsafeBytes { NSMutableData(bytes: $0.baseAddress, length: $0.count) }
-        return try ORTValue(tensorData: data, elementType: type, shape: shape.map { NSNumber(value: $0) })
+    private func tensor<T>(_ values: [T], _ shape: [Int]) throws -> OnnxTensor {
+        try OnnxTensor(runtime, values, shape: shape)
     }
 
-    private func shape(_ value: ORTValue) throws -> [Int] {
-        try value.tensorTypeAndShapeInfo().shape.map(\.intValue)
-    }
+    private func shape(_ value: OnnxTensor) throws -> [Int] { try value.shape().dims }
 
-    private func floats(_ value: ORTValue) throws -> [Float] {
-        let data = try value.tensorData() as Data
-        return data.withUnsafeBytes { Array($0.bindMemory(to: Float.self)) }
-    }
+    private func floats(_ value: OnnxTensor) throws -> [Float] { try value.values(Float.self) }
 
-    private func ints(_ value: ORTValue) throws -> [Int64] {
-        let data = try value.tensorData() as Data
-        return data.withUnsafeBytes { Array($0.bindMemory(to: Int64.self)) }
-    }
+    private func ints(_ value: OnnxTensor) throws -> [Int64] { try value.values(Int64.self) }
 
     /// The logits of the last position of a [1, n, vocabulary] tensor.
-    private func lastRow(_ value: ORTValue) throws -> [Float] {
-        let dims = try shape(value)
-        let width = dims[2]
-        let data = try value.tensorData() as Data
-        return data.withUnsafeBytes { raw in
-            let all = raw.bindMemory(to: Float.self)
-            return Array(all[(all.count - width)...])
-        }
+    private func lastRow(_ value: OnnxTensor) throws -> [Float] {
+        try value.values(Float.self, last: shape(value)[2])
     }
 
     /// Two [1, n, hidden] tensors joined along n.
-    private func concatenate(_ a: ORTValue, _ b: ORTValue) throws -> ORTValue {
+    private func concatenate(_ a: OnnxTensor, _ b: OnnxTensor) throws -> OnnxTensor {
         let joined = try floats(a) + floats(b)
         return try tensor(joined, [1, joined.count / Self.hidden, Self.hidden])
     }

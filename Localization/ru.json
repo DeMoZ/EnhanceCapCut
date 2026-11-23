@@ -298,6 +298,8 @@
   "Voice cloning doesn't speak {0}: a Windows voice will speak it.": "Клонирование голоса не поддерживает язык «{0}»: его озвучит голос Windows.",
   "Voice cloning doesn't speak {0}: a system voice will speak it.": "Клонирование голоса не поддерживает язык «{0}»: его озвучит системный голос.",
   "Voice cloning failed: {0}": "Ошибка клонирования голоса: {0}",
+  "Voice cloning needs ONNX Runtime, which this build of the app doesn't include.": "Для клонирования голоса нужна библиотека ONNX Runtime, а в этой сборке приложения её нет.",
+  "Voice cloning needs a Mac with Apple silicon.": "Для клонирования голоса нужен Mac с процессором Apple.",
   "Voice-over": "Озвучка",
   "Voicing: {0}…": "Озвучивание: {0}…",
   "Ways to donate": "Способы поддержки",
