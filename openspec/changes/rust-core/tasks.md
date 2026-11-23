@@ -84,7 +84,7 @@ Stages follow design.md → Migration Plan. Each group ends in a state where bot
   identical for every timeline (count of projects/timelines and any known differences in the PR description)
 - [x] 5.6 Commit expected outputs under `core/fixtures/<name>/expected/` with an `UPDATE_GOLDEN=1` rewrite path,
   and verify `cargo test` fails on a deliberately changed expected file
-- [ ] 5.7 Add `.github/workflows/core.yml` (Linux: fmt, clippy, `cargo test`; macOS: `swift build`, `swift test`,
+- [x] 5.7 Add `.github/workflows/core.yml` (Linux: fmt, clippy, `cargo test`; macOS: `swift build`, `swift test`,
   `golden.sh fixtures`) and verify it passes on the stage-1 PR
 
 ## 6. Stage 2 — bindings and build plumbing
