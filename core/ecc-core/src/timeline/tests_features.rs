@@ -21,7 +21,7 @@ fn clip_with(animations: &str) -> (Timeline, TempDir) {
          "materials": {{
            "videos": [{{"id": "V1", "type": "photo", "path": "{}"}}],
            "material_animations": [{{"id": "M1", "type": "sticker_animation", "animations": [{animations}]}}]}}}}"#,
-        photo.display()
+        crate::testing::slash(&photo)
     );
     (build_in(&json, dir.path()), dir)
 }
@@ -240,7 +240,7 @@ fn clip_effects_are_rendered_others_reported() {
          "adjust_params": [{{"name": "effects_adjust_speed", "value": 0.6666666666}}]}},
         {{"id": "E3", "name": "Card Slash", "effect_id": "7474875426633026821", "apply_target_type": 0}},
         {{"id": "E4", "name": "Hazy Rotation", "effect_id": "7486402432189091127", "apply_target_type": 2}}]}}}}"#,
-        photo.display()
+        crate::testing::slash(&photo)
     );
     let timeline = build_in(&json, dir.path());
     let layer = layer(&timeline, "S");
@@ -322,7 +322,7 @@ fn timeline_builds_masks() {
           "loader_work_space": "{root}B1", "config": {{}}}},
          {{"id": "M3", "name": "Brush", "resource_type": "custom", "loader_work_space": "", "config": {{}}}},
          {{"id": "M4", "name": "Wave", "resource_type": "wave", "config": {{"expansion": 0.2}}}}]}}}}"#,
-        photo.display()
+        crate::testing::slash(&photo)
     );
     let timeline = build_in(&json, d);
     let masks = &timeline.layers[0].masks;
@@ -375,7 +375,7 @@ fn mix_mode_material_becomes_the_layers_blend_mode() {
         {{"id": "M3", "type": "mix_mode", "name": "Normal"}},
         {{"id": "M4", "type": "mix_mode", "name": "Vivid", "effect_id": "1", "resource_id": "2"}}]}}}}"#,
         segments.join(","),
-        photo.display()
+        crate::testing::slash(&photo)
     );
     let timeline = build_in(&json, dir.path());
     let mode = |id: &str| layer(&timeline, id).blend_mode;
@@ -405,7 +405,7 @@ fn chroma_material_becomes_the_layers_key() {
          "edge_smooth_value": 0.3, "spill_value": 1.5}},
         {{"id": "C1", "type": "chroma", "color": "", "intensity_value": 0.4}},
         {{"id": "C2", "type": "chroma", "color": "#00FF00", "intensity_value": 0}}]}}}}"##,
-        photo.display()
+        crate::testing::slash(&photo)
     );
     let timeline = build_in(&json, dir.path());
     assert_eq!(
@@ -544,8 +544,8 @@ fn filters_from_the_draft() {
           "path": "/somewhere/else/Cache/effect/111/abc"}},
          {{"id": "F2", "type": "filter", "name": "Clip filter", "value": 1, "resource_id": "111", "path": "{}"}},
          {{"id": "F3", "type": "filter", "name": "Not cached", "value": 1, "resource_id": "222", "path": "/nope"}}]}}}}"#,
-        photo.display(),
-        package.display()
+        crate::testing::slash(&photo),
+        crate::testing::slash(&package)
     );
     let names = |luts: &[PathBuf]| -> Vec<String> {
         luts.iter().map(|p| p.file_name().unwrap().to_string_lossy().into_owned()).collect()
@@ -623,7 +623,7 @@ fn enhance_quality_is_rendered_and_other_ai_processing_is_reported() {
         {{"id": "V0", "type": "photo", "path": "{p}", "video_algorithm": {{"algorithms": [{{"type": "QualityEnhance"}}],
          "path": "##_draftpath_placeholder_X_##/Resources/videoAlg/a_0_1000000.mp4", "quality_enhance": {{"level": 0}}}}}},
         {{"id": "V1", "type": "photo", "path": "{p}", "video_algorithm": {{"algorithms": [{{"type": "GenAiSmartEdit"}}]}}}}]}}}}"###,
-        p = photo.display()
+        p = crate::testing::slash(&photo)
     );
     let timeline = build_in(&json, dir.path());
     assert!(layer(&timeline, "S0").enhances_quality);
@@ -649,7 +649,7 @@ fn skin_retouch_is_rendered_and_makeup_looks_are_reported() {
         {{"id": "E2", "type": "figure", "sub_type": "exclusion_face", "name": "Cherry Cola"}},
         {{"id": "R", "type": "makeup_root", "sub_type": "auto_beauty", "name": "makeup-root"}}],
       "manual_deformations": [{{"id": "D", "type": "manual_deformation"}}]}}}}"#,
-        photo.display()
+        crate::testing::slash(&photo)
     );
     let timeline = build_in(&json, dir.path());
     assert!(layer(&timeline, "S0").retouches_skin);
@@ -674,7 +674,7 @@ fn hdr_mode_zero_turns_tone_mapping_off() {
         segment("Off", r#", "hdr_settings": {"mode": 0, "intensity": 1.0, "nits": 1000}"#),
         segment("On", r#", "hdr_settings": {"mode": 4, "intensity": 1.0, "nits": 1000}"#),
         segment("None", ""),
-        photo.display()
+        crate::testing::slash(&photo)
     );
     let timeline = build(&json);
     assert!(!layer(&timeline, "Off").tone_maps_hdr);
@@ -729,8 +729,8 @@ fn stabilized_video_clips_are_not_reported() {
        {{"id": "V1", "type": "video", "path": "{v}", "stable": {{"stable_level": 3, "matrix_path": ""}}}},
        {{"id": "V2", "type": "video", "path": "{v}"}},
        {{"id": "V3", "type": "photo", "path": "{p}", "stable": {{"stable_level": 2}}}}]}}}}"#,
-        v = video.display(),
-        p = photo.display()
+        v = crate::testing::slash(&video),
+        p = crate::testing::slash(&photo)
     );
     let timeline = build_in(&json, dir.path());
     assert_eq!(timeline.layers.iter().map(|l| l.stabilization).collect::<Vec<_>>(), [3, 0, 0]);
@@ -778,7 +778,7 @@ fn voice_toggles_are_parsed_leniently_and_carried_on_clips() {
          "target_timerange": {{"start": 2500000, "duration": 500000}}}}
       ]}}]
     }}"#,
-        media.display()
+        crate::testing::slash(&media)
     );
     let draft = crate::draft::Draft::parse(&json).unwrap();
     assert_eq!(draft.materials.vocal_separations.iter().map(|v| v.choice).collect::<Vec<_>>(), [2, 1, 0, 7]);
@@ -881,9 +881,9 @@ fn audio_effects_become_filters_or_are_reported() {
         {{"material_id": "A", "extra_material_refs": ["FX-MISSING"], "target_timerange": {{"start": 200000, "duration": 100000}}}}
       ]}}]
     }}"#,
-        media.display(),
-        good.display(),
-        bad.display()
+        crate::testing::slash(&media),
+        crate::testing::slash(&good),
+        crate::testing::slash(&bad)
     );
     let draft = crate::draft::Draft::parse(&json).unwrap();
     assert_eq!(draft.materials.audio_effects.iter().map(|e| e.strength).collect::<Vec<_>>(), [0.5, 1.0, 1.0]);

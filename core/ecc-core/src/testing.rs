@@ -37,3 +37,9 @@ pub fn language(code: &str) -> MutexGuard<'static, ()> {
     crate::l10n::set_core_language(code);
     guard
 }
+
+/// A path for a JSON string literal in a test draft: forward slashes (Windows accepts them; backslashes would be
+/// JSON escapes).
+pub fn slash(path: &Path) -> String {
+    path.to_string_lossy().replace('\\', "/")
+}

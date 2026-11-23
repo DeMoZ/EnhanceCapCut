@@ -984,7 +984,7 @@ mod tests {
         std::fs::write(&media, [0u8]).unwrap();
         let source = format!(
             r#"{{"duration":10000000,"tracks":[{{"type":"audio","segments":[{{"id":"S","material_id":"A","target_timerange":{{"start":0,"duration":10000000}},"volume":0.5}}]}}],"materials":{{"audios":[{{"id":"A","path":"{}"}}]}}}}"#,
-            media.display()
+            crate::testing::slash(&media)
         );
         let ducked =
             apply(&tracks()[..1], source.as_bytes(), OriginalAudio::Lower, true, None, &mut CountingIds::default())
