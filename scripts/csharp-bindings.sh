@@ -6,10 +6,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/../core"
 cargo build --quiet --release -p ecc-ffi
+target=${CARGO_TARGET_DIR:-target}
 case "$(uname -s)" in
-    Darwin) lib=target/release/libecc_core.dylib ;;
-    MINGW*|MSYS*|CYGWIN*) lib=target/release/ecc_core.dll ;;
-    *) lib=target/release/libecc_core.so ;;
+    Darwin) lib=$target/release/libecc_core.dylib ;;
+    MINGW*|MSYS*|CYGWIN*) lib=$target/release/ecc_core.dll ;;
+    *) lib=$target/release/libecc_core.so ;;
 esac
 # Unformatted, so the output doesn't depend on whether CSharpier is installed.
 uniffi-bindgen-cs --library "$lib" --config ecc-ffi/uniffi.toml --no-format \

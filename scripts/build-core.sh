@@ -22,6 +22,8 @@ for t in $targets; do
 done
 
 export MACOSX_DEPLOYMENT_TARGET=15.0
+# cargo's output folder: core/target, or a shared one (CARGO_TARGET_DIR, docs/DEVELOPMENT.md).
+target_dir=${CARGO_TARGET_DIR:-$root/core/target}
 for t in $targets; do
   cargo build --quiet --release -p ecc-ffi --target "$t"
 done
@@ -29,13 +31,13 @@ done
 out=$root/build/core
 rm -rf "$out"
 mkdir -p "$out/lib" "$out/headers" "$out/gen"
-libs=(target/${^targets}/release/libecc_core.a)
+libs=($target_dir/${^targets}/release/libecc_core.a)
 lipo -create $libs -output "$out/lib/libecc_core.a"
 
 # Library mode reads the UniFFI metadata from the built library (names from ecc-ffi/uniffi.toml); unformatted, so
 # the output doesn't depend on whether swiftformat is installed.
 cargo run --quiet -p uniffi-bindgen -- generate --no-format --language swift \
-  --out-dir "$out/gen" "target/${targets[1]}/release/libecc_core.dylib" >/dev/null
+  --out-dir "$out/gen" "$target_dir/${targets[1]}/release/libecc_core.dylib" >/dev/null
 cp "$out/gen/EccCoreFFI.h" "$out/headers/"
 cp "$out/gen/EccCoreFFI.modulemap" "$out/headers/module.modulemap"
 xcodebuild -create-xcframework -library "$out/lib/libecc_core.a" -headers "$out/headers" \
