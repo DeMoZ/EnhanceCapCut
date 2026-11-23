@@ -95,7 +95,10 @@ final class ColorFilterTests: XCTestCase {
     }
 
     func testAppliesTheTableToAFrame() throws {
-        let identity = (0..<8).flatMap { i in [Float(i & 1), Float(i >> 1 & 1), Float(i >> 2 & 1)] }
+        let identity: [Float] = (0..<8).flatMap { (i: Int) -> [Float] in
+            let r = Float(i & 1), g = Float((i >> 1) & 1), b = Float((i >> 2) & 1)
+            return [r, g, b]
+        }
         let inverted = identity.map { 1 - $0 }
         let lut = ColorLUT(size: 2, data: ColorLUT.cube(2, inverted, intensity: 1))
         let red = CIImage(color: CIColor(red: 1, green: 0, blue: 0)).cropped(to: CGRect(x: 0, y: 0, width: 4, height: 4))
