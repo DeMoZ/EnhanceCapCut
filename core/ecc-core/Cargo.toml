@@ -1,0 +1,16 @@
+[package]
+name = "ecc-core"
+description = "Reading CapCut drafts, building the timeline, subtitles and draft writers — pure Rust, no FFI."
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+# The FFI crate's library is `ecc_core` (libecc_core.a / ecc_core.dll); a second library of that name would
+# collide in target/, so this one is `ecc`.
+[lib]
+name = "ecc"
+
+[dependencies]
+serde_json.workspace = true
+uuid.workspace = true

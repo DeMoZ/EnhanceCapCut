@@ -21,3 +21,6 @@ obj/
 
 # ONNX Runtime profiling output
 onnxruntime_profile_*.json
+
+# Rust core
+/core/target/

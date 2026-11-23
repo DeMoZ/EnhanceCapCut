@@ -1,0 +1,23 @@
+# The platform-independent core shared by the macOS and Windows apps (openspec/changes/rust-core).
+[workspace]
+resolver = "2"
+members = ["ecc-core", "ecc-golden"]
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+publish = false
+license = "MIT"
+
+[workspace.dependencies]
+ecc-core = { path = "ecc-core" }
+# float_roundtrip: parse floats exactly like Foundation's JSON decoders (correctly rounded).
+serde_json = { version = "1", features = ["float_roundtrip"] }
+uuid = { version = "1", features = ["v4"] }
+
+# Design decision 2.
+[profile.release]
+lto = "thin"
+codegen-units = 1
+panic = "unwind"
+debug = "line-tables-only"
