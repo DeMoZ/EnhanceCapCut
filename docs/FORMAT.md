@@ -297,6 +297,12 @@ at 100 %; "Reduce noise" = the same at 85 % wet (`denoise_rate`), 15 % original;
 minus that voice estimate as a spectral Wiener mask. `AUSoundIsolation` reports zero latency but delays by
 6360 frames at 48 kHz (4159 at 32 kHz); the delay is measured per clip by cross-correlation.
 
+On Windows the voice estimate comes from DeepFilterNet3 (MIT / Apache-2.0; the ONNX export
+`soniqo/DeepFilterNet3-ONNX`, graph only, with our own STFT, ERB features and deep filter, see
+`VoiceIsolator.cs`), time-aligned by construction; every other stage is the same code and constants as on
+the Mac. Its output follows the Mac's closely (corr 0.99 on speech in noise) and matches CapCut's exports as
+well (ElefantCafe, "Reduce noise" + "Enhance voice": corr 0.96 on both platforms, 0.69 unprocessed).
+
 "Enhance voice", measured on clips where it is the only audible sound (CockScreams voiceover, KoSamet
 IMG_2944 camera audio at 128–135 s, EatingSlugsLong 0–4.4 s with "Reduce noise" too), by fitting the
 export as `g_v·voice + g_a·ambience` per ⅓-octave band (voice = Apple's isolation, ambience = source − voice):

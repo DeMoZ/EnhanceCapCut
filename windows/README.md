@@ -10,14 +10,16 @@ and timeline logic is a port of it and is checked against it (see "Status").
   (`Timelines/project.json`), `TimelineBuilder` (draft → visual layers, audio clips, report of unsupported
   features), `TimeMap` (speed and speed curves), export settings, voice filter presets. Platform-neutral.
 - `src/EnhanceCapCut.Render` — platform-neutral rendering logic: CapCut's layout as Direct2D matrices, colours,
-  text calibration, frame timing, the audio mix (resampling, WSOLA time-stretch, fades), the peak limiter and
+  text calibration, frame timing, the audio mix (resampling, WSOLA time-stretch, fades), the voice processing
+  ("Isolate voice", "Reduce noise", "Enhance voice", voice filters; `VoiceProcessor`), the peak limiter and
   EBU R128 loudness.
 - `src/EnhanceCapCut.Windows` — the Windows renderer through Vortice: Media Foundation reading and writing
   (`MfVideoReader`, `MfAudioDecoder`, `MfVideoWriter`), Direct2D on Direct3D 11 (`Graphics`, `Compositor`),
   DirectWrite text (`TextImageRenderer`), WIC photos (`ImageLoader`), the `Exporter` pipeline, and the voice-over
   voices (`WindowsVoices`, Windows.Media.SpeechSynthesis).
 - `src/EnhanceCapCut.Subtitles` — offline subtitles: speech recognition with Whisper (whisper.cpp through
-  Whisper.net, CPU or Vulkan GPU), translation with NLLB-200 (ONNX Runtime), the model store, voice-over timing
+  Whisper.net, CPU or Vulkan GPU), translation with NLLB-200 (ONNX Runtime), voice isolation with DeepFilterNet3
+  (`VoiceIsolator`, ONNX Runtime), the model store, voice-over timing
   (`Dubber`) and the pipeline. The segmentation, the language table and writing captions and voice-over into the
   draft (`DraftSubtitleWriter`, `DraftVoiceOverWriter`) live in `EnhanceCapCut.Draft`, ported from the macOS
   version. Platform-neutral.
@@ -25,7 +27,9 @@ and timeline logic is a port of it and is checked against it (see "Status").
   self-contained): the export window and the Subtitles & Voice-over window, see below.
 - `src/ecc` — command-line tool: `ecc list`, `ecc info [project] [--timeline name|number]`, and on Windows
   `ecc render` (same options as the macOS CLI; HEVC 10-bit needs an encoder that supports it), and
-  `ecc subtitles` / `ecc voices` (see below); `ecc mcp`, the MCP server for AI agents (port of the macOS one, in
+  `ecc subtitles` / `ecc voices` (see below); `ecc voice <media> -o out.wav [--keep-voice | --remove-voice]
+  [--denoise 0.85] [--enhance 75] [--filter id]` runs the voice processing on one file (a WAV outside Windows);
+  `ecc mcp`, the MCP server for AI agents (port of the macOS one, in
   `EnhanceCapCut.Draft/McpServer.cs`; see [docs/CLI.md](../docs/CLI.md#ai-agents-mcp)).
 - `tests/` — unit tests for the draft and render layers (run anywhere) and end-to-end export tests (Windows only;
   elsewhere they return without checking).
@@ -63,7 +67,7 @@ right, the status and main button in a bar at the bottom):
   translations, the track shown on screen, per-language Windows voices (▶ previews), the audible voice-over track
   and what happens to the original sound. **Clone the original voice** dubs in the speaker's own voice with
   Chatterbox (`VoiceCloner`, ONNX Runtime, the same model and code as on the Mac) after a consent confirmation;
-  Windows has no voice isolation yet, so the reference is the mix itself and "Replace voice" isn't offered. When the
+  the voice isolation isn't used there yet, so the reference is the mix itself and "Replace voice" isn't offered. When the
   Whisper, NLLB or voice cloning model isn't there yet, the window offers the one-time download.
 
 There is one instance: starting it again brings the export window back and re-detects the project open in CapCut
