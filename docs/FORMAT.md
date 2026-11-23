@@ -589,6 +589,28 @@ whole 16:9 source frame is moved, turned and enlarged before the clip's own tran
 shake — 1.035 and almost no correction on a steady pan (IMG_5029), 1.09–1.28 with ±0.03 frame-height shifts and up
 to ±3° turns on a shaky close-up (IMG_5031).
 
+## AI processing
+
+`materials.videos[].video_algorithm`: `algorithms[]` (`type`, `algorithm_id`, `node_output`, …), `path`, `time_range`
+and one config per feature (`quality_enhance`, `super_resolution`, `noise_reduction`, `deflicker`, `aigc_generate`, …;
+null when off). Types in the author's projects: `QualityEnhance` (59 clips, TwoHoursGay) and `GenAiSmartEdit` (1,
+ElefantCafeLong); `AigcTypeGen*` images are already the material's file.
+
+- "Enhance quality" (`QualityEnhance`, `quality_enhance` `{level: 0, from: "multi_track"}`): CapCut caches its result
+  per source range as `Resources/videoAlg/<md5>_<start µs>_<duration µs>.mp4` (`path`; `time_range` = that source
+  range). The file is an MP4 (H.264 + AAC, faststart) twice the source's size (360×640 → 720×1280) but
+  **encrypted**: it ends in a `bdve` box holding `crpt` (version 1, mode 3, a 32-byte key blob, the same in every
+  file) and `size`; windows of the file (header and moov included) are XORed with 0xB9, the rest is plain. We don't
+  decrypt it. The renderer approximates the result instead (`QualityEnhance`): Lanczos ×2 for sources up to 1280 px,
+  a 0.6 px Gaussian blur against noise, then an unsharp mask (σ 1.5 px, amount 2). Measured on TwoHoursGay frame 0
+  (mean |luma − blur(luma, σ)| in the 1080×1920 export): CapCut 0.65 at σ 1 px / 2.18 at σ 3 px, a plain upscale
+  0.29 / 1.51, ours 0.59 / 2.35 (with the skin retouch). The model's invented fine detail (hair, eyelashes) can't be
+  reproduced.
+- AI smart edit (`GenAiSmartEdit`, with `aigc_generate` `{aigc_generate_enable, aigc_generate_id,
+  target_algorithm_id}`): a cloud generation (`common_attachment/aigc_aigc_generate.json`: model `seedance_2.0`, a
+  text prompt, the source range, `dst_media_path` `ai_material/<id>.mp4`). The result file was not in the project, so
+  it is reported.
+
 ## Compound clips
 
 `materials.drafts[]` (`type` `combination`) embed a complete nested draft in `draft`. A video segment

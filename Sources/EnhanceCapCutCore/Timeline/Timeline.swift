@@ -111,6 +111,8 @@ public final class VisualLayer {
     public let chromaKey: ChromaKey?
     /// CapCut's automatic skin retouch ("Sparkly Skin", smoothing) is on: approximated by `SkinRetouch`.
     public internal(set) var retouchesSkin = false
+    /// CapCut's AI "Enhance quality" is on: approximated by `QualityEnhance`.
+    public internal(set) var enhancesQuality = false
     /// Video effects on the clip that we render, in order.
     public internal(set) var effects: [VideoEffect] = []
     /// The transition into the next clip on this track.

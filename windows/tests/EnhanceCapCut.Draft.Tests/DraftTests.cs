@@ -271,7 +271,7 @@ public class DraftParsingTests
                 "Keyframes: mask animation", "Keyframes: Saturation", "Playback: loop",
                 "Stabilization: level 3", "Remove background: result not saved in the project",
                 "Beauty / makeup: retouch",
-                "AI processing: QualityEnhance", "AI processing: super_resolution",
+                "AI processing: super_resolution",
                 "Text: curved text (rendered straight)", "Text: multiple outlines (first one rendered)",
             ];
             Assert.Equal(expected, found);
