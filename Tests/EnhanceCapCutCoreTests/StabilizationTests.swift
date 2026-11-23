@@ -63,9 +63,13 @@ final class StabilizationTests: XCTestCase {
         // A slow pan with a fast shake on top, 30 fps.
         let count = 150
         let times = (0..<count).map { Int64($0) * 33_333 }
-        let motions: [Motion?] = (0..<count).map { i in
-            i == 0 ? nil : Motion(dx: 0.002 + 0.006 * sin(Double(i) * 1.9), dy: 0.005 * cos(Double(i) * 2.3),
-                                  angle: 0.004 * sin(Double(i) * 1.3))
+        let motions: [Motion?] = (0..<count).map { (i: Int) -> Motion? in
+            guard i > 0 else { return nil }
+            let t = Double(i)
+            let dx: Double = 0.002 + 0.006 * sin(t * 1.9)
+            let dy: Double = 0.005 * cos(t * 2.3)
+            let angle: Double = 0.004 * sin(t * 1.3)
+            return Motion(dx: dx, dy: dy, angle: angle)
         }
         func jitter(_ path: [Motion]) -> Double {
             (1..<(path.count - 1)).map { k in
