@@ -192,9 +192,12 @@ final class SubtitlesModel: ObservableObject {
         return DubTimeline.name(project: project, languages: codes, original: originalAudio)
     }
 
+    /// Cloning is on and this Mac can run it (Apple silicon).
+    var cloning: Bool { cloneVoice && VoiceCloner.isAvailable }
+
     /// Voice-over languages spoken in the cloned original voice.
     var clonedLanguages: [SubtitleLanguage] {
-        cloneVoice ? dubLanguages.filter { VoiceCloner.modelLanguage($0.code) != nil } : []
+        cloning ? dubLanguages.filter { VoiceCloner.modelLanguage($0.code) != nil } : []
     }
 
     func isCloned(_ language: SubtitleLanguage) -> Bool { clonedLanguages.contains(language) }

@@ -173,7 +173,8 @@ internet is used only for that, for updates and for the list of ways to donate.
 <details>
 <summary><b>What do I need?</b></summary>
 
-macOS 15 or later (Apple Silicon recommended; subtitles and voice-over need macOS 26), or Windows 10/11 x64. On the
+macOS 15 or later (Apple Silicon recommended; subtitles and voice-over need macOS 26, voice cloning needs Apple
+Silicon), or Windows 10/11 x64. On the
 Mac, loudness normalization needs `ffmpeg` (`brew install ffmpeg`); on Windows it's built in.
 </details>
 
