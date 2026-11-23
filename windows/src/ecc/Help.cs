@@ -7,6 +7,7 @@ static class Help
           list                         CapCut projects, * = open in CapCut
           info [project]               what the renderer makes of a project
           render [project]             export a project (the open one by default; Windows only)
+          voice <media> -o out.wav     run the voice processing on one file
           subtitles [project]          captions, translations and voice-over into the project
           voices <language>            Windows voices for a language (Windows only)
           clone <reference.wav>        speak a text in the reference's voice
@@ -40,6 +41,12 @@ static class Help
               Writes into the project unless --draft is given; voice-over goes into a new timeline. Models are
               downloaded on first use. `clone` speaks in the original speaker's voice — only with their consent,
               which --consent confirms.
+            """,
+        ["voice"] = """
+            usage: ecc voice <media> -o out.wav [--keep-voice | --remove-voice] [--denoise 0.85] [--enhance 75]
+                             [--filter dir|id] [--strength 1]
+              Isolate voice, reduce noise, enhance voice and/or a cached voice filter on one file. Any media on
+              Windows, a WAV file elsewhere. Downloads the voice isolation model on first use (8.6 MB).
             """,
         ["voices"] = "usage: ecc voices <language>\n  The Windows voices for a language code (e.g. en, th).",
         ["clone"] = """

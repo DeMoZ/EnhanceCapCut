@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EnhanceCapCut.Draft\EnhanceCapCut.Draft.csproj" />
+    <ProjectReference Include="..\EnhanceCapCut.Render\EnhanceCapCut.Render.csproj" />
   </ItemGroup>
 
 </Project>

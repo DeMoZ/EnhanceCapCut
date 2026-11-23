@@ -105,6 +105,14 @@ CapCut's default font `SystemFont/en.ttf` is Latin-only. Its fallbacks live next
 (`NotoSans-Regular.ttf`, `NotoSansThai-Regular.ttf`, …). Measured: Cyrillic is drawn at the nominal size;
 Thai is scaled so its ascent+descent equals the primary font's (≈0.66×).
 
+Line breaks: CapCut breaks at word boundaries, Thai (no spaces) at dictionary words — checked on exports
+(Dumpling: `поэтому ставить буду на 1 | минуту или полторы`; KohChangSquid: `ที่นี่มีตลาดกลางคืนขนาดเล็กบน | เกาะ`);
+Core Text and DirectWrite break the same way.
+
+`typesetting` = 1 is vertical text. None of the author's projects use it, so its layout is not calibrated: we stack
+upright characters top to bottom in columns that run right to left (a newline or `line_max_width` starts the next
+column), columns spaced like lines, `alignment` 0/1/2 = top/middle/bottom (`VerticalTextLayout`).
+
 ### Text animations
 
 A text (or sticker) segment's `extra_material_refs` holds one `materials.material_animations[]` entry (`type`
@@ -289,6 +297,12 @@ at 100 %; "Reduce noise" = the same at 85 % wet (`denoise_rate`), 15 % original;
 minus that voice estimate as a spectral Wiener mask. `AUSoundIsolation` reports zero latency but delays by
 6360 frames at 48 kHz (4159 at 32 kHz); the delay is measured per clip by cross-correlation.
 
+On Windows the voice estimate comes from DeepFilterNet3 (MIT / Apache-2.0; the ONNX export
+`soniqo/DeepFilterNet3-ONNX`, graph only, with our own STFT, ERB features and deep filter, see
+`VoiceIsolator.cs`), time-aligned by construction; every other stage is the same code and constants as on
+the Mac. Its output follows the Mac's closely (corr 0.99 on speech in noise) and matches CapCut's exports as
+well (ElefantCafe, "Reduce noise" + "Enhance voice": corr 0.96 on both platforms, 0.69 unprocessed).
+
 "Enhance voice", measured on clips where it is the only audible sound (CockScreams voiceover, KoSamet
 IMG_2944 camera audio at 128–135 s, EatingSlugsLong 0–4.4 s with "Reduce noise" too), by fitting the
 export as `g_v·voice + g_a·ambience` per ⅓-octave band (voice = Apple's isolation, ambience = source − voice):
@@ -400,6 +414,14 @@ with the music regressed out, ⅓-octave 125 Hz–6.3 kHz, levels relative to th
 - The per-clip `loudnesses` (Normalize loudness, target −23) `avg_loudness` is measured before the
   filter: it tracks our pre-filter chain within a few dB, and the filters' own level changes survive
   in the export.
+
+Other voice filters (issue #48): their processor graphs are unknown until CapCut downloads them. On
+2026-11-23 the author's projects used only these three filters, and the effect cache held no
+`mdsp_preset.json` at all, not even for them: CapCut evicts cached effects that haven't been used
+recently, even when a draft still refers to them. The filter is then listed under "Audio effect" in the
+report and the clip plays unfiltered, until the effect is opened in CapCut again. Filters such as
+"Chipmunk", "Robot" or "Echo" likely use processors we lack (pitch shift, ring modulation, delay); they
+need their presets and an export to calibrate against. We don't guess processor names or parameters.
 
 ## Remove background
 

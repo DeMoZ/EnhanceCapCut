@@ -18,6 +18,8 @@ using EnhanceCapCut.Draft;
 //                  --voice speaks these translations with Windows voices (Windows only), `ecc voices <language>` lists them;
 //                  `clone` speaks in the original speaker's voice — only with their consent, which --consent confirms)
 //   ecc voices <language>                                                           (Windows only)
+//   ecc voice <media> -o out.wav [--keep-voice | --remove-voice] [--denoise 0.85] [--enhance 75] [--filter dir|id] [--strength 1]
+//             (applies voice effects to one file; any media on Windows, a WAV elsewhere; downloads the voice isolation model)
 //   ecc clone <reference.wav> --language en --text "…" -o out.wav [--exaggeration 0.5] [--seed 1]
 //             (speaks the text in the reference's voice; downloads the voice cloning model on first use, 1.55 GB)
 //   ecc mcp
@@ -191,6 +193,10 @@ switch (command)
         // Releases build with -p:Version=<x.y.z>; a local build is 0.0.0.
         var version = System.Reflection.Assembly.GetEntryAssembly()?.GetName().Version?.ToString(3) is { } built && built != "0.0.0" ? built : "dev";
         new McpServer(new McpProcessRunner(Environment.ProcessPath ?? "ecc"), version).Serve();
+        break;
+
+    case "voice":
+        await Voice();
         break;
 
     default:
@@ -374,6 +380,65 @@ async Task Clone()
         + (speech.Finished ? "" : " (no stop token)") + $": {output}");
 }
 
+// Audition "Isolate voice" / "Reduce noise" / "Enhance voice" / a voice filter on a single media file (as the Swift CLI).
+async Task Voice()
+{
+    var effects = new VoiceEffects();
+    if (rest.Remove("--keep-voice")) effects = effects with { Separation = VoiceEffects.SeparationMode.KeepVoice };
+    if (rest.Remove("--remove-voice")) effects = effects with { Separation = VoiceEffects.SeparationMode.RemoveVoice };
+    if (Option("--denoise") is { } dn) effects = effects with { Denoise = Number(dn) };
+    if (Option("--enhance") is { } en) effects = effects with { Enhance = Number(en) / 100 };
+    var strength = Option("--strength") is { } st ? Number(st) : 1;
+    if (Option("--filter") is { } fx)
+    {
+        if (VoiceFilter.Locate(Path.GetFullPath(fx), fx) is not { } dir) { Fail($"No cached voice filter preset: {fx}"); return; }
+        effects = effects with { Filter = new VoiceFilter(Path.GetFileName(Path.GetDirectoryName(dir)) ?? fx, dir, strength) };
+    }
+    var output = Option("-o");
+    RejectUnknownOptions();
+    var input = rest.FirstOrDefault(a => !a.StartsWith('-'));
+    if (output is null || input is null)
+    {
+        Fail("usage: ecc voice <media> -o out.wav [--keep-voice | --remove-voice] [--denoise 0.85] [--enhance 75] [--filter dir|id] [--strength 1]");
+        return;
+    }
+    if (effects.IsEmpty) Fail("pass --keep-voice, --remove-voice, --denoise, --enhance and/or --filter");
+#if WINDOWS
+    EnhanceCapCut.Render.IAudioDecoder decoder = new EnhanceCapCut.Windows.MfAudioDecoder();
+#else
+    EnhanceCapCut.Render.IAudioDecoder decoder = new WavDecoder();
+#endif
+    var started = DateTime.Now;
+    var whole = decoder.Decode(input, 0, long.MaxValue);
+    if (whole is null) { Fail($"No audio in {input}"); return; }
+    var length = (long)(whole.Frames * 1_000_000.0 / EnhanceCapCut.Render.AudioMixer.SampleRate);
+    var clip = new AudioClip(input, new TimeRange(0, length), new TimeMap(0, length, length), 1, 0, 0, true) { Voice = effects };
+    var warnings = new List<string>();
+    if (EnhanceCapCut.Render.VoiceProcessor.NeedsIsolation(effects))
+        await EnhanceCapCut.Subtitles.ModelStore.EnsureAsync([EnhanceCapCut.Subtitles.ModelStore.VoiceIsolation]);
+    using var isolator = EnhanceCapCut.Render.VoiceProcessor.NeedsIsolation(effects) ? EnhanceCapCut.Subtitles.VoiceIsolator.Load() : null;
+    var processed = new EnhanceCapCut.Render.VoiceProcessor(decoder, isolator, warnings).Process(clip);
+    foreach (var warning in warnings) Console.WriteLine($"warning: {warning}");
+    if (processed is null) { Fail("no audio"); return; }
+    // From source time 0, as long as the input.
+    var skip = (int)EnhanceCapCut.Render.AudioMixer.Frames(-processed.StartUs);
+    var frames = Math.Min(whole.Frames, processed.Frames - Math.Max(0, skip));
+    WriteStereoWav(output, processed.Samples.AsSpan(Math.Max(0, skip) * 2, frames * 2));
+    Console.WriteLine($"Done in {(DateTime.Now - started).TotalSeconds.ToString("0.0", CultureInfo.InvariantCulture)}s: {output}");
+}
+
+// 48 kHz stereo 32-bit float WAV.
+static void WriteStereoWav(string path, ReadOnlySpan<float> samples)
+{
+    using var file = File.Create(path);
+    using var w = new BinaryWriter(file);
+    var data = samples.Length * 4;
+    w.Write("RIFF"u8); w.Write(36 + data); w.Write("WAVEfmt "u8); w.Write(16); w.Write((short)3); w.Write((short)2);
+    w.Write(EnhanceCapCut.Render.AudioMixer.SampleRate); w.Write(EnhanceCapCut.Render.AudioMixer.SampleRate * 8);
+    w.Write((short)8); w.Write((short)32); w.Write("data"u8); w.Write(data);
+    foreach (var v in samples) w.Write(v);
+}
+
 #if WINDOWS
 void Render()
 {
@@ -447,5 +512,28 @@ void Render()
     Console.WriteLine($"Done in {(DateTime.Now - started).TotalSeconds.ToString("0.0", CultureInfo.InvariantCulture)}s: {path}");
 }
 
-static double Number(string s) => double.Parse(s, CultureInfo.InvariantCulture);
 #endif
+
+static double Number(string s) => double.Parse(s, CultureInfo.InvariantCulture);
+
+/// <summary>Outside Windows: WAV files only (any rate, mono or stereo), as 48 kHz stereo.</summary>
+sealed class WavDecoder : EnhanceCapCut.Render.IAudioDecoder
+{
+    public EnhanceCapCut.Render.DecodedAudio? Decode(string path, long fromUs, long toUs)
+    {
+        var (samples, channels, rate) = EnhanceCapCut.Subtitles.AudioInput.ParseWav(File.ReadAllBytes(path), path);
+        const int target = EnhanceCapCut.Render.AudioMixer.SampleRate;
+        var planar = Enumerable.Range(0, 2).Select(c =>
+        {
+            var ch = new float[samples.Length / channels];
+            for (var i = 0; i < ch.Length; i++) ch[i] = samples[i * channels + Math.Min(c, channels - 1)];
+            return rate == target ? ch : EnhanceCapCut.Subtitles.AudioInput.Resample(ch, rate, target);
+        }).ToArray();
+        var first = (int)Math.Min(planar[0].Length, EnhanceCapCut.Render.AudioMixer.Frames(Math.Max(0, fromUs)));
+        var last = (int)Math.Min(planar[0].Length, toUs == long.MaxValue ? long.MaxValue : EnhanceCapCut.Render.AudioMixer.Frames(toUs));
+        if (last <= first) return null;
+        var o = new float[(last - first) * 2];
+        for (var i = first; i < last; i++) { o[(i - first) * 2] = planar[0][i]; o[(i - first) * 2 + 1] = planar[1][i]; }
+        return new EnhanceCapCut.Render.DecodedAudio(o, (long)(first * 1_000_000.0 / target));
+    }
+}
