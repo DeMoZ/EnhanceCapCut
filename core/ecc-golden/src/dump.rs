@@ -559,8 +559,11 @@ pub fn dump_writers(project: &CapCutProject, timeline: &ProjectTimeline) -> Resu
     let folder = project.path.to_string_lossy().replace('\\', "/");
     let ids = &mut RandomIds;
     let mut out = String::new();
+    // In a JSON string a Windows folder's backslashes are escaped.
+    let escaped = project.path.to_string_lossy().replace('\\', "\\\\");
     let mut section = |title: &str, bytes: &[u8]| {
-        out += &format!("== {title}\n{}\n", normalize(bytes, &keep, &folder));
+        let text = normalize(bytes, &keep, &folder).replace(&escaped, "<project>");
+        out += &format!("== {title}\n{text}\n");
     };
     let captions = caption_tracks();
     let once = subtitles::apply(&captions, &draft, true, ids, NOW_MS).map_err(|e| e.to_string())?;
