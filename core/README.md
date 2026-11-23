@@ -12,7 +12,7 @@ and C# (`windows/src/EnhanceCapCut.Draft`) code into one Rust crate. The plan, i
   compositors ask at one moment. `info`: the `ecc info` text. `subtitles`: cues from words, line wrapping (ICU4X word
   breaks for no-space scripts) and SRT. `writers`: captions, voice-over and dubbed timelines written into drafts
   byte-preservingly, with backups and the "open in CapCut" refusal; ids and time are inputs (`IdSource`, `now_us`).
-- `ecc-ffi` (library `ecc_core`: `libecc_core.a` on macOS, `ecc_core.dll` on Windows): the UniFFI surface, the only
+- `ecc-ffi` (library `ecc_core`: `EccCoreFFI.framework` around `libecc_core.dylib` on macOS, `ecc_core.dll` on Windows): the UniFFI surface, the only
   API the apps see. Records and enums of the timeline's static data (`types`, declared with the `record!` /
   `simple_enum!` macros of `convert` next to their conversion from `ecc`), the `Timeline`, `TimeMap` and
   `KeyframeTrack` objects (`timeline`), projects, folders and `format_info` (`project`), writers and captions

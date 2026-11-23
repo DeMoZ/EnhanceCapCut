@@ -23,9 +23,10 @@ swift run ecc info 1014     # try the renderer
 dotnet test windows/EnhanceCapCut.slnx
 ```
 
-`scripts/build-core.sh` builds `core/ecc-ffi` into `build/core/EccCoreFFI.xcframework` (static library, C header,
-module map; `--universal` for arm64 + x86_64) and writes its generated Swift bindings to `Sources/EccCore/EccCore.swift`,
-which is committed; `swift build` fails with a missing `EccCoreFFI.xcframework` until it has run once.
+`scripts/build-core.sh` builds `core/ecc-ffi` into `build/core/EccCoreFFI.xcframework` (a dynamic framework with
+the C header and module map; `--universal` for arm64 + x86_64) and writes its generated Swift bindings to
+`Sources/EccCore/EccCore.swift`, which is committed; `swift build` fails with a missing `EccCoreFFI.xcframework`
+until it has run once.
 `EnhanceCapCutCore` re-exports the `EccCore` module, whose types its own same-named types shadow until the Swift code
 moves to the core.
 
@@ -103,8 +104,8 @@ scripts/build-app.sh --pkg
 Builds a universal (Apple Silicon + Intel) app and `build/EnhanceCapCut-<version>.pkg`, which installs
 into `/Applications` and refreshes the Services menu. Every build ships `libonnxruntime.dylib` (Apple Silicon) in
 `Contents/Frameworks` and its licence files in `Contents/Resources/onnxruntime`. The Rust core is built first
-(`scripts/build-core.sh`, `--universal` with `--pkg`; `rustup` adds the missing Apple target) and linked statically
-into both executables, so nothing else is copied or signed for it.
+(`scripts/build-core.sh`, `--universal` with `--pkg`; `rustup` adds the missing Apple target) and shipped as
+`Contents/Frameworks/EccCoreFFI.framework`, copied and signed like `whisper.framework`.
 
 Releases are built by GitHub Actions (`.github/workflows/release.yml`) for both platforms: bump
 `CFBundleShortVersionString` and `CFBundleVersion` in `App/Info.plist` (the version of the Windows build too),
