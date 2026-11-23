@@ -83,6 +83,31 @@ impl Timeline {
     pub fn has_subtitles(&self) -> bool {
         self.layers.iter().any(VisualLayer::is_subtitle)
     }
+
+    /// For partial exports: the audio clips that play in `range`, cut to it and shifted so the range starts at 0
+    /// (fades are dropped at a cut).
+    pub fn audio_clips_in(&self, range: TimeRange) -> Vec<AudioClip> {
+        let mut clips = Vec::new();
+        for clip in &self.audio_clips {
+            let start = clip.target.start.max(range.start);
+            let end = clip.target.end().min(range.end());
+            if end <= start {
+                continue;
+            }
+            let mut copy = clip.clone();
+            copy.target = TimeRange::new(start - range.start, end - start);
+            copy.time_map = clip.time_map.slice(start - clip.target.start, end - clip.target.start);
+            copy.volume_envelope = clip.volume_envelope.as_ref().map(|e| e.shifted(start - clip.target.start));
+            if start != clip.target.start {
+                copy.fade_in = 0;
+            }
+            if end != clip.target.end() {
+                copy.fade_out = 0;
+            }
+            clips.push(copy);
+        }
+        clips
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

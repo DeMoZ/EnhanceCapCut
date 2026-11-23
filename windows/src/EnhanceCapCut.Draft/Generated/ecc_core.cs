@@ -9,7 +9,9 @@
 
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -767,6 +769,32 @@ static class _UniFFILib {
     public delegate void UniffiForeignFutureCompleteVoid(
         ulong @callbackData,_UniFFILib.UniffiForeignFutureResultVoid @result
     );
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate void UniffiCallbackInterfaceWordBreakerMethod0(
+        ulong @uniffiHandle,RustBuffer @text,RustBuffer @language,IntPtr /*RustBuffer*/ @uniffiOutReturn,ref UniffiRustCallStatus _uniffi_out_err
+    );
+    [StructLayout(LayoutKind.Sequential)]
+    public struct UniffiVTableCallbackInterfaceWordBreaker
+    {
+        public IntPtr @uniffiFree;
+        public IntPtr @uniffiClone;
+        public IntPtr @words;
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     
     
@@ -956,7 +984,52 @@ static class _UniFFILib {
         _UniFFILib.uniffiCheckContractApiVersion();
         _UniFFILib.uniffiCheckApiChecksums();
         
+        UniffiCallbackInterfaceWordBreaker.Register();
         }
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("ecc_core")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("ecc_core", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     ulong uniffi_ecc_core_fn_clone_wordbreaker(ulong @handle,ref UniffiRustCallStatus _uniffi_out_err
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("ecc_core")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("ecc_core", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     void uniffi_ecc_core_fn_free_wordbreaker(ulong @handle,ref UniffiRustCallStatus _uniffi_out_err
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("ecc_core")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("ecc_core", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     void uniffi_ecc_core_fn_init_callback_vtable_wordbreaker(IntPtr /*_UniFFILib.UniffiVTableCallbackInterfaceWordBreaker*/ @vtable
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("ecc_core")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("ecc_core", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     RustBuffer uniffi_ecc_core_fn_method_wordbreaker_words(ulong @ptr,RustBuffer @text,RustBuffer @language,ref UniffiRustCallStatus _uniffi_out_err
+    );
 
     #if NET8_0_OR_GREATER
     [LibraryImport("ecc_core")]
@@ -1285,6 +1358,17 @@ static class _UniFFILib {
     [DllImport("ecc_core", CallingConvention = CallingConvention.Cdecl)]
     public static extern
 #endif
+     RustBuffer uniffi_ecc_core_fn_method_timeline_audio_clips_in(ulong @ptr,RustBuffer @range,ref UniffiRustCallStatus _uniffi_out_err
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("ecc_core")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("ecc_core", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
      RustBuffer uniffi_ecc_core_fn_method_timeline_canvas(ulong @ptr,ref UniffiRustCallStatus _uniffi_out_err
     );
 
@@ -1440,6 +1524,50 @@ static class _UniFFILib {
     public static extern
 #endif
      void uniffi_ecc_core_fn_func_debug_panic(RustBuffer @message,ref UniffiRustCallStatus _uniffi_out_err
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("ecc_core")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("ecc_core", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     RustBuffer uniffi_ecc_core_fn_func_flashback_frame(double @progress,ref UniffiRustCallStatus _uniffi_out_err
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("ecc_core")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("ecc_core", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     RustBuffer uniffi_ecc_core_fn_func_lut_layout(ulong @width,ulong @height,ref UniffiRustCallStatus _uniffi_out_err
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("ecc_core")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("ecc_core", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     void uniffi_ecc_core_fn_func_set_word_breaker(RustBuffer @breaker,ref UniffiRustCallStatus _uniffi_out_err
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("ecc_core")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("ecc_core", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     ulong uniffi_ecc_core_fn_func_visible_text_length(RustBuffer @text,double @reveal,ref UniffiRustCallStatus _uniffi_out_err
     );
 
     #if NET8_0_OR_GREATER
@@ -2319,6 +2447,50 @@ static class _UniFFILib {
     [DllImport("ecc_core", CallingConvention = CallingConvention.Cdecl)]
     public static extern
 #endif
+     ushort uniffi_ecc_core_checksum_func_flashback_frame(
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("ecc_core")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("ecc_core", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     ushort uniffi_ecc_core_checksum_func_lut_layout(
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("ecc_core")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("ecc_core", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     ushort uniffi_ecc_core_checksum_func_set_word_breaker(
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("ecc_core")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("ecc_core", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     ushort uniffi_ecc_core_checksum_func_visible_text_length(
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("ecc_core")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("ecc_core", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
      ushort uniffi_ecc_core_checksum_func_all_projects(
     );
 
@@ -2605,6 +2777,17 @@ static class _UniFFILib {
     [DllImport("ecc_core", CallingConvention = CallingConvention.Cdecl)]
     public static extern
 #endif
+     ushort uniffi_ecc_core_checksum_method_wordbreaker_words(
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("ecc_core")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("ecc_core", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
      ushort uniffi_ecc_core_checksum_method_keyframetrack_breaks(
     );
 
@@ -2814,6 +2997,17 @@ static class _UniFFILib {
     [DllImport("ecc_core", CallingConvention = CallingConvention.Cdecl)]
     public static extern
 #endif
+     ushort uniffi_ecc_core_checksum_method_timeline_audio_clips_in(
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("ecc_core")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("ecc_core", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
      ushort uniffi_ecc_core_checksum_method_timeline_canvas(
     );
 
@@ -2998,6 +3192,30 @@ static class _UniFFILib {
             }
         }
         {
+            var checksum = _UniFFILib.uniffi_ecc_core_checksum_func_flashback_frame();
+            if (checksum != 39652) {
+                throw new UniffiContractChecksumException($"EnhanceCapCut.Core: uniffi bindings expected function `uniffi_ecc_core_checksum_func_flashback_frame` checksum `39652`, library returned `{checksum}`");
+            }
+        }
+        {
+            var checksum = _UniFFILib.uniffi_ecc_core_checksum_func_lut_layout();
+            if (checksum != 19055) {
+                throw new UniffiContractChecksumException($"EnhanceCapCut.Core: uniffi bindings expected function `uniffi_ecc_core_checksum_func_lut_layout` checksum `19055`, library returned `{checksum}`");
+            }
+        }
+        {
+            var checksum = _UniFFILib.uniffi_ecc_core_checksum_func_set_word_breaker();
+            if (checksum != 59204) {
+                throw new UniffiContractChecksumException($"EnhanceCapCut.Core: uniffi bindings expected function `uniffi_ecc_core_checksum_func_set_word_breaker` checksum `59204`, library returned `{checksum}`");
+            }
+        }
+        {
+            var checksum = _UniFFILib.uniffi_ecc_core_checksum_func_visible_text_length();
+            if (checksum != 58934) {
+                throw new UniffiContractChecksumException($"EnhanceCapCut.Core: uniffi bindings expected function `uniffi_ecc_core_checksum_func_visible_text_length` checksum `58934`, library returned `{checksum}`");
+            }
+        }
+        {
             var checksum = _UniFFILib.uniffi_ecc_core_checksum_func_all_projects();
             if (checksum != 65313) {
                 throw new UniffiContractChecksumException($"EnhanceCapCut.Core: uniffi bindings expected function `uniffi_ecc_core_checksum_func_all_projects` checksum `65313`, library returned `{checksum}`");
@@ -3154,6 +3372,12 @@ static class _UniFFILib {
             }
         }
         {
+            var checksum = _UniFFILib.uniffi_ecc_core_checksum_method_wordbreaker_words();
+            if (checksum != 136) {
+                throw new UniffiContractChecksumException($"EnhanceCapCut.Core: uniffi bindings expected function `uniffi_ecc_core_checksum_method_wordbreaker_words` checksum `136`, library returned `{checksum}`");
+            }
+        }
+        {
             var checksum = _UniFFILib.uniffi_ecc_core_checksum_method_keyframetrack_breaks();
             if (checksum != 45227) {
                 throw new UniffiContractChecksumException($"EnhanceCapCut.Core: uniffi bindings expected function `uniffi_ecc_core_checksum_method_keyframetrack_breaks` checksum `45227`, library returned `{checksum}`");
@@ -3265,6 +3489,12 @@ static class _UniFFILib {
             var checksum = _UniFFILib.uniffi_ecc_core_checksum_method_timeline_audio_clips();
             if (checksum != 14530) {
                 throw new UniffiContractChecksumException($"EnhanceCapCut.Core: uniffi bindings expected function `uniffi_ecc_core_checksum_method_timeline_audio_clips` checksum `14530`, library returned `{checksum}`");
+            }
+        }
+        {
+            var checksum = _UniFFILib.uniffi_ecc_core_checksum_method_timeline_audio_clips_in();
+            if (checksum != 19175) {
+                throw new UniffiContractChecksumException($"EnhanceCapCut.Core: uniffi bindings expected function `uniffi_ecc_core_checksum_method_timeline_audio_clips_in` checksum `19175`, library returned `{checksum}`");
             }
         }
         {
@@ -4054,6 +4284,10 @@ class FfiConverterTypeTimeMap: FfiConverter<TimeMap, ulong> {
 public interface ITimeline: IEquatable<Timeline> {
     AudioClip[] AudioClips();
     /// <summary>
+    /// For partial exports: the audio clips that play in `range`, cut to it and shifted so it starts at 0.
+    /// </summary>
+    AudioClip[] AudioClipsIn(TimeRange @range);
+    /// <summary>
     /// The draft's canvas in pixels.
     /// </summary>
     Size Canvas();
@@ -4185,6 +4419,17 @@ public class Timeline : ITimeline, IDisposable {
         return CallWithPointer(thisPtr => FfiConverterSequenceTypeAudioClip.INSTANCE.Lift(
     _UniffiHelpers.RustCall( (ref UniffiRustCallStatus _status) =>
     _UniFFILib.uniffi_ecc_core_fn_method_timeline_audio_clips(thisPtr,  ref _status)
+)));
+    }
+    
+    
+    /// <summary>
+    /// For partial exports: the audio clips that play in `range`, cut to it and shifted so it starts at 0.
+    /// </summary>
+    public AudioClip[] AudioClipsIn(TimeRange @range) {
+        return CallWithPointer(thisPtr => FfiConverterSequenceTypeAudioClip.INSTANCE.Lift(
+    _UniffiHelpers.RustCall( (ref UniffiRustCallStatus _status) =>
+    _UniFFILib.uniffi_ecc_core_fn_method_timeline_audio_clips_in(thisPtr, FfiConverterTypeTimeRange.INSTANCE.Lower(@range), ref _status)
 )));
     }
     
@@ -4367,6 +4612,279 @@ class FfiConverterTypeTimeline: FfiConverter<Timeline, ulong> {
     }
 
     public override void Write(Timeline value, BigEndianStream stream) {
+        stream.WriteULong(Lower(value));
+    }
+}
+
+
+
+/// <summary>
+/// The platform's word breaks for scripts without spaces (Thai, Lao, Khmer, Burmese, Chinese, Japanese): the macOS app
+/// implements it with `NLTokenizer` (design decision 7, option b).
+/// </summary>
+public interface WordBreaker {
+    /// <summary>
+    /// The words of `text` in `language` (our code: `th`, `zh-Hans`…), in order; `None` to let the core use ICU4X.
+    /// </summary>
+    WordRange[]? Words(string @text, string @language);
+}
+/// <summary>
+/// The platform's word breaks for scripts without spaces (Thai, Lao, Khmer, Burmese, Chinese, Japanese): the macOS app
+/// implements it with `NLTokenizer` (design decision 7, option b).
+/// </summary>
+public class WordBreakerImpl : WordBreaker, IDisposable {
+    protected ulong pointer;
+    private int _wasDestroyed = 0;
+    private long _callCounter = 1;
+
+    public WordBreakerImpl(ulong pointer) {
+        this.pointer = pointer;
+    }
+
+    ~WordBreakerImpl() {
+        Destroy();
+    }
+
+    protected void FreeRustArcPtr() {
+        _UniffiHelpers.RustCall((ref UniffiRustCallStatus status) => {
+            _UniFFILib.uniffi_ecc_core_fn_free_wordbreaker(this.pointer, ref status);
+        });
+    }
+
+    protected ulong CloneRustArcPtr() {
+        return _UniffiHelpers.RustCall((ref UniffiRustCallStatus status) => {
+            return _UniFFILib.uniffi_ecc_core_fn_clone_wordbreaker(this.pointer, ref status);
+        });
+    }
+
+    public void Destroy()
+    {
+        // Only allow a single call to this method.
+        if (Interlocked.CompareExchange(ref _wasDestroyed, 1, 0) == 0)
+        {
+            // This decrement always matches the initial count of 1 given at creation time.
+            if (Interlocked.Decrement(ref _callCounter) == 0)
+            {
+                FreeRustArcPtr();
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        Destroy();
+        GC.SuppressFinalize(this); // Suppress finalization to avoid unnecessary GC overhead.
+    }
+
+    private void IncrementCallCounter() 
+    {
+        // Check and increment the call counter, to keep the object alive.
+        // This needs a compare-and-set retry loop in case of concurrent updates.
+        long count;
+        do
+        {
+            count = Interlocked.Read(ref _callCounter);
+            if (count == 0L) throw new System.ObjectDisposedException(String.Format("'{0}' object has already been destroyed", this.GetType().Name));
+            if (count == long.MaxValue) throw new System.OverflowException(String.Format("'{0}' call counter would overflow", this.GetType().Name));
+
+        } while (Interlocked.CompareExchange(ref _callCounter, count + 1, count) != count);
+    }
+
+    private void DecrementCallCounter() 
+    {
+        // This decrement always matches the increment we performed above.
+        if (Interlocked.Decrement(ref _callCounter) == 0) {
+            FreeRustArcPtr();
+        }
+    }
+
+    internal void CallWithPointer(Action<ulong> action)
+    {
+        IncrementCallCounter();
+        try {
+            action(CloneRustArcPtr());
+        }
+        finally {
+            DecrementCallCounter();
+        }
+    }
+
+    internal T CallWithPointer<T>(Func<ulong, T> func)
+    {   
+        IncrementCallCounter();
+        try {
+            return func(CloneRustArcPtr());
+        }
+        finally {
+            DecrementCallCounter();
+        }
+    }
+
+    
+    /// <summary>
+    /// The words of `text` in `language` (our code: `th`, `zh-Hans`…), in order; `None` to let the core use ICU4X.
+    /// </summary>
+    public WordRange[]? Words(string @text, string @language) {
+        return CallWithPointer(thisPtr => FfiConverterOptionalSequenceTypeWordRange.INSTANCE.Lift(
+    _UniffiHelpers.RustCall( (ref UniffiRustCallStatus _status) =>
+    _UniFFILib.uniffi_ecc_core_fn_method_wordbreaker_words(thisPtr, FfiConverterString.INSTANCE.Lower(@text), FfiConverterString.INSTANCE.Lower(@language), ref _status)
+)));
+    }
+    
+    
+
+    
+}
+class UniffiCallbackInterfaceWordBreaker {
+    static void Words(ulong @uniffiHandle,RustBuffer @text,RustBuffer @language,IntPtr /*RustBuffer*/ @uniffiOutReturn,ref UniffiRustCallStatus _uniffi_out_err) {
+        var handle = @uniffiHandle;
+        try {
+            if (!FfiConverterTypeWordBreaker.INSTANCE.handleMap.TryGet(handle, out var uniffiObject)) {
+                throw new InternalException($"No callback in handlemap '{handle}'");
+            }
+            var result =
+            uniffiObject.Words(
+                FfiConverterString.INSTANCE.Lift(@text), 
+                FfiConverterString.INSTANCE.Lift(@language));
+            unsafe {
+                *(RustBuffer*)uniffiOutReturn = FfiConverterOptionalSequenceTypeWordRange.INSTANCE.Lower(result);
+            }
+
+            _uniffi_out_err.code = UniffiCallbackResponseStatus.SUCCESS;
+        }
+        catch (System.Exception e){
+            _uniffi_out_err.code = UniffiCallbackResponseStatus.UNEXPECTED_ERROR;
+            try {
+                _uniffi_out_err.error_buf = FfiConverterString.INSTANCE.Lower(e.Message);
+            }
+            catch {
+            }
+        }
+    }
+
+    static void UniffiFree(ulong @handle) {
+        FfiConverterTypeWordBreaker.INSTANCE.handleMap.Remove(@handle);
+    }
+
+    static ulong UniffiClone(ulong @handle) {
+        try {
+            if (!FfiConverterTypeWordBreaker.INSTANCE.handleMap.TryGet(@handle, out var obj)) {
+                throw new InternalException($"No callback in handlemap '{@handle}'");
+            }
+            return FfiConverterTypeWordBreaker.INSTANCE.handleMap.Insert(obj);
+        } catch (System.Exception) {
+            return 0; // 0 is never a valid handle; ConcurrentHandleMap starts at 1
+        }
+    }
+    static _UniFFILib.UniffiCallbackInterfaceWordBreakerMethod0 _m0 = new _UniFFILib.UniffiCallbackInterfaceWordBreakerMethod0(Words);
+    static _UniFFILib.UniffiCallbackInterfaceFree _callback_interface_free = new _UniFFILib.UniffiCallbackInterfaceFree(UniffiFree);
+    static _UniFFILib.UniffiCallbackInterfaceClone _callback_interface_clone = new _UniFFILib.UniffiCallbackInterfaceClone(UniffiClone);
+
+    private static GCHandle? _vtablePin;
+
+    public static void Register() {
+        if (_vtablePin.HasValue) return;
+        _UniFFILib.UniffiVTableCallbackInterfaceWordBreaker _vtable = new _UniFFILib.UniffiVTableCallbackInterfaceWordBreaker {
+            @words = Marshal.GetFunctionPointerForDelegate(_m0),
+            @uniffiFree = Marshal.GetFunctionPointerForDelegate(_callback_interface_free),
+            @uniffiClone = Marshal.GetFunctionPointerForDelegate(_callback_interface_clone),
+        };
+
+        // Pin the vtable so the GC never moves it. The GCHandle is intentionally never freed —
+        // this pin must remain valid for the process lifetime.
+        _vtablePin = GCHandle.Alloc(_vtable, GCHandleType.Pinned);
+        _UniFFILib.uniffi_ecc_core_fn_init_callback_vtable_wordbreaker(_vtablePin.Value.AddrOfPinnedObject());
+    }
+}
+
+
+
+class ConcurrentHandleMap<T> where T: notnull {
+    readonly ConcurrentDictionary<ulong, T> _map = new();
+
+    // Handles are odd numbers (1, 3, 5, ...) — the lowest bit must always be set.
+    // Rust uses (handle & 1) to distinguish foreign-language handles from Rust Arc
+    // pointers, which are always even due to memory alignment. See uniffi_core/src/ffi/handle.rs.
+    const long HANDLE_INITIAL = 1;
+    const long HANDLE_DELTA = 2;
+    long _currentHandle = HANDLE_INITIAL - HANDLE_DELTA;
+
+    public ulong Insert(T obj) {
+        var handle = (ulong)Interlocked.Add(ref _currentHandle, HANDLE_DELTA);
+        if (!_map.TryAdd(handle, obj)) {
+            throw new InternalException("ConcurrentHandleMap: Duplicate handle");
+        }
+        return handle;
+    }
+
+    public bool TryGet(ulong handle, [NotNullWhen(true)] out T? result) {
+        return _map.TryGetValue(handle, out result);
+    }
+
+    public T Get(ulong handle) {
+        if (_map.TryGetValue(handle, out var result)) {
+            return result;
+        } else {
+            throw new InternalException("ConcurrentHandleMap: Invalid handle");
+        }
+    }
+
+    public bool Remove(ulong handle) {
+        return _map.TryRemove(handle, out _);
+    }
+
+    public bool Remove(ulong handle, [NotNullWhen(true)] out T? result) {
+        return _map.TryRemove(handle, out result);
+    }
+}
+static class UniffiCallbackResponseStatus {
+    public static sbyte SUCCESS = 0;
+    public static sbyte ERROR = 1;
+    public static sbyte UNEXPECTED_ERROR = 2;
+}
+
+class FfiConverterTypeWordBreaker: FfiConverter<WordBreaker, ulong> {
+    public ConcurrentHandleMap<WordBreaker> handleMap = new ConcurrentHandleMap<WordBreaker>();
+    
+    public static FfiConverterTypeWordBreaker INSTANCE = new FfiConverterTypeWordBreaker();
+
+    static FfiConverterTypeWordBreaker() {
+        UniffiCallbackInterfaceWordBreaker.Register();
+    }
+
+    public override ulong Lower(WordBreaker value) {
+        if (value is WordBreakerImpl rustObj) {
+            // Rust-implemented object. Clone the handle and return it.
+            return rustObj.CallWithPointer(thisPtr => thisPtr);
+        } else {
+            // C# object, generate a new handle map entry and return it.
+            return handleMap.Insert(value);
+        }
+    }
+
+    public override WordBreaker Lift(ulong value) {
+        if ((value & 1UL) == 0UL) {
+            // Rust-generated handle, construct a new wrapper.
+            return new WordBreakerImpl(value);
+        } else {
+            // C#-generated handle, retrieve and remove from the handle map.
+            if (handleMap.Remove(value, out var obj)) {
+                return obj;
+            } else {
+                throw new InternalException($"No callback in handlemap '{value}'");
+            }
+        }
+    }
+
+    public override WordBreaker Read(BigEndianStream stream) {
+        return Lift(stream.ReadULong());
+    }
+
+    public override int AllocationSize(WordBreaker value) {
+        return 8;
+    }
+
+    public override void Write(WordBreaker value, BigEndianStream stream) {
         stream.WriteULong(Lower(value));
     }
 }
@@ -4793,8 +5311,21 @@ class FfiConverterTypeClockHands: FfiConverterRustBuffer<ClockHands> {
 
 
 
+/// <summary>
+/// A "Clock Time" sticker, drawn natively: its style and the look of that style (sizes as fractions of the radius,
+/// except `diameter`: of the canvas's shorter side at clip scale 1; sRGB colours 0…1, `face_color` `None` =
+/// transparent). The hands' angles come with each frame (`LayerFrame.clock_hands`).
+/// </summary>
 public record ClockSticker (
-    ClockStyle Style
+    ClockStyle Style, 
+    double Diameter, 
+    double RingWidth, 
+    double MinuteHand, 
+    double HourHand, 
+    double HandWidth, 
+    double[] RingColor, 
+    double[]? FaceColor, 
+    double[] HandColor
 ) {
 }
 
@@ -4803,17 +5334,41 @@ class FfiConverterTypeClockSticker: FfiConverterRustBuffer<ClockSticker> {
 
     public override ClockSticker Read(BigEndianStream stream) {
         return new ClockSticker(
-            Style: FfiConverterTypeClockStyle.INSTANCE.Read(stream)
+            Style: FfiConverterTypeClockStyle.INSTANCE.Read(stream),
+            Diameter: FfiConverterDouble.INSTANCE.Read(stream),
+            RingWidth: FfiConverterDouble.INSTANCE.Read(stream),
+            MinuteHand: FfiConverterDouble.INSTANCE.Read(stream),
+            HourHand: FfiConverterDouble.INSTANCE.Read(stream),
+            HandWidth: FfiConverterDouble.INSTANCE.Read(stream),
+            RingColor: FfiConverterSequenceDouble.INSTANCE.Read(stream),
+            FaceColor: FfiConverterOptionalSequenceDouble.INSTANCE.Read(stream),
+            HandColor: FfiConverterSequenceDouble.INSTANCE.Read(stream)
         );
     }
 
     public override int AllocationSize(ClockSticker value) {
         return 0
-            + FfiConverterTypeClockStyle.INSTANCE.AllocationSize(value.Style);
+            + FfiConverterTypeClockStyle.INSTANCE.AllocationSize(value.Style)
+            + FfiConverterDouble.INSTANCE.AllocationSize(value.Diameter)
+            + FfiConverterDouble.INSTANCE.AllocationSize(value.RingWidth)
+            + FfiConverterDouble.INSTANCE.AllocationSize(value.MinuteHand)
+            + FfiConverterDouble.INSTANCE.AllocationSize(value.HourHand)
+            + FfiConverterDouble.INSTANCE.AllocationSize(value.HandWidth)
+            + FfiConverterSequenceDouble.INSTANCE.AllocationSize(value.RingColor)
+            + FfiConverterOptionalSequenceDouble.INSTANCE.AllocationSize(value.FaceColor)
+            + FfiConverterSequenceDouble.INSTANCE.AllocationSize(value.HandColor);
     }
 
     public override void Write(ClockSticker value, BigEndianStream stream) {
             FfiConverterTypeClockStyle.INSTANCE.Write(value.Style, stream);
+            FfiConverterDouble.INSTANCE.Write(value.Diameter, stream);
+            FfiConverterDouble.INSTANCE.Write(value.RingWidth, stream);
+            FfiConverterDouble.INSTANCE.Write(value.MinuteHand, stream);
+            FfiConverterDouble.INSTANCE.Write(value.HourHand, stream);
+            FfiConverterDouble.INSTANCE.Write(value.HandWidth, stream);
+            FfiConverterSequenceDouble.INSTANCE.Write(value.RingColor, stream);
+            FfiConverterOptionalSequenceDouble.INSTANCE.Write(value.FaceColor, stream);
+            FfiConverterSequenceDouble.INSTANCE.Write(value.HandColor, stream);
     }
 }
 
@@ -5088,6 +5643,77 @@ class FfiConverterTypeFilterLayer: FfiConverterRustBuffer<FilterLayer> {
             FfiConverterInt64.INSTANCE.Write(value.TrackIndex, stream);
             FfiConverterInt64.INSTANCE.Write(value.RenderIndex, stream);
             FfiConverterTypeColorFilter.INSTANCE.Write(value.Filter, stream);
+    }
+}
+
+
+
+/// <summary>
+/// One blur copy of the flashback transition: scale and clockwise rotation (degrees) about the frame centre.
+/// </summary>
+public record FlashbackCopy (
+    double Scale, 
+    double Rotation
+) {
+}
+
+class FfiConverterTypeFlashbackCopy: FfiConverterRustBuffer<FlashbackCopy> {
+    public static FfiConverterTypeFlashbackCopy INSTANCE = new FfiConverterTypeFlashbackCopy();
+
+    public override FlashbackCopy Read(BigEndianStream stream) {
+        return new FlashbackCopy(
+            Scale: FfiConverterDouble.INSTANCE.Read(stream),
+            Rotation: FfiConverterDouble.INSTANCE.Read(stream)
+        );
+    }
+
+    public override int AllocationSize(FlashbackCopy value) {
+        return 0
+            + FfiConverterDouble.INSTANCE.AllocationSize(value.Scale)
+            + FfiConverterDouble.INSTANCE.AllocationSize(value.Rotation);
+    }
+
+    public override void Write(FlashbackCopy value, BigEndianStream stream) {
+            FfiConverterDouble.INSTANCE.Write(value.Scale, stream);
+            FfiConverterDouble.INSTANCE.Write(value.Rotation, stream);
+    }
+}
+
+
+
+/// <summary>
+/// The flashback transition at one moment: how much of the next clip shows, the effect's strength (0 at the edges,
+/// 1 at the cut) and the blur copies averaged over the dissolved picture.
+/// </summary>
+public record FlashbackFrame (
+    double Mix, 
+    double Strength, 
+    FlashbackCopy[] Copies
+) {
+}
+
+class FfiConverterTypeFlashbackFrame: FfiConverterRustBuffer<FlashbackFrame> {
+    public static FfiConverterTypeFlashbackFrame INSTANCE = new FfiConverterTypeFlashbackFrame();
+
+    public override FlashbackFrame Read(BigEndianStream stream) {
+        return new FlashbackFrame(
+            Mix: FfiConverterDouble.INSTANCE.Read(stream),
+            Strength: FfiConverterDouble.INSTANCE.Read(stream),
+            Copies: FfiConverterSequenceTypeFlashbackCopy.INSTANCE.Read(stream)
+        );
+    }
+
+    public override int AllocationSize(FlashbackFrame value) {
+        return 0
+            + FfiConverterDouble.INSTANCE.AllocationSize(value.Mix)
+            + FfiConverterDouble.INSTANCE.AllocationSize(value.Strength)
+            + FfiConverterSequenceTypeFlashbackCopy.INSTANCE.AllocationSize(value.Copies);
+    }
+
+    public override void Write(FlashbackFrame value, BigEndianStream stream) {
+            FfiConverterDouble.INSTANCE.Write(value.Mix, stream);
+            FfiConverterDouble.INSTANCE.Write(value.Strength, stream);
+            FfiConverterSequenceTypeFlashbackCopy.INSTANCE.Write(value.Copies, stream);
     }
 }
 
@@ -5799,10 +6425,15 @@ class FfiConverterTypeTextGlow: FfiConverterRustBuffer<TextGlow> {
 
 
 
+/// <summary>
+/// A text clip: its material, text and styles, animations (`animation_max_scale`: the largest scale they reach, so the
+/// text can be rasterized sharp at it) and the approximated look of its CapCut text effect (`glow`).
+/// </summary>
 public record TextLayerSpec (
     TextMaterial Material, 
     TextContent Content, 
     TextAnimations Animations, 
+    double AnimationMaxScale, 
     TextGlow? Glow
 ) {
 }
@@ -5815,6 +6446,7 @@ class FfiConverterTypeTextLayerSpec: FfiConverterRustBuffer<TextLayerSpec> {
             Material: FfiConverterTypeTextMaterial.INSTANCE.Read(stream),
             Content: FfiConverterTypeTextContent.INSTANCE.Read(stream),
             Animations: FfiConverterTypeTextAnimations.INSTANCE.Read(stream),
+            AnimationMaxScale: FfiConverterDouble.INSTANCE.Read(stream),
             Glow: FfiConverterOptionalTypeTextGlow.INSTANCE.Read(stream)
         );
     }
@@ -5824,6 +6456,7 @@ class FfiConverterTypeTextLayerSpec: FfiConverterRustBuffer<TextLayerSpec> {
             + FfiConverterTypeTextMaterial.INSTANCE.AllocationSize(value.Material)
             + FfiConverterTypeTextContent.INSTANCE.AllocationSize(value.Content)
             + FfiConverterTypeTextAnimations.INSTANCE.AllocationSize(value.Animations)
+            + FfiConverterDouble.INSTANCE.AllocationSize(value.AnimationMaxScale)
             + FfiConverterOptionalTypeTextGlow.INSTANCE.AllocationSize(value.Glow);
     }
 
@@ -5831,6 +6464,7 @@ class FfiConverterTypeTextLayerSpec: FfiConverterRustBuffer<TextLayerSpec> {
             FfiConverterTypeTextMaterial.INSTANCE.Write(value.Material, stream);
             FfiConverterTypeTextContent.INSTANCE.Write(value.Content, stream);
             FfiConverterTypeTextAnimations.INSTANCE.Write(value.Animations, stream);
+            FfiConverterDouble.INSTANCE.Write(value.AnimationMaxScale, stream);
             FfiConverterOptionalTypeTextGlow.INSTANCE.Write(value.Glow, stream);
     }
 }
@@ -6585,6 +7219,39 @@ class FfiConverterTypeVoiceOverTrack: FfiConverterRustBuffer<VoiceOverTrack> {
 
 
 /// <summary>
+/// A word in a text: UTF-8 byte offsets, the end excluded.
+/// </summary>
+public record WordRange (
+    ulong Start, 
+    ulong End
+) {
+}
+
+class FfiConverterTypeWordRange: FfiConverterRustBuffer<WordRange> {
+    public static FfiConverterTypeWordRange INSTANCE = new FfiConverterTypeWordRange();
+
+    public override WordRange Read(BigEndianStream stream) {
+        return new WordRange(
+            Start: FfiConverterUInt64.INSTANCE.Read(stream),
+            End: FfiConverterUInt64.INSTANCE.Read(stream)
+        );
+    }
+
+    public override int AllocationSize(WordRange value) {
+        return 0
+            + FfiConverterUInt64.INSTANCE.AllocationSize(value.Start)
+            + FfiConverterUInt64.INSTANCE.AllocationSize(value.End);
+    }
+
+    public override void Write(WordRange value, BigEndianStream stream) {
+            FfiConverterUInt64.INSTANCE.Write(value.Start, stream);
+            FfiConverterUInt64.INSTANCE.Write(value.End, stream);
+    }
+}
+
+
+
+/// <summary>
 /// What a write changed.
 /// </summary>
 /// <param name="Files">
@@ -7128,6 +7795,105 @@ class FfiConverterTypeLayerProperty: FfiConverterRustBuffer<LayerProperty> {
             case LayerProperty.Alpha: stream.WriteInt(6); break;
             case LayerProperty.Volume: stream.WriteInt(7); break;
             default: throw new InternalException(String.Format("invalid enum value '{0}' in FfiConverterTypeLayerProperty.Write()", value));
+        }
+    }
+}
+
+
+
+
+
+
+
+/// <summary>
+/// How a lookup-table image holds its N×N×N entries.
+/// </summary>
+public record LutLayout {
+    
+    /// <summary>
+    /// √N × √N tiles of N×N pixels, blue tile by tile, row by row (512×512 for N = 64).
+    /// </summary>
+    public record Grid (
+        ulong Size,
+        ulong TilesPerRow
+    ) : LutLayout {}
+    
+    /// <summary>
+    /// N tiles of N×N side by side (N² × N).
+    /// </summary>
+    public record Row (
+        ulong Size
+    ) : LutLayout {}
+    
+    /// <summary>
+    /// N tiles of N×N stacked (N × N²).
+    /// </summary>
+    public record Column (
+        ulong Size
+    ) : LutLayout {}
+    
+
+    
+}
+
+class FfiConverterTypeLutLayout : FfiConverterRustBuffer<LutLayout>{
+    public static FfiConverterRustBuffer<LutLayout> INSTANCE = new FfiConverterTypeLutLayout();
+
+    public override LutLayout Read(BigEndianStream stream) {
+        var value = stream.ReadInt();
+        switch (value) {
+            case 1:
+                return new LutLayout.Grid(
+                    FfiConverterUInt64.INSTANCE.Read(stream),
+                    FfiConverterUInt64.INSTANCE.Read(stream)
+                );
+            case 2:
+                return new LutLayout.Row(
+                    FfiConverterUInt64.INSTANCE.Read(stream)
+                );
+            case 3:
+                return new LutLayout.Column(
+                    FfiConverterUInt64.INSTANCE.Read(stream)
+                );
+            default:
+                throw new InternalException(String.Format("invalid enum value '{0}' in FfiConverterTypeLutLayout.Read()", value));
+        }
+    }
+
+    public override int AllocationSize(LutLayout value) {
+        switch (value) {
+            case LutLayout.Grid variant_value:
+                return 4
+                    + FfiConverterUInt64.INSTANCE.AllocationSize(variant_value.Size)
+                    + FfiConverterUInt64.INSTANCE.AllocationSize(variant_value.TilesPerRow);
+            case LutLayout.Row variant_value:
+                return 4
+                    + FfiConverterUInt64.INSTANCE.AllocationSize(variant_value.Size);
+            case LutLayout.Column variant_value:
+                return 4
+                    + FfiConverterUInt64.INSTANCE.AllocationSize(variant_value.Size);
+            default:
+                throw new InternalException(String.Format("invalid enum value '{0}' in FfiConverterTypeLutLayout.AllocationSize()", value));
+        }
+    }
+
+    public override void Write(LutLayout value, BigEndianStream stream) {
+        switch (value) {
+            case LutLayout.Grid variant_value:
+                stream.WriteInt(1);
+                FfiConverterUInt64.INSTANCE.Write(variant_value.Size, stream);
+                FfiConverterUInt64.INSTANCE.Write(variant_value.TilesPerRow, stream);
+                break;
+            case LutLayout.Row variant_value:
+                stream.WriteInt(2);
+                FfiConverterUInt64.INSTANCE.Write(variant_value.Size, stream);
+                break;
+            case LutLayout.Column variant_value:
+                stream.WriteInt(3);
+                FfiConverterUInt64.INSTANCE.Write(variant_value.Size, stream);
+                break;
+            default:
+                throw new InternalException(String.Format("invalid enum value '{0}' in FfiConverterTypeLutLayout.Write()", value));
         }
     }
 }
@@ -7835,6 +8601,37 @@ class FfiConverterOptionalTypeKeyframeTrack: FfiConverterRustBuffer<KeyframeTrac
 
 
 
+class FfiConverterOptionalTypeWordBreaker: FfiConverterRustBuffer<WordBreaker?> {
+    public static FfiConverterOptionalTypeWordBreaker INSTANCE = new FfiConverterOptionalTypeWordBreaker();
+
+    public override WordBreaker? Read(BigEndianStream stream) {
+        if (stream.ReadByte() == 0) {
+            return null;
+        }
+        return FfiConverterTypeWordBreaker.INSTANCE.Read(stream);
+    }
+
+    public override int AllocationSize(WordBreaker? value) {
+        if (value == null) {
+            return 1;
+        } else {
+            return 1 + FfiConverterTypeWordBreaker.INSTANCE.AllocationSize((WordBreaker)value);
+        }
+    }
+
+    public override void Write(WordBreaker? value, BigEndianStream stream) {
+        if (value == null) {
+            stream.WriteByte(0);
+        } else {
+            stream.WriteByte(1);
+            FfiConverterTypeWordBreaker.INSTANCE.Write((WordBreaker)value, stream);
+        }
+    }
+}
+
+
+
+
 class FfiConverterOptionalTypeCanvasMaterial: FfiConverterRustBuffer<CanvasMaterial?> {
     public static FfiConverterOptionalTypeCanvasMaterial INSTANCE = new FfiConverterOptionalTypeCanvasMaterial();
 
@@ -8269,6 +9066,37 @@ class FfiConverterOptionalTypeBlendMode: FfiConverterRustBuffer<BlendMode?> {
 
 
 
+class FfiConverterOptionalTypeLutLayout: FfiConverterRustBuffer<LutLayout?> {
+    public static FfiConverterOptionalTypeLutLayout INSTANCE = new FfiConverterOptionalTypeLutLayout();
+
+    public override LutLayout? Read(BigEndianStream stream) {
+        if (stream.ReadByte() == 0) {
+            return null;
+        }
+        return FfiConverterTypeLutLayout.INSTANCE.Read(stream);
+    }
+
+    public override int AllocationSize(LutLayout? value) {
+        if (value == null) {
+            return 1;
+        } else {
+            return 1 + FfiConverterTypeLutLayout.INSTANCE.AllocationSize((LutLayout)value);
+        }
+    }
+
+    public override void Write(LutLayout? value, BigEndianStream stream) {
+        if (value == null) {
+            stream.WriteByte(0);
+        } else {
+            stream.WriteByte(1);
+            FfiConverterTypeLutLayout.INSTANCE.Write((LutLayout)value, stream);
+        }
+    }
+}
+
+
+
+
 class FfiConverterOptionalTypeOriginalAudio: FfiConverterRustBuffer<OriginalAudio?> {
     public static FfiConverterOptionalTypeOriginalAudio INSTANCE = new FfiConverterOptionalTypeOriginalAudio();
 
@@ -8324,6 +9152,37 @@ class FfiConverterOptionalSequenceDouble: FfiConverterRustBuffer<double[]?> {
         } else {
             stream.WriteByte(1);
             FfiConverterSequenceDouble.INSTANCE.Write((double[])value, stream);
+        }
+    }
+}
+
+
+
+
+class FfiConverterOptionalSequenceTypeWordRange: FfiConverterRustBuffer<WordRange[]?> {
+    public static FfiConverterOptionalSequenceTypeWordRange INSTANCE = new FfiConverterOptionalSequenceTypeWordRange();
+
+    public override WordRange[]? Read(BigEndianStream stream) {
+        if (stream.ReadByte() == 0) {
+            return null;
+        }
+        return FfiConverterSequenceTypeWordRange.INSTANCE.Read(stream);
+    }
+
+    public override int AllocationSize(WordRange[]? value) {
+        if (value == null) {
+            return 1;
+        } else {
+            return 1 + FfiConverterSequenceTypeWordRange.INSTANCE.AllocationSize((WordRange[])value);
+        }
+    }
+
+    public override void Write(WordRange[]? value, BigEndianStream stream) {
+        if (value == null) {
+            stream.WriteByte(0);
+        } else {
+            stream.WriteByte(1);
+            FfiConverterSequenceTypeWordRange.INSTANCE.Write((WordRange[])value, stream);
         }
     }
 }
@@ -8830,6 +9689,52 @@ class FfiConverterSequenceTypeFilterLayer: FfiConverterRustBuffer<FilterLayer[]>
 
         stream.WriteInt(value.Length);
         var writerFn = FfiConverterTypeFilterLayer.INSTANCE.Write;
+        value.ForEach(item => writerFn(item, stream));
+    }
+}
+
+
+
+
+class FfiConverterSequenceTypeFlashbackCopy: FfiConverterRustBuffer<FlashbackCopy[]> {
+    public static FfiConverterSequenceTypeFlashbackCopy INSTANCE = new FfiConverterSequenceTypeFlashbackCopy();
+
+    public override FlashbackCopy[]  Read(BigEndianStream stream) {
+        var length = stream.ReadInt();
+        if (length == 0) {
+            return [];
+        }
+
+        var result = new FlashbackCopy[length];
+        var readFn = FfiConverterTypeFlashbackCopy.INSTANCE.Read;
+        for (int i = 0; i < length; i++) {
+            result[i] = readFn(stream);
+        }
+        return result;
+    }
+
+    public override int AllocationSize(FlashbackCopy[]  value) {
+        var sizeForLength = 4;
+
+        // details/1-empty-list-as-default-method-parameter.md
+        if (value == null) {
+            return sizeForLength;
+        }
+
+        var allocationSizeFn = FfiConverterTypeFlashbackCopy.INSTANCE.AllocationSize;
+        var sizeForItems = value.Sum(item => allocationSizeFn(item));
+        return sizeForLength + sizeForItems;
+    }
+
+    public override void Write(FlashbackCopy[] value, BigEndianStream stream) {
+        // details/1-empty-list-as-default-method-parameter.md
+        if (value == null) {
+            stream.WriteInt(0);
+            return;
+        }
+
+        stream.WriteInt(value.Length);
+        var writerFn = FfiConverterTypeFlashbackCopy.INSTANCE.Write;
         value.ForEach(item => writerFn(item, stream));
     }
 }
@@ -9481,6 +10386,52 @@ class FfiConverterSequenceTypeVoiceOverTrack: FfiConverterRustBuffer<VoiceOverTr
 
 
 
+class FfiConverterSequenceTypeWordRange: FfiConverterRustBuffer<WordRange[]> {
+    public static FfiConverterSequenceTypeWordRange INSTANCE = new FfiConverterSequenceTypeWordRange();
+
+    public override WordRange[]  Read(BigEndianStream stream) {
+        var length = stream.ReadInt();
+        if (length == 0) {
+            return [];
+        }
+
+        var result = new WordRange[length];
+        var readFn = FfiConverterTypeWordRange.INSTANCE.Read;
+        for (int i = 0; i < length; i++) {
+            result[i] = readFn(stream);
+        }
+        return result;
+    }
+
+    public override int AllocationSize(WordRange[]  value) {
+        var sizeForLength = 4;
+
+        // details/1-empty-list-as-default-method-parameter.md
+        if (value == null) {
+            return sizeForLength;
+        }
+
+        var allocationSizeFn = FfiConverterTypeWordRange.INSTANCE.AllocationSize;
+        var sizeForItems = value.Sum(item => allocationSizeFn(item));
+        return sizeForLength + sizeForItems;
+    }
+
+    public override void Write(WordRange[] value, BigEndianStream stream) {
+        // details/1-empty-list-as-default-method-parameter.md
+        if (value == null) {
+            stream.WriteInt(0);
+            return;
+        }
+
+        stream.WriteInt(value.Length);
+        var writerFn = FfiConverterTypeWordRange.INSTANCE.Write;
+        value.ForEach(item => writerFn(item, stream));
+    }
+}
+
+
+
+
 class FfiConverterDictionaryTypeLayerPropertyTypeKeyframeTrack: FfiConverterRustBuffer<Dictionary<LayerProperty, KeyframeTrack>> {
     public static FfiConverterDictionaryTypeLayerPropertyTypeKeyframeTrack INSTANCE = new FfiConverterDictionaryTypeLayerPropertyTypeKeyframeTrack();
 
@@ -9590,6 +10541,50 @@ public static class EccCore {
     _UniffiHelpers.RustCallWithError(FfiConverterTypeCoreError.INSTANCE, (ref UniffiRustCallStatus _status) =>
     _UniFFILib.uniffi_ecc_core_fn_func_debug_panic(FfiConverterString.INSTANCE.Lower(@message), ref _status)
 );
+    }
+
+
+    /// <summary>
+    /// `progress` 0…1 over the transition.
+    /// </summary>
+    public static FlashbackFrame FlashbackFrame(double @progress) {
+        return FfiConverterTypeFlashbackFrame.INSTANCE.Lift(
+    _UniffiHelpers.RustCall( (ref UniffiRustCallStatus _status) =>
+    _UniFFILib.uniffi_ecc_core_fn_func_flashback_frame(FfiConverterDouble.INSTANCE.Lower(@progress), ref _status)
+));
+    }
+
+
+    /// <summary>
+    /// The layout of a lookup image of this size, or `None` when it isn't one.
+    /// </summary>
+    public static LutLayout? LutLayout(ulong @width, ulong @height) {
+        return FfiConverterOptionalTypeLutLayout.INSTANCE.Lift(
+    _UniffiHelpers.RustCall( (ref UniffiRustCallStatus _status) =>
+    _UniFFILib.uniffi_ecc_core_fn_func_lut_layout(FfiConverterUInt64.INSTANCE.Lower(@width), FfiConverterUInt64.INSTANCE.Lower(@height), ref _status)
+));
+    }
+
+
+    /// <summary>
+    /// Sets the word breaker caption wrapping uses for no-space scripts, or with `None` goes back to ICU4X (the default).
+    /// </summary>
+    public static void SetWordBreaker(WordBreaker? @breaker) {
+        
+    _UniffiHelpers.RustCall( (ref UniffiRustCallStatus _status) =>
+    _UniFFILib.uniffi_ecc_core_fn_func_set_word_breaker(FfiConverterOptionalTypeWordBreaker.INSTANCE.Lower(@breaker), ref _status)
+);
+    }
+
+
+    /// <summary>
+    /// UTF-16 length of the part of `text` a typewriter animation shows at `reveal` (whole characters, rounded down).
+    /// </summary>
+    public static ulong VisibleTextLength(string @text, double @reveal) {
+        return FfiConverterUInt64.INSTANCE.Lift(
+    _UniffiHelpers.RustCall( (ref UniffiRustCallStatus _status) =>
+    _UniFFILib.uniffi_ecc_core_fn_func_visible_text_length(FfiConverterString.INSTANCE.Lower(@text), FfiConverterDouble.INSTANCE.Lower(@reveal), ref _status)
+));
     }
 
 

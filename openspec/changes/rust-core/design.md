@@ -327,6 +327,19 @@ little (66 with a 20-character margin) at the cost of balance. Options, to be ch
 quality, at the price of identical Thai/CJK breaks on both platforms; (c) a compound-aware join on top of ICU4X
 (e.g. a small list of common Thai compounds), cheap but never complete. Until the author decides, the port uses (a).
 
+**Decision (2026-11-23, before stage 3): option (b).** The core takes the platform's word breaks for no-space
+scripts:
+- `ecc-ffi` exports a foreign trait `WordBreaker` (`words(text, language) -> [WordRange]`, UTF-8 offsets, or `None`)
+  and `set_word_breaker`.
+- The macOS app sets one built on `NLTokenizer`. The core then builds the units as the Swift `LineWrapper` did:
+  characters between words go with the word before, or form the first unit, and no single letter is joined.
+- Without a breaker (Windows, the CLIs' tests, the golden runner), or when the ranges don't fit the text, ICU4X LSTM
+  stays.
+
+So macOS keeps today's Thai and CJK breaks. Windows gets ICU4X's breaks, better than today's break at any grapheme,
+and the two may differ for these scripts. Everything after the units (balance, numbers kept with the next word) is
+shared.
+
 ### 8. macOS build integration
 
 - `scripts/build-core.sh [--universal]`: `cargo build --release -p ecc-ffi` for the host target, or for
