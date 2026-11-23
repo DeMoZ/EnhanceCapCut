@@ -191,7 +191,8 @@ Usage counts from the author's 69 projects drive the order of the later mileston
 
 - [x] Voice filters (`audio_effects`: "Booming", "Live House", "Old Hollywood", 16 uses): the cached
   `mdsp_preset.json` graph runs on our own DSP (`VoiceFilterGraph`), calibrated on ВазелиновыйПень.
-  Open: only the processors those three use are implemented (other filters stay in the report);
+  Open: only the processors those three use are implemented (other filters stay in the report; their
+  presets aren't in the author's cache, see FORMAT.md, #48);
   strength below 1 follows the preset curves but is unverified (all uses are at 1); filters run on the
   source timeline, before speed changes; Live House is ~5 dB louder than CapCut's export on its only
   1.2 s clip, part of which is the voice isolation differing there.

@@ -409,6 +409,14 @@ with the music regressed out, ⅓-octave 125 Hz–6.3 kHz, levels relative to th
   filter: it tracks our pre-filter chain within a few dB, and the filters' own level changes survive
   in the export.
 
+Other voice filters (issue #48): their processor graphs are unknown until CapCut downloads them. On
+2026-11-23 the author's projects used only these three filters, and the effect cache held no
+`mdsp_preset.json` at all, not even for them: CapCut evicts cached effects that haven't been used
+recently, even when a draft still refers to them. The filter is then listed under "Audio effect" in the
+report and the clip plays unfiltered, until the effect is opened in CapCut again. Filters such as
+"Chipmunk", "Robot" or "Echo" likely use processors we lack (pitch shift, ring modulation, delay); they
+need their presets and an export to calibrate against. We don't guess processor names or parameters.
+
 ## Remove background
 
 `materials.videos[].matting`: `flag` 0 = off, 1 = custom cutout (subject picked with the brush), 3 = auto
