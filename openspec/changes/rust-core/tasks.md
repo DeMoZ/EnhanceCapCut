@@ -103,13 +103,13 @@ Stages follow design.md → Migration Plan. Each group ends in a state where bot
 - [x] 6.5 Make `scripts/build-app.sh` run `build-core.sh` (`--universal` with `--pkg`) and verify a `--pkg`
   build is universal (`lipo -info` on `ecc` and `EnhanceCapCut`), passes `codesign --verify --strict`, and is
   accepted by `notarytool` (not checkable: no Developer ID, releases are ad-hoc signed; design decision 8)
-- [ ] 6.6 Update `windows.yml`, `release.yml` and `core.yml` (toolchain, `rust-cache`, pinned
+- [x] 6.6 Update `windows.yml`, `release.yml` and `core.yml` (toolchain, `rust-cache`, pinned
   `uniffi-bindgen-cs`, a bindings-are-current check that regenerates and runs `git diff --exit-code`, library
   size printed) and verify all three workflows pass (release via `workflow_dispatch` dry run or a test tag on a
   fork)
-- [ ] 6.7 Check sizes against the budget in design.md (universal `.pkg`, win-x64 publish) and verify the numbers
+- [x] 6.7 Check sizes against the budget in design.md (universal `.pkg`, win-x64 publish) and verify the numbers
   are recorded in the PR description
-- [ ] 6.8 Update `docs/DEVELOPMENT.md` (Rust in requirements, `build-core.sh` before `swift build`, optional
+- [x] 6.8 Update `docs/DEVELOPMENT.md` (Rust in requirements, `build-core.sh` before `swift build`, optional
   shared `CARGO_TARGET_DIR`, `RUST_BACKTRACE`, golden runner) and `windows/README.md`, and verify the documented
   commands run as written on a clean checkout
 
