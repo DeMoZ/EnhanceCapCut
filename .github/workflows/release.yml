@@ -3,11 +3,22 @@
 # The tag must match CFBundleShortVersionString in App/Info.plist (the version of both platforms).
 # Release notes come from docs/releases/<tag>.md, or are generated from the merged PRs.
 # appcast.xml (the Mac app's update feed, signed with the SPARKLE_PRIVATE_KEY secret) is published with the release.
+# Run by hand (workflow_dispatch) or on a pull request that changes the packaging, it's a dry run: both installers are
+# built and kept as artifacts for a few days, with their sizes in the job summary, and nothing is signed or published.
 name: Release
 
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/release.yml'
+      - 'scripts/build-app.sh'
+      - 'scripts/build-core.sh'
+      - 'core/Cargo.toml'
+      - 'core/ecc-ffi/**'
+      - 'windows/src/EnhanceCapCut.Draft/EnhanceCapCut.Draft.csproj'
 
 permissions:
   contents: write
@@ -18,6 +29,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
       - name: Check the version
+        if: startsWith(github.ref, 'refs/tags/')
         run: |
           version=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" App/Info.plist)
           [[ "v$version" == "$GITHUB_REF_NAME" ]] || { echo "::error::Tag $GITHUB_REF_NAME doesn't match App/Info.plist ($version)"; exit 1; }
@@ -26,7 +38,12 @@ jobs:
           workspaces: core
       - name: Build the installer (with the Rust core, scripts/build-core.sh --universal)
         run: scripts/build-app.sh --pkg
+      - name: Installer size
+        run: |
+          echo "macOS: $(ls build/EnhanceCapCut-*.pkg) $(stat -f %z build/EnhanceCapCut-*.pkg) bytes" | tee -a "$GITHUB_STEP_SUMMARY"
+          lipo -info build/EnhanceCapCut.app/Contents/MacOS/ecc build/EnhanceCapCut.app/Contents/MacOS/EnhanceCapCut
       - name: Sign the update for Sparkle (build/appcast.xml)
+        if: startsWith(github.ref, 'refs/tags/')
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: scripts/appcast.sh build/EnhanceCapCut-*.pkg
@@ -37,6 +54,7 @@ jobs:
             build/EnhanceCapCut-*.pkg
             build/appcast.xml
           if-no-files-found: error
+          retention-days: ${{ startsWith(github.ref, 'refs/tags/') && 90 || 3 }}
 
   windows:
     runs-on: windows-latest
@@ -55,7 +73,11 @@ jobs:
       - run: dotnet test windows/EnhanceCapCut.slnx -c Release
       - name: Build EnhanceCapCut.exe and ecc.exe
         run: |
-          version=${GITHUB_REF_NAME#v}
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            version=${GITHUB_REF_NAME#v}
+          else # a dry run: the version in App/Info.plist
+            version=$(grep -A1 CFBundleShortVersionString App/Info.plist | sed -n 's:.*<string>\(.*\)</string>.*:\1:p')
+          fi
           out=build/EnhanceCapCut-$version-windows-x64
           # The app and the CLI share one folder (the same .NET runtime and libraries).
           dotnet publish windows/src/EnhanceCapCut.App -r win-x64 --self-contained -c Release -p:Version=$version -o "$out"
@@ -67,14 +89,17 @@ jobs:
           # The Rust core, copied by EnhanceCapCut.Draft's BuildRustCore target.
           test -f "$out/ecc_core.dll" || { echo "::error::ecc_core.dll is missing from $out"; exit 1; }
           cd build && 7z a -tzip "EnhanceCapCut-$version-windows-x64.zip" "EnhanceCapCut-$version-windows-x64" > /dev/null
+          echo "Windows: EnhanceCapCut-$version-windows-x64.zip $(stat -c %s "EnhanceCapCut-$version-windows-x64.zip") bytes, ecc_core.dll $(stat -c %s "EnhanceCapCut-$version-windows-x64/ecc_core.dll") bytes" | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
           name: windows
           path: build/EnhanceCapCut-*-windows-x64.zip
           if-no-files-found: error
+          retention-days: ${{ startsWith(github.ref, 'refs/tags/') && 90 || 3 }}
 
   release:
     needs: [macos, windows]
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1

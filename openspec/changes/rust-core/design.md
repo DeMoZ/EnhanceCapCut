@@ -374,6 +374,13 @@ Measured on `scripts/build-app.sh --pkg`:
 - The `.pkg` is 27.1 MB, against 23.8 MB without the core (+3.3 MB of the +6 MB budget). Each executable also
   grows by about 2 MB of compiled generated Swift, and nothing calls the core yet.
 
+Budget check (task 6.7), from the release workflow's dry run on the stage-2 PR (CI, Xcode 26.6):
+
+| | without the core | with it | budget |
+|---|---|---|---|
+| universal `.pkg` | 23.8 MB | 27.0 MB (+3.2 MB) | +6 MB |
+| win-x64 zip | 91.3 MB (v0.10.0) | 92.5 MB (+1.3 MB; `ecc_core.dll` 2.4 MB) | +4 MB |
+
 Notarization isn't checked: the project has no Developer ID, and releases are ad-hoc signed (`DEV_ID_APP` unset in
 `release.yml`). The new framework is signed the same way as `whisper.framework`. Check `notarytool` the first time
 a Developer ID is set up.

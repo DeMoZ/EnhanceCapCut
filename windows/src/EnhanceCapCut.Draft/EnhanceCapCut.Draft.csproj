@@ -38,7 +38,10 @@
     <RustLibName Condition="$(RustTarget.Contains('windows'))">ecc_core.dll</RustLibName>
     <RustLibName Condition="$(RustTarget.Contains('apple'))">libecc_core.dylib</RustLibName>
     <RustLibName Condition="'$(RustLibName)' == ''">libecc_core.so</RustLibName>
-    <RustLib>$(CoreDir)target\$(RustTarget)\release\$(RustLibName)</RustLib>
+    <!-- cargo's output folder: core/target, or a shared one (CARGO_TARGET_DIR, docs/DEVELOPMENT.md). -->
+    <RustTargetDir Condition="'$(CARGO_TARGET_DIR)' != ''">$([MSBuild]::EnsureTrailingSlash('$(CARGO_TARGET_DIR)'))</RustTargetDir>
+    <RustTargetDir Condition="'$(CARGO_TARGET_DIR)' == ''">$(CoreDir)target\</RustTargetDir>
+    <RustLib>$(RustTargetDir)$(RustTarget)\release\$(RustLibName)</RustLib>
   </PropertyGroup>
 
   <Target Name="BuildRustCore" BeforeTargets="BeforeBuild" Condition="'$(SkipRustBuild)' != 'true'">

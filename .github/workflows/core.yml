@@ -7,9 +7,9 @@ name: Core
 on:
   push:
     branches: [main]
-    paths: ['core/**', 'Localization/**', 'rust-toolchain.toml', '.github/workflows/core.yml', 'Sources/**', 'Tests/**', 'Package.swift', 'windows/src/**', 'scripts/golden.sh', 'scripts/build-core.sh']
+    paths: ['core/**', 'Localization/**', 'rust-toolchain.toml', '.github/workflows/core.yml', 'Sources/**', 'Tests/**', 'Package.swift', 'windows/src/**', 'scripts/golden.sh', 'scripts/build-core.sh', 'scripts/csharp-bindings.sh']
   pull_request:
-    paths: ['core/**', 'Localization/**', 'rust-toolchain.toml', '.github/workflows/core.yml', 'Sources/**', 'Tests/**', 'Package.swift', 'windows/src/**', 'scripts/golden.sh', 'scripts/build-core.sh']
+    paths: ['core/**', 'Localization/**', 'rust-toolchain.toml', '.github/workflows/core.yml', 'Sources/**', 'Tests/**', 'Package.swift', 'windows/src/**', 'scripts/golden.sh', 'scripts/build-core.sh', 'scripts/csharp-bindings.sh']
 
 env:
   CARGO_TERM_COLOR: always
@@ -28,6 +28,17 @@ jobs:
       - run: cargo fmt --check
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test
+      # The committed C# bindings must be what the pinned generator makes of the current API (design decision 3).
+      - name: Install uniffi-bindgen-cs (pinned)
+        run: |
+          command -v uniffi-bindgen-cs >/dev/null || cargo install uniffi-bindgen-cs --locked \
+            --git https://github.com/NordSecurity/uniffi-bindgen-cs --tag v0.12.0+v0.32.0
+      - name: The C# bindings are current
+        working-directory: .
+        run: |
+          scripts/csharp-bindings.sh
+          git diff --exit-code windows/src/EnhanceCapCut.Draft/Generated || {
+            echo "::error::Generated/ecc_core.cs is out of date: run scripts/csharp-bindings.sh and commit it"; exit 1; }
 
   windows:
     runs-on: windows-latest
@@ -53,6 +64,10 @@ jobs:
           workspaces: core
       - name: Build the Rust core for Swift
         run: scripts/build-core.sh
+      - name: The Swift bindings are current
+        run: |
+          git diff --exit-code Sources/EccCore || {
+            echo "::error::Sources/EccCore/EccCore.swift is out of date: run scripts/build-core.sh and commit it"; exit 1; }
       - run: swift build
       - run: swift test
       - name: Golden parity on the fixtures

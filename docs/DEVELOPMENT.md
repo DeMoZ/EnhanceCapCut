@@ -45,9 +45,20 @@ on Intel Macs voice cloning is unavailable.
 
 ## Rust core and golden parity
 
-`core/` is the shared Rust core the apps are moving to ([openspec/changes/rust-core](../openspec/changes/rust-core));
-until the switch it sits next to the Swift and C# code and nothing calls it. It needs a Rust toolchain
-(`rust-toolchain.toml` pins it; `rustup` installs it on first use).
+`core/` is the shared Rust core the apps are moving to ([openspec/changes/rust-core](../openspec/changes/rust-core)).
+Until the switch it sits next to the Swift and C# code; both apps already link it (`scripts/build-core.sh` for
+Swift, the `BuildRustCore` target of `EnhanceCapCut.Draft` for .NET) but nothing calls it yet. It needs a Rust
+toolchain (`rust-toolchain.toml` pins it; `rustup` installs it on first use).
+
+The apps see it only through `core/ecc-ffi` and its generated bindings, both committed: `Sources/EccCore/EccCore.swift`
+(rewritten by `scripts/build-core.sh`) and `windows/src/EnhanceCapCut.Draft/Generated/ecc_core.cs` (rewritten by
+`scripts/csharp-bindings.sh`, which needs the pinned C# generator:
+`cargo install uniffi-bindgen-cs --git https://github.com/NordSecurity/uniffi-bindgen-cs --tag v0.12.0+v0.32.0 --locked`).
+After changing the exported API, run both and commit the bindings; CI regenerates them and fails on a difference.
+
+Every worktree builds the core into its own `core/target` (a minute or two from scratch). To share one build cache,
+set `CARGO_TARGET_DIR` (for example `export CARGO_TARGET_DIR=~/.cache/ecc-target`); the scripts and the .NET build
+follow it.
 
 ```sh
 cd core && cargo test                # the core's tests and the committed golden outputs
@@ -106,6 +117,10 @@ into `/Applications` and refreshes the Services menu. Every build ships `libonnx
 `Contents/Frameworks` and its licence files in `Contents/Resources/onnxruntime`. The Rust core is built first
 (`scripts/build-core.sh`, `--universal` with `--pkg`; `rustup` adds the missing Apple target) and shipped as
 `Contents/Frameworks/EccCoreFFI.framework`, copied and signed like `whisper.framework`.
+
+A dry run of the release workflow (both installers built, nothing signed or published, artifacts kept three days,
+sizes in the job summary) runs on pull requests that change the packaging, and by hand with
+`gh workflow run release.yml --ref <branch>`.
 
 Releases are built by GitHub Actions (`.github/workflows/release.yml`) for both platforms: bump
 `CFBundleShortVersionString` and `CFBundleVersion` in `App/Info.plist` (the version of the Windows build too),

@@ -22,7 +22,7 @@ mkdir -p "$OUT"
 
 echo "Building the CLIs…"
 (cd core && cargo build --quiet --release -p ecc-golden)
-RUST="$REPO/core/target/release/ecc-golden"
+RUST="${CARGO_TARGET_DIR:-$REPO/core/target}/release/ecc-golden"
 CLIS=("rust:$RUST")
 if [ "${SKIP_SWIFT:-0}" != 1 ]; then
     scripts/build-core.sh >/dev/null
