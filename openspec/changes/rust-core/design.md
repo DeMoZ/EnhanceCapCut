@@ -397,6 +397,12 @@ writes outside the plugin work dir); committing prebuilt `.a` files (repo bloat,
   dylib over unrelated files in the output folder.
 - `dotnet publish -r win-x64 --self-contained` puts `ecc_core.dll` next to `EnhanceCapCut.exe` / `ecc.exe`;
   the `runtimes/` pruning in `release.yml` does not touch it.
+- Stage 2: the target triple is always passed explicitly: from the RID, or this machine's OS and architecture
+  without one. So `dotnet build` (no RID), `dotnet publish -r win-x64` and `scripts/build-core.sh` share one
+  `core/target/<triple>/release` folder instead of building the core twice. `release.yml` fails when `ecc_core.dll`
+  is missing from the zip. The C# bindings come from `scripts/csharp-bindings.sh` (the pinned `uniffi-bindgen-cs`),
+  and the C# smoke tests live in `EnhanceCapCut.Draft.Tests/RustCoreBindingTests.cs` under the namespace
+  `EnhanceCapCut.Core.Tests`: under `EnhanceCapCut.Draft`, its own `Timeline`, `CaptionCue`… would hide the core's.
 
 ### 10. CI
 

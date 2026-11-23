@@ -4,6 +4,8 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- The generated bindings of the Rust core (Generated/ecc_core.cs) use LibraryImport. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,5 +16,42 @@
     <!-- Interface translations, shared with the macOS version (Localization.cs). -->
     <EmbeddedResource Include="..\..\..\Localization\*.json" LogicalName="Localization.%(Filename).json" />
   </ItemGroup>
+
+  <!--
+    The Rust core (core/ecc-ffi, design decision 9): built with cargo before this project and copied as ecc_core.dll
+    (libecc_core.dylib on macOS) next to every app, CLI and test that references it. The Rust target comes from the
+    runtime identifier, or this machine when there is none; -p:SkipRustBuild=true uses a core built already.
+  -->
+  <PropertyGroup>
+    <CoreDir>$(MSBuildThisFileDirectory)..\..\..\core\</CoreDir>
+    <HostArch>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)</HostArch>
+    <RustTarget Condition="'$(RuntimeIdentifier)' == 'win-x64'">x86_64-pc-windows-msvc</RustTarget>
+    <RustTarget Condition="'$(RuntimeIdentifier)' == 'win-arm64'">aarch64-pc-windows-msvc</RustTarget>
+    <RustTarget Condition="'$(RuntimeIdentifier)' == 'osx-arm64'">aarch64-apple-darwin</RustTarget>
+    <RustTarget Condition="'$(RuntimeIdentifier)' == 'osx-x64'">x86_64-apple-darwin</RustTarget>
+    <RustTarget Condition="'$(RuntimeIdentifier)' == 'linux-x64'">x86_64-unknown-linux-gnu</RustTarget>
+    <RustTarget Condition="'$(RustTarget)' == '' And $([MSBuild]::IsOSPlatform('Windows')) And '$(HostArch)' == 'Arm64'">aarch64-pc-windows-msvc</RustTarget>
+    <RustTarget Condition="'$(RustTarget)' == '' And $([MSBuild]::IsOSPlatform('Windows'))">x86_64-pc-windows-msvc</RustTarget>
+    <RustTarget Condition="'$(RustTarget)' == '' And $([MSBuild]::IsOSPlatform('OSX')) And '$(HostArch)' == 'Arm64'">aarch64-apple-darwin</RustTarget>
+    <RustTarget Condition="'$(RustTarget)' == '' And $([MSBuild]::IsOSPlatform('OSX'))">x86_64-apple-darwin</RustTarget>
+    <RustTarget Condition="'$(RustTarget)' == ''">x86_64-unknown-linux-gnu</RustTarget>
+    <RustLibName Condition="$(RustTarget.Contains('windows'))">ecc_core.dll</RustLibName>
+    <RustLibName Condition="$(RustTarget.Contains('apple'))">libecc_core.dylib</RustLibName>
+    <RustLibName Condition="'$(RustLibName)' == ''">libecc_core.so</RustLibName>
+    <RustLib>$(CoreDir)target\$(RustTarget)\release\$(RustLibName)</RustLib>
+  </PropertyGroup>
+
+  <Target Name="BuildRustCore" BeforeTargets="BeforeBuild" Condition="'$(SkipRustBuild)' != 'true'">
+    <Exec Command="cargo build --quiet --release -p ecc-ffi --target $(RustTarget)" WorkingDirectory="$(CoreDir)"
+          EnvironmentVariables="MACOSX_DEPLOYMENT_TARGET=15.0" />
+  </Target>
+
+  <Target Name="AddRustCore" BeforeTargets="AssignTargetPaths" AfterTargets="BuildRustCore">
+    <Error Condition="!Exists('$(RustLib)')" Text="The Rust core isn't built: $(RustLib) (build it with cargo, or drop -p:SkipRustBuild=true)." />
+    <ItemGroup>
+      <None Include="$(RustLib)" Link="$(RustLibName)" CopyToOutputDirectory="PreserveNewest"
+            CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
 
 </Project>

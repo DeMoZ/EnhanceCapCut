@@ -48,6 +48,10 @@ jobs:
       - uses: actions/setup-dotnet@v6.0.0
         with:
           dotnet-version: 10.0.x
+      # EnhanceCapCut.Draft builds the Rust core (ecc_core.dll) with cargo for win-x64.
+      - uses: Swatinem/rust-cache@v2.9.3
+        with:
+          workspaces: core
       - run: dotnet test windows/EnhanceCapCut.slnx -c Release
       - name: Build EnhanceCapCut.exe and ecc.exe
         run: |
@@ -60,6 +64,8 @@ jobs:
           find "$out/runtimes" -mindepth 1 -maxdepth 1 ! -name win-x64 ! -name vulkan -exec rm -rf {} +
           find "$out/runtimes/vulkan" -mindepth 1 -maxdepth 1 ! -name win-x64 -exec rm -rf {} +
           rm -f "$out"/*.pdb "$out"/*.lib "$out"/*.metal
+          # The Rust core, copied by EnhanceCapCut.Draft's BuildRustCore target.
+          test -f "$out/ecc_core.dll" || { echo "::error::ecc_core.dll is missing from $out"; exit 1; }
           cd build && 7z a -tzip "EnhanceCapCut-$version-windows-x64.zip" "EnhanceCapCut-$version-windows-x64" > /dev/null
       - uses: actions/upload-artifact@v4
         with:
