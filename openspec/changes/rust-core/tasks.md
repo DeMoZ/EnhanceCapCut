@@ -89,7 +89,7 @@ Stages follow design.md → Migration Plan. Each group ends in a state where bot
 
 ## 6. Stage 2 — bindings and build plumbing
 
-- [ ] 6.1 Add `ecc-ffi` with the API from design decision 4 (objects, records, `frame(t)`, `format_info`,
+- [x] 6.1 Add `ecc-ffi` with the API from design decision 4 (objects, records, `frame(t)`, `format_info`,
   writers, `CoreError`, panic → error) and verify Rust tests call it through the exported functions
 - [ ] 6.2 Write `scripts/build-core.sh [--universal]` (host or arm64 + x86_64, `MACOSX_DEPLOYMENT_TARGET=15.0`,
   `lipo`, `xcodebuild -create-xcframework`, Swift binding generation) and verify it produces

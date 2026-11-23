@@ -1,7 +1,7 @@
 # The platform-independent core shared by the macOS and Windows apps (openspec/changes/rust-core).
 [workspace]
 resolver = "2"
-members = ["ecc-core", "ecc-golden"]
+members = ["ecc-core", "ecc-ffi", "ecc-golden", "uniffi-bindgen"]
 
 [workspace.package]
 edition = "2021"
@@ -17,6 +17,8 @@ uuid = { version = "1", features = ["v4"] }
 unicode-segmentation = "1"
 # Word breaks for Thai, Lao, Khmer and Burmese: LSTM data only (design decision 7).
 icu_segmenter = { version = "2.4", default-features = false, features = ["compiled_data", "lstm"] }
+# Exact: uniffi-bindgen-cs v0.12.0+v0.32.0 is built against uniffi_bindgen 0.32.0 (design decision 3).
+uniffi = "=0.32.0"
 
 # Design decision 2.
 [profile.release]

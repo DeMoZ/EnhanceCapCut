@@ -1,0 +1,11 @@
+# Names of the generated bindings (design decision 3).
+[bindings.swift]
+module_name = "EccCore"
+ffi_module_name = "EccCoreFFI"
+ffi_module_filename = "EccCoreFFI"
+
+[bindings.csharp]
+cdylib_name = "ecc_core"
+namespace = "EnhanceCapCut.Core"
+global_methods_class_name = "EccCore"
+access_modifier = "public"
