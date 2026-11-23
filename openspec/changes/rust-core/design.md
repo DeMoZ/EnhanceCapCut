@@ -156,7 +156,8 @@ it uses `LibraryImport`) and Swift (Swift 5 and Swift 6 language modes) compile 
   renderer.
 - Types: times `i64` µs; paths `String` (Swift extension `.url`, C# as is); canvas `Size { width, height }`
   (Swift extension → `CGSize`); modification dates as Unix ms; text style ranges exposed in UTF-16 units.
-- Errors: one `CoreError` enum with localized messages (`ProjectOpen`, `NoTimelineList`, `Malformed`, `Io`).
+- Errors: one `CoreError` enum with localized messages (`ProjectOpen`, `NoTimelineList`, `Malformed`, `Io`; stage 2
+  added `NotFound`, `Unreadable` and `Internal`, see below).
 - `format_info(project_path, timeline: Option<String>) -> String` produces the whole `ecc info` text; both CLIs
   print it, so their outputs are identical by construction.
 - Swift: a target `EccCore` (generated Swift) on the `binaryTarget`; `EnhanceCapCutCore` does
@@ -188,6 +189,54 @@ What the spike showed about these shapes (an `Arc<Timeline>` object inside an en
   (`From` impls). That is mechanical but proportional to the API; if it grows past what a reviewer can check,
   `#[cfg_attr(feature = "ffi", derive(uniffi::Record))]` on the `ecc-core` types is the cheaper alternative
   (decided in stage 2, it doesn't change the generated API).
+
+**Stage-2 outcome (`ecc-ffi`, task 6.1).** The mapping stays in `ecc-ffi`, and `ecc-core` stays free of UniFFI.
+The `cfg_attr` derive would have pushed FFI shapes into the core:
+- `usize` indices would become `u64`;
+- `BTreeMap` would become `HashMap`;
+- `TimeMap` / `KeyframeTrack` would have to be held as `Arc<Object>`;
+- `PathBuf` would need custom types.
+
+Instead, two declarative macros (`ecc-ffi/src/convert.rs`) declare each exported type and its conversion in one
+place, one line per field:
+- `record! { VisualLayer = core::VisualLayer { … } }`;
+- `simple_enum! { … }`.
+
+A single `Ffi` trait converts the field types:
+- paths become `String`;
+- indices become `u64`;
+- maps become `HashMap`;
+- `Box` is unwrapped;
+- `TimeMap` / `KeyframeTrack` become objects;
+- `Arc<Timeline>` becomes the `Timeline` object.
+
+Only the enums with data are written by hand, about ten conversions. Other choices the API needed:
+- **Writers take data, not closures.** The native `write(…, transform:)` / `DubTimeline.create(…, transform:)` pass
+  a closure, which can't cross the boundary well. They take a `DraftEdits` record instead: caption tracks, then
+  voice-over tracks, with the original-audio mode and `replace_previous`. This is the core's
+  `writers::DraftEdits::apply`, the shared logic of both `SubtitlePipeline.apply`.
+  - `write_timeline` and `create_dub_timeline` apply it inside the backup-and-write step.
+  - `apply_edits` applies it to bytes.
+  - `without_voice_over` plus `Timeline::from_draft` give the speech timeline.
+- **Ids.** An `IdSource` enum: `Random`, or `Counting { after }` for deterministic tests. A dubbed timeline takes
+  its id from the same sequence as the edits.
+- **Records have no methods** (the C# generator's support for them is untested). A project is a `CapCutProject`
+  record with `name` filled in, plus free functions: `project_timelines`, `project_timeline`, `resolve_project`,
+  `all_projects`, `open_project`. Writers take the project's path and read the lock file fresh.
+- **Errors.** `CoreError` cases:
+  - `ProjectOpen`, `NoTimelineList`, `Malformed`, `Io`;
+  - `NotFound`: the `ecc info` arguments;
+  - `Unreadable`: a draft that can't be read or parsed;
+  - `Internal`: a caught panic.
+
+  Every call that does work returns `Result` and runs under `catch_unwind`: building, `frame` / `frames`, writers,
+  segmentation, `format_info`. That includes `frame`, so a core bug fails one frame instead of crashing the app;
+  Swift would `fatalError` on a panic in a non-throwing call. Getters of an already built timeline only copy data
+  and don't throw. `debug_panic` exists so the binding smoke tests can check the panic path.
+- **Names.** `r#type` and `r#loop` come out as `type` / `loop` in Swift and `Type` / `Loop` in C#, so call sites
+  keep today's names. Clock hands become a `ClockHands { minute, hour }` record, and voice-over lines a
+  `LineRange { start, end }` record. The generated Swift compiles in Swift 5 and Swift 6 modes, and the C#
+  (`Nullable`, `LangVersion latest`) with no warnings.
 
 ### 5. Lenient reading and byte-exact writing in Rust
 

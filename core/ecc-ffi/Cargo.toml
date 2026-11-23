@@ -1,0 +1,20 @@
+[package]
+name = "ecc-ffi"
+description = "The UniFFI surface of the core: the only API the macOS and Windows apps see."
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+# `ecc_core`: libecc_core.a (macOS, linked into the executables) and ecc_core.dll (Windows); `lib` so Rust tests
+# call the exported functions.
+[lib]
+name = "ecc_core"
+crate-type = ["lib", "staticlib", "cdylib"]
+
+[dependencies]
+ecc-core.workspace = true
+uniffi.workspace = true
+
+[dev-dependencies]
+ecc-golden = { path = "../ecc-golden" }

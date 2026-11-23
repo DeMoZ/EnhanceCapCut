@@ -302,6 +302,43 @@ pub fn capcut_language(code: &str) -> String {
     format!("{language}-{region}")
 }
 
+/// What a subtitles run puts into a draft: caption tracks, then voice-over tracks, in the order of
+/// `SubtitlePipeline.apply` (Swift) / `SubtitlePipeline.Apply` (C#).
+#[derive(Debug, Clone, PartialEq)]
+pub struct DraftEdits {
+    pub captions: Vec<subtitles::SubtitleTrack>,
+    pub voice_over: Vec<voice_over::VoiceOverTrack>,
+    pub original: voice_over::OriginalAudio,
+    /// Replace what an earlier run added instead of adding to it.
+    pub replace_previous: bool,
+}
+
+impl DraftEdits {
+    /// Caption lines in all tracks (the `cue_count` of a write).
+    pub fn cue_count(&self) -> usize {
+        self.captions.iter().map(|t| t.cues.len()).sum()
+    }
+
+    /// The draft with the edits applied. `project` is the project folder (voice-over paths inside it are written
+    /// with the draft's placeholder); `now_ms` stamps the caption groups.
+    pub fn apply(
+        &self,
+        draft: &[u8],
+        project: Option<&Path>,
+        ids: &mut dyn IdSource,
+        now_ms: i64,
+    ) -> Result<Vec<u8>, WriteError> {
+        let mut data = draft.to_vec();
+        if !self.captions.is_empty() {
+            data = subtitles::apply(&self.captions, &data, self.replace_previous, ids, now_ms)?;
+        }
+        if !self.voice_over.is_empty() {
+            data = voice_over::apply(&self.voice_over, &data, self.original, self.replace_previous, project, ids)?;
+        }
+        Ok(data)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
