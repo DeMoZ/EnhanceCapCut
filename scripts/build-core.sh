@@ -32,7 +32,9 @@ out=$root/build/core
 rm -rf "$out"
 mkdir -p "$out/lib" "$out/headers" "$out/gen"
 libs=($target_dir/${^targets}/release/libecc_core.a)
-lipo -create $libs -output "$out/lib/libecc_core.a"
+# Named after the XCFramework: Xcode 26's multi-architecture build (swift build --arch arm64 --arch x86_64) only
+# finds a static library whose name matches it.
+lipo -create $libs -output "$out/lib/libEccCoreFFI.a"
 
 # Library mode reads the UniFFI metadata from the built library (names from ecc-ffi/uniffi.toml); unformatted, so
 # the output doesn't depend on whether swiftformat is installed.
@@ -40,10 +42,10 @@ cargo run --quiet -p uniffi-bindgen -- generate --no-format --language swift \
   --out-dir "$out/gen" "$target_dir/${targets[1]}/release/libecc_core.dylib" >/dev/null
 cp "$out/gen/EccCoreFFI.h" "$out/headers/"
 cp "$out/gen/EccCoreFFI.modulemap" "$out/headers/module.modulemap"
-xcodebuild -create-xcframework -library "$out/lib/libecc_core.a" -headers "$out/headers" \
+xcodebuild -create-xcframework -library "$out/lib/libEccCoreFFI.a" -headers "$out/headers" \
   -output "$out/EccCoreFFI.xcframework" >/dev/null
 
 swift_out=$root/Sources/EccCore/EccCore.swift
 mkdir -p "${swift_out:h}"
 cmp -s "$out/gen/EccCore.swift" "$swift_out" || cp "$out/gen/EccCore.swift" "$swift_out"
-echo "Rust core: $out/EccCoreFFI.xcframework ($(lipo -archs "$out/lib/libecc_core.a"), $(du -h "$out/lib/libecc_core.a" | cut -f1))"
+echo "Rust core: $out/EccCoreFFI.xcframework ($(lipo -archs "$out/lib/libEccCoreFFI.a"), $(du -h "$out/lib/libEccCoreFFI.a" | cut -f1))"
