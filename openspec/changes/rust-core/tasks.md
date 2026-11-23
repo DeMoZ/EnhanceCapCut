@@ -4,18 +4,18 @@ Stages follow design.md → Migration Plan. Each group ends in a state where bot
 
 ## 1. Stage 0 — spike (throwaway branch)
 
-- [ ] 1.1 Create a minimal `core/` workspace (`ecc-core` with lenient reading of a two-layer draft and
+- [x] 1.1 Create a minimal `core/` workspace (`ecc-core` with lenient reading of a two-layer draft and
   `format_info`, `ecc-ffi` with UniFFI exports) and verify `cargo test` passes on macOS
-- [ ] 1.2 Generate Swift bindings, package a universal static XCFramework, link it from a scratch SwiftPM target
+- [x] 1.2 Generate Swift bindings, package a universal static XCFramework, link it from a scratch SwiftPM target
   with `swift build -c release --arch arm64 --arch x86_64` (Swift 5 language mode) and verify `lipo -info` shows
   both arches and the call returns the expected text
-- [ ] 1.3 Generate C# bindings with the newest `uniffi-bindgen-cs` compatible with the chosen UniFFI, call them
+- [x] 1.3 Generate C# bindings with the newest `uniffi-bindgen-cs` compatible with the chosen UniFFI, call them
   from a net10.0 xUnit test, and verify it passes with `dotnet test` on macOS and on `windows-latest` (win-x64)
-- [ ] 1.4 Express the hard API shapes (object holding `Arc<Timeline>` inside an enum-with-data record, `Vec` of
+- [x] 1.4 Express the hard API shapes (object holding `Arc<Timeline>` inside an enum-with-data record, `Vec` of
   records, error enum, `Option<String>`) in both bindings and verify they round-trip in the Swift and C# tests
-- [ ] 1.5 Build the ICU4X word segmenter with Thai/Lao/Khmer/Burmese and CJK data into the library and record
+- [x] 1.5 Build the ICU4X word segmenter with Thai/Lao/Khmer/Burmese and CJK data into the library and record
   the size of the universal `.a`, the win-x64 `.dll` and a stripped linked `ecc` in design.md
-- [ ] 1.6 Record the outcome in design.md (pinned UniFFI / `uniffi-bindgen-cs` pair; keep decision 3 or switch C#
+- [x] 1.6 Record the outcome in design.md (pinned UniFFI / `uniffi-bindgen-cs` pair; keep decision 3 or switch C#
   to the fallback; ICU data choice) and verify the design's decisions 3 and 7 name the chosen options
 
 ## 2. Stage 1 — workspace and lenient draft model
@@ -56,9 +56,11 @@ Stages follow design.md → Migration Plan. Each group ends in a state where bot
 ## 4. Stage 1 — subtitles and draft writers
 
 - [ ] 4.1 Port `Segmenter` and `SRTWriter` and verify the ported `SubtitleTests` segmentation and SRT cases pass
-- [ ] 4.2 Port `LineWrapper` on the ICU4X word segmenter (skipped characters attached to the previous unit,
-  numbers kept with the next word) and verify Thai, Lao, Chinese and Japanese tests never break inside a word or
-  number, and that Latin/Cyrillic results equal today's Swift output
+- [ ] 4.2 Port `LineWrapper` on the ICU4X word segmenter with LSTM data (design decision 7: skipped characters
+  attached to the previous unit, numbers kept with the next word, single-cluster units merged into a neighbour,
+  spaces preferred, Chinese/Japanese by grapheme) and verify Thai, Lao, Chinese and Japanese tests never break
+  inside a word or number (Thai checked against `NLTokenizer` breaks on real caption text), and that
+  Latin/Cyrillic results equal today's Swift output
 - [ ] 4.3 Port `DraftSubtitleWriter` (apply, replace previous, Thai size factor, backups, `.locked` +
   `capcut_running` refusal) with `IdSource` and `now` injection, and verify byte-exact tests on fixture drafts
 - [ ] 4.4 Port `DraftVoiceOverWriter` (all `OriginalAudio` modes, ducking fades, `withoutVoiceOver`) and verify

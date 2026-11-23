@@ -96,6 +96,12 @@ regenerating anything. `ecc-ffi` is a thin mapping layer (records/objects/errors
 see. Release profile: `lto = "thin"`, `codegen-units = 1`, `panic = "unwind"` (UniFFI turns panics into errors;
 `abort` would kill the app), `debug = "line-tables-only"`.
 
+Spike findings (stage 0): the pure crate's *library* is named `ecc` (`[lib] name = "ecc"`), because `ecc-ffi`'s
+library is `ecc_core` and two crates with the same library name collide in `target/`. `ecc-ffi` has
+`crate-type = ["lib", "staticlib", "cdylib"]` (`lib` so Rust tests call the exported functions). The workspace
+also has a tiny `uniffi-bindgen` binary crate (`uniffi` with the `cli` feature, same pinned version) that
+generates the Swift bindings; it is never linked into the apps.
+
 ### 3. Binding generator: UniFFI for both languages
 
 | Option | Swift side | C# side | Cost |
@@ -119,6 +125,23 @@ Fallback if the stage-0 spike shows `uniffi-bindgen-cs` cannot express our API (
 option D for the static Timeline data plus csbindgen for a handful of batched evaluation calls, keeping Swift
 on UniFFI. The spike decides this before any Swift switch work starts, so tasks do not change after it.
 
+**Stage-0 outcome: option A is kept; the fallback is not needed.** Pinned pair:
+
+- `uniffi = "=0.32.0"` (exact: `uniffi-bindgen-cs` is built against `uniffi_bindgen` 0.32.0; crates.io already has
+  0.32.2, which we don't take until the C# generator moves);
+- `uniffi-bindgen-cs` **v0.12.0+v0.32.0** (released 2026-11-09, the newest tag). It is not on crates.io:
+  `cargo install uniffi-bindgen-cs --git https://github.com/NordSecurity/uniffi-bindgen-cs --tag v0.12.0+v0.32.0 --locked`
+  (about 1 min on an M-series Mac). Requires Rust ≥ 1.88; we build with 1.100.
+
+Both generators run in library mode on the built library (`libecc_core.dylib` / `ecc_core.dll`) with
+`--no-format`, so the output doesn't depend on whether swiftformat or CSharpier happens to be installed. The C#
+bindings regenerated from `ecc_core.dll` on `windows-latest` are byte-identical to the ones generated from the
+dylib on macOS, and the Swift ones on the macOS runner to the local ones, so the "bindings are current" check
+works on either OS. Names come from `ecc-ffi/uniffi.toml`: Swift `module_name = "EccCore"`,
+`ffi_module_name = "EccCoreFFI"`; C# `namespace = "EnhanceCapCut.Core"`, `cdylib_name = "ecc_core"`,
+`access_modifier = "public"`. The generated C# (net10.0, `Nullable` on, `LangVersion latest`, `AllowUnsafeBlocks`;
+it uses `LibraryImport`) and Swift (Swift 5 and Swift 6 language modes) compile without warnings.
+
 ### 4. API shape across the boundary
 
 - `Timeline` is a UniFFI **object** (`Arc<Timeline>`, immutable, `Send + Sync`): `info()`, `layers()`,
@@ -140,6 +163,31 @@ on UniFFI. The spike decides this before any Swift switch work starts, so tasks 
   `@_exported import EccCore` so the app and CLI need no new imports. C#: generated code lives in
   `EnhanceCapCut.Draft`, which keeps its name (no reference churn) and shrinks to the bindings plus the C# that
   stays (`ExportSettings`, `VoiceFilterGraph`, `McpServer`, UI `Localization`, `IsOpenInCapCut`).
+
+What the spike showed about these shapes (an `Arc<Timeline>` object inside an enum-with-data inside a record,
+`Vec` of records, an error enum, `Option<String>`; all round-trip in Swift and C# tests):
+
+- **Equality.** Swift gets no `Equatable`/`Hashable` for a record or enum that holds an object (UniFFI can't
+  derive it). Fix: `#[uniffi::export(Eq, Hash)]` on the object (identity: same `Arc`) and on the enums that hold
+  it. In C#, an exported `Eq` on a record turns `Equals` into an FFI call and `GetHashCode` returns 0 unless
+  `Hash` is exported too, so export the traits only where a consumer compares values, not on every record.
+  Records without objects get plain `Equatable, Hashable` (Swift) and value `record` equality (C#) for free.
+- **Errors.** `CoreError` is `#[uniffi(flat_error)]`: each case carries its localized `Display` text as
+  `message` — Swift `CoreError.ProjectOpen(message:)` (case names keep Rust's PascalCase), C#
+  `CoreException.ProjectOpen` with `.Message`. With a rich (field-carrying) error, Swift's `errorDescription` is
+  only `String(reflecting:)` and `#[uniffi::export(Display)]` is ignored for errors, so the localized text would
+  be lost. Panics are caught in `ecc-ffi` (`catch_unwind`) and arrive as `CoreError.Internal(message)` in both
+  languages; uncaught ones would surface as Swift `rustPanic` / C# `PanicException`.
+- **C# shapes.** `Vec<T>` is `T[]` (not `List<T>`); `Option<String>` is `string?`; enums with data are nested
+  `record`s (`LayerContent.Compound(Timeline Timeline)`); objects are `IDisposable` classes with a finalizer. A
+  variant field named like its variant is renamed (`Text { text }` → `LayerContent.Text.TextValue`, to avoid
+  CS0542), so the real API names such fields differently (`Text { spec }`).
+- **Swift shapes.** Enum cases are lowerCamel (`.compound(timeline:)`), objects are `open class … @unchecked
+  Sendable`, records and enums are `Sendable`.
+- **Mapping cost.** Keeping `ecc-core` free of UniFFI means `ecc-ffi` re-declares every exported type and maps it
+  (`From` impls). That is mechanical but proportional to the API; if it grows past what a reviewer can check,
+  `#[cfg_attr(feature = "ffi", derive(uniffi::Record))]` on the `ecc-core` types is the cheaper alternative
+  (decided in stage 2, it doesn't change the generated API).
 
 ### 5. Lenient reading and byte-exact writing in Rust
 
@@ -172,6 +220,42 @@ both platforms get the same breaks (a deliberate behaviour change, see spec `sub
 measured in the spike; if ICU data pushes the library over budget (risk below), use LSTM-only data for the four
 Southeast Asian scripts and grapheme breaks for Chinese/Japanese (typographically allowed there).
 
+**Stage-0 measurements** (`icu_segmenter` 2.4, compiled data, release profile of decision 2; spike core = lenient
+draft + timeline + `format_info` + word units; "linked" = a stripped universal Swift executable calling the core,
+minus the same executable without it):
+
+| ICU data (cargo feature) | linked, universal, stripped | gzip -9 | win-x64 `ecc_core.dll` (gzip -9) |
+|---|---|---|---|
+| none (rule-based only) | +1.25 MB | 0.61 MB | 0.53 MB (0.22 MB) |
+| `icu-lstm` (Thai/Lao/Khmer/Burmese LSTM) | +1.94 MB | 1.23 MB | 0.87 MB (0.53 MB) |
+| `icu-auto` (LSTM + Chinese/Japanese dictionary) | +5.97 MB | 4.36 MB | 2.88 MB (2.08 MB) |
+| `icu-dictionary` (dictionaries for all) | +7.37 MB | 5.05 MB | 3.59 MB (2.42 MB) |
+
+The universal `libecc_core.a` itself is 84 MB (14 MB after `strip -S`): it carries all of `std` and the
+dependencies as object code plus line tables; only what is referenced reaches the executables, so the
+executable numbers are the ones that ship. Deployment target `minos 15.0` checked with `otool`. The executable
+numbers are from Xcode 27.1; the same `icu-auto` spike executable stripped on the `macos-15` runner (Xcode 16.4)
+is 10.7 MB instead of 6.1 MB, so the linker matters — task 6.7 re-measures on the release toolchain. On Windows
+the one `ecc_core.dll` is shared by `EnhanceCapCut.exe` and `ecc.exe`; even `icu-auto` fits the +4 MB budget there.
+
+The `.pkg` carries the core twice (statically in `ecc` and in `EnhanceCapCut`, decision 8), so `icu-auto` costs
+about 2 × 4.4 ≈ 8.7 MB compressed — over the +6 MB budget before the full core is even ported. Segmentation
+quality from the same runs:
+
+- Chinese/Japanese: `auto` gives the same words as `NLTokenizer` with the language set (`我们|今天|去|北京`,
+  `今日|は|良い|天気|です`); `lstm` leaves a CJK run as one unit.
+- Thai: both ICU4X modes sometimes break *inside* a word where `NLTokenizer` doesn't — LSTM `สวัส|ดี` and
+  `ดี|มา|ก` (for `ดีมาก`), dictionary `ดีม|า|ก`; finer but valid splits (`ขอบ|คุณ`, `วัน|นี้`) are harmless.
+  Lao, Khmer and Burmese split plausibly.
+
+**Choice: `icu-lstm`** on both platforms (this decision's own fallback): LSTM data for Thai/Lao/Khmer/Burmese, grapheme breaks for
+Chinese/Japanese in the wrapper (with the usual no-break-before/after punctuation rules), ≈ 2 × 1.2 MB in the
+`.pkg`. Because the LSTM model can split inside a Thai word, the wrapper does not take a lone break as
+final: a unit of a single grapheme cluster is merged into its neighbour, spaces are preferred over ICU breaks,
+and task 4.2 checks Thai breaks against `NLTokenizer` on real caption text. Alternative kept open: `icu-auto` in
+one shared dynamic library in `Contents/Frameworks` (like `whisper`, ≈ 4.4 MB once) if Chinese/Japanese word
+breaks turn out to matter; that changes decision 8 and is not taken now.
+
 ### 8. macOS build integration
 
 - `scripts/build-core.sh [--universal]`: `cargo build --release -p ecc-ffi` for the host target, or for
@@ -185,6 +269,13 @@ Southeast Asian scripts and grapheme breaks for Chinese/Japanese (typographicall
   notarize separately; the existing codesign/notarytool steps are unchanged.
 - Swift 6 toolchain in Swift 5 mode: generated code builds in both modes; the spike checks it with the current
   Xcode command line tools, without `-warnings-as-errors`.
+- Spike-verified (Xcode 27.1, Swift 6.4 locally; `macos-15` runner in CI): `cargo build` for both Apple triples →
+  `lipo` → `xcodebuild -create-xcframework` gives one `macos-arm64_x86_64` slice; the generated
+  `EccCoreFFI.modulemap` must be copied into the headers folder as `module.modulemap`; a `binaryTarget` path must
+  lie inside the package (fine for `build/core/` at the repo root). `swift build -c release --arch arm64 --arch
+  x86_64` links it, `lipo -info` shows both arches, and the x86_64 slice runs under Rosetta. Xcode 27 prints
+  "x86_64 architecture is deprecated" for universal builds — a warning only, but a sign the x86_64 slice has a
+  limited future.
 
 Alternatives rejected: a SwiftPM build-tool plugin running `cargo` (sandboxed, no network for the registry, no
 writes outside the plugin work dir); committing prebuilt `.a` files (repo bloat, unclear provenance); a remote
@@ -198,6 +289,11 @@ writes outside the plugin work dir); committing prebuilt `.a` files (repo bloat,
   `cdylib` (`ecc_core.dll` / `libecc_core.dylib`) as `None` with `CopyToOutputDirectory` and
   `CopyToPublishDirectory`. `-p:SkipRustBuild=true` skips it when CI has built the core already.
 - `dotnet test windows/EnhanceCapCut.slnx` keeps working on macOS (host dylib copied next to the test assembly).
+- Spike-verified with a miniature of this target (`RustTarget` from the RID, `SkipRustBuild`, one `None` item
+  for the library): `dotnet test` passes on macOS (osx-arm64) and on `windows-latest` (win-x64). The library item
+  is computed per platform (`ecc_core.dll` / `libecc_core.dylib` / `libecc_core.so`) as one property; a
+  `Condition="Exists('%(FullPath)')"` on a list of candidates batches over *every* `None` item and copied the
+  dylib over unrelated files in the output folder.
 - `dotnet publish -r win-x64 --self-contained` puts `ecc_core.dll` next to `EnhanceCapCut.exe` / `ecc.exe`;
   the `runtimes/` pruning in `release.yml` does not touch it.
 
@@ -245,10 +341,18 @@ on both sides and learn about `core/`.
 ## Risks / Trade-offs
 
 - [`uniffi-bindgen-cs` lags or stalls] → pinned pair of versions; spike in stage 0 before committing; fallback in
-  decision 3 is chosen up front, so the plan does not change if it is needed.
+  decision 3 is chosen up front, so the plan does not change if it is needed. Stage 0: the current pair
+  (UniFFI 0.32.0 / v0.12.0+v0.32.0) works; the generator trails UniFFI by one minor (0.32.0 vs 0.32.2) and had
+  three releases in 2026.
 - [Binary size: Rust std + serde_json + ICU segmenter data in a universal binary] → budget +6 MB for the `.pkg`
   and +4 MB for the Windows publish, measured in the spike and on every release build (`size` printed in CI);
-  thin LTO, `opt-level = 3` but stripped symbols in the app; LSTM-only ICU data if over budget.
+  thin LTO, `opt-level = 3` but stripped symbols in the app; LSTM-only ICU data if over budget. The spike measured
+  `icu-auto` over the `.pkg` budget, so LSTM-only is chosen (decision 7); the full core adds code on top of the
+  spike's ≈ 0.6 MB compressed per executable, re-measured in task 6.7.
+- [ICU4X LSTM splits some Thai words (`ดีมาก` → `ดี|มา|ก`)] → the wrapper merges single-cluster units and prefers
+  spaces (decision 7); task 4.2 compares Thai breaks with `NLTokenizer` on real captions; if that is not good
+  enough, Thai can switch to dictionary data (dictionary mode misses too, see decision 7) or keep `NLTokenizer`
+  on macOS behind a native callback — the last one gives up identical breaks on both platforms.
 - [Build time: cold universal cargo build adds minutes to `build-app.sh` and CI] → `rust-cache` in CI; dev builds
   host-only; `cargo` incremental for the core; the core is a separate step, so `swift build` after a Swift-only
   change does not rebuild Rust.
@@ -281,7 +385,9 @@ Each stage is its own PR (or a few), leaves both apps working, and has an exit c
    two-layer draft) through UniFFI into Swift and through `uniffi-bindgen-cs` into C#; universal static
    XCFramework linked by `swift build --arch arm64 --arch x86_64`; .NET 10 test on macOS and `windows-latest`;
    ICU segmenter size. *Exit*: both bindings build and run in CI; size and generator choice recorded in this
-   design (updating decision 3 or 7 only if the fallback is taken).
+   design (updating decision 3 or 7 only if the fallback is taken). *Done*: throwaway branch
+   `DeMoZ/rust-core-spike`; results in decisions 2, 3, 4, 7, 8, 9 ("Stage-0 outcome", "spike findings"):
+   option A kept, ICU fallback (LSTM-only) taken.
 1. **Crate alongside**: `core/` with the full core and Rust tests; `ecc-golden`; hidden dump commands in the
    Swift and C# CLIs; fixtures and `scripts/golden.sh`; `core.yml`. Apps unchanged. *Exit*: `cargo test` green;
    golden `fixtures` identical Rust = Swift (and = C# except listed known differences); `golden.sh local`
@@ -313,6 +419,9 @@ code is still in the tree; stage 5 happens only after a release proved the switc
 
 ## Open Questions
 
-- Exact UniFFI / `uniffi-bindgen-cs` versions — whatever pair is current and compatible at stage 0.
+- ~~Exact UniFFI / `uniffi-bindgen-cs` versions~~ — resolved in stage 0: `uniffi =0.32.0` with
+  `uniffi-bindgen-cs` v0.12.0+v0.32.0 (decision 3).
+- Whether Chinese/Japanese word breaks are worth `icu-auto` in a shared dynamic library (decision 7) — decide
+  after the Thai/CJK wrapping tests of task 4.2 and the size check of task 6.7.
 - Whether the MCP server's draft-only tools (list, info) later call the core directly from both CLIs — possible
   after stage 4 without changing this plan.
