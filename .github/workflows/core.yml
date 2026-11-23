@@ -7,9 +7,9 @@ name: Core
 on:
   push:
     branches: [main]
-    paths: ['core/**', 'Localization/**', 'rust-toolchain.toml', '.github/workflows/core.yml', 'Sources/**', 'Tests/**', 'Package.swift', 'windows/src/**', 'scripts/golden.sh']
+    paths: ['core/**', 'Localization/**', 'rust-toolchain.toml', '.github/workflows/core.yml', 'Sources/**', 'Tests/**', 'Package.swift', 'windows/src/**', 'scripts/golden.sh', 'scripts/build-core.sh']
   pull_request:
-    paths: ['core/**', 'Localization/**', 'rust-toolchain.toml', '.github/workflows/core.yml', 'Sources/**', 'Tests/**', 'Package.swift', 'windows/src/**', 'scripts/golden.sh']
+    paths: ['core/**', 'Localization/**', 'rust-toolchain.toml', '.github/workflows/core.yml', 'Sources/**', 'Tests/**', 'Package.swift', 'windows/src/**', 'scripts/golden.sh', 'scripts/build-core.sh']
 
 env:
   CARGO_TERM_COLOR: always
@@ -51,6 +51,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2.9.3
         with:
           workspaces: core
+      - name: Build the Rust core for Swift
+        run: scripts/build-core.sh
       - run: swift build
       - run: swift test
       - name: Golden parity on the fixtures

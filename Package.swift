@@ -16,7 +16,11 @@ let package = Package(
     targets: [
         // Voice cloning (Chatterbox) runs in ONNX Runtime, as on Windows: Microsoft's libonnxruntime.dylib, loaded at
         // run time (OnnxRuntime.swift) and shipped in the app by scripts/build-app.sh.
-        .target(name: "EnhanceCapCutCore", dependencies: ["whisper"]),
+        .target(name: "EnhanceCapCutCore", dependencies: ["whisper", "EccCore"]),
+        // The Rust core (core/, openspec/changes/rust-core): scripts/build-core.sh builds the static library into
+        // build/core and writes the generated Swift bindings into Sources/EccCore. Run it before `swift build`.
+        .binaryTarget(name: "EccCoreFFI", path: "build/core/EccCoreFFI.xcframework"),
+        .target(name: "EccCore", dependencies: ["EccCoreFFI"]),
         // Speech recognition with Whisper (whisper.cpp v1.9.5, the same model as the Windows version).
         .binaryTarget(
             name: "whisper",
@@ -24,7 +28,7 @@ let package = Package(
             checksum: "e57f8c48933000acabc13bb913fbe82805d483a2deff692cc6738836bd92393b"),
         .executableTarget(name: "ecc", dependencies: ["EnhanceCapCutCore"]),
         .executableTarget(name: "EnhanceCapCut", dependencies: ["EnhanceCapCutCore", .product(name: "Sparkle", package: "Sparkle")]),
-        .testTarget(name: "EnhanceCapCutCoreTests", dependencies: ["EnhanceCapCutCore"]),
+        .testTarget(name: "EnhanceCapCutCoreTests", dependencies: ["EnhanceCapCutCore", "EccCore"]),
     ],
     swiftLanguageModes: [.v5]
 )

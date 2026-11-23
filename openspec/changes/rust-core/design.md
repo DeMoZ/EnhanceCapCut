@@ -233,6 +233,14 @@ Only the enums with data are written by hand, about ten conversions. Other choic
   segmentation, `format_info`. That includes `frame`, so a core bug fails one frame instead of crashing the app;
   Swift would `fatalError` on a panic in a non-throwing call. Getters of an already built timeline only copy data
   and don't throw. `debug_panic` exists so the binding smoke tests can check the panic path.
+- **Swift error text.** UniFFI 0.32's Swift `errorDescription` is `String(reflecting: self)`, for flat errors too.
+  The stage-0 note above held only for C#: there `CoreException.Message` is the text. A hand-written
+  `Sources/EccCore/CoreError+Message.swift`, in the same module as the generated file, makes `CoreError`
+  `CustomDebugStringConvertible` with the message. `String(reflecting:)` uses that conformance, so
+  `localizedDescription` is the localized text, and the generated file stays untouched.
+- **Re-export without clashes.** `@_exported import EccCore` in `EnhanceCapCutCore` builds while the old Swift types
+  still exist. A module's own declarations shadow those of a module it re-exports, so the app and the CLI keep
+  getting `EnhanceCapCutCore.Timeline` until stage 3 deletes it. The smoke tests import `EccCore` alone.
 - **Names.** `r#type` and `r#loop` come out as `type` / `loop` in Swift and `Type` / `Loop` in C#, so call sites
   keep today's names. Clock hands become a `ClockHands { minute, hour }` record, and voice-over lines a
   `LineRange { start, end }` record. The generated Swift compiles in Swift 5 and Swift 6 modes, and the C#
@@ -339,6 +347,14 @@ quality, at the price of identical Thai/CJK breaks on both platforms; (c) a comp
   x86_64` links it, `lipo -info` shows both arches, and the x86_64 slice runs under Rosetta. Xcode 27 prints
   "x86_64 architecture is deprecated" for universal builds — a warning only, but a sign the x86_64 slice has a
   limited future.
+
+Stage-2 measurement: `scripts/build-app.sh --pkg` builds the core for both Apple targets (`rustup` adds
+`x86_64-apple-darwin` on first use). `lipo -info` shows `x86_64 arm64` for `ecc` and `EnhanceCapCut`, and `codesign
+--verify --deep --strict` passes. The x86_64 `ecc` runs under Rosetta. The `.pkg` grew from 23.8 MB to 29.3 MB
+(+5.5 MB of the +6 MB budget) while nothing calls the core yet: the exported UniFFI symbols keep it linked, once per
+executable. Notarization isn't checked: the project has no Developer ID, and releases are ad-hoc signed
+(`DEV_ID_APP` unset in `release.yml`). With static linking nothing new is signed separately, so `notarytool` should
+see the same bundle shape as before. Check it the first time a Developer ID is set up.
 
 Alternatives rejected: a SwiftPM build-tool plugin running `cargo` (sandboxed, no network for the registry, no
 writes outside the plugin work dir); committing prebuilt `.a` files (repo bloat, unclear provenance); a remote

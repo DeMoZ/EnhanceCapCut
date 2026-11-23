@@ -25,6 +25,8 @@ bundle_id=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" App/Info.plis
 arch_flags=()
 [[ "$mode" == "--pkg" ]] && arch_flags=(--arch arm64 --arch x86_64)
 
+# The Rust core first: both executables link its static library (scripts/build-core.sh, design decision 8).
+if [[ "$mode" == "--pkg" ]]; then scripts/build-core.sh --universal; else scripts/build-core.sh; fi
 # The CLI first: building a product prunes frameworks only the other one links (Sparkle is the app's).
 swift build -c release "${arch_flags[@]}" --product ecc
 swift build -c release "${arch_flags[@]}" --product EnhanceCapCut

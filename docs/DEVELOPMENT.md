@@ -7,6 +7,8 @@ Building, testing and releasing EnhanceCapCut. Conventions are in [CLAUDE.md](..
 
 - macOS 15 or later, Apple Silicon recommended (hardware HEVC/ProRes encoding).
 - Xcode 16+ command line tools (Swift 6 toolchain) to build.
+- Rust via [`rustup`](https://rustup.rs): the Swift package links the Rust core (`core/`); `rust-toolchain.toml` pins
+  the toolchain and `rustup` installs it on first use.
 - Optional: `ffmpeg` (`brew install ffmpeg`) for loudness normalization.
 - The .NET 10 SDK for the Windows version (it builds and tests on macOS too).
 - Rust (via `rustup`) for the shared core in `core/`; the version is pinned in `rust-toolchain.toml`.
@@ -14,11 +16,18 @@ Building, testing and releasing EnhanceCapCut. Conventions are in [CLAUDE.md](..
 ## Build and test
 
 ```sh
+scripts/build-core.sh       # the Rust core for Swift (again after changing core/)
 swift build                 # debug build of everything
 swift test                  # unit tests
 swift run ecc info 1014     # try the renderer
 dotnet test windows/EnhanceCapCut.slnx
 ```
+
+`scripts/build-core.sh` builds `core/ecc-ffi` into `build/core/EccCoreFFI.xcframework` (static library, C header,
+module map; `--universal` for arm64 + x86_64) and writes its generated Swift bindings to `Sources/EccCore/EccCore.swift`,
+which is committed; `swift build` fails with a missing `EccCoreFFI.xcframework` until it has run once.
+`EnhanceCapCutCore` re-exports the `EccCore` module, whose types its own same-named types shadow until the Swift code
+moves to the core.
 
 Layout: `Sources/EnhanceCapCutCore` (draft model, timeline, renderer, exporter, subtitles, localization),
 `Sources/EnhanceCapCut` (app, Services provider, SwiftUI windows), `Sources/ecc` (CLI), `App/Info.plist` (bundle +
@@ -93,7 +102,9 @@ scripts/build-app.sh --pkg
 
 Builds a universal (Apple Silicon + Intel) app and `build/EnhanceCapCut-<version>.pkg`, which installs
 into `/Applications` and refreshes the Services menu. Every build ships `libonnxruntime.dylib` (Apple Silicon) in
-`Contents/Frameworks` and its licence files in `Contents/Resources/onnxruntime`.
+`Contents/Frameworks` and its licence files in `Contents/Resources/onnxruntime`. The Rust core is built first
+(`scripts/build-core.sh`, `--universal` with `--pkg`; `rustup` adds the missing Apple target) and linked statically
+into both executables, so nothing else is copied or signed for it.
 
 Releases are built by GitHub Actions (`.github/workflows/release.yml`) for both platforms: bump
 `CFBundleShortVersionString` and `CFBundleVersion` in `App/Info.plist` (the version of the Windows build too),
