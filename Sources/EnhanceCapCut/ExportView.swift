@@ -57,7 +57,7 @@ struct ExportView: View {
             }
             if let timeline = model.timeline {
                 LabeledContent(L("Canvas"), value: L("{0}×{1}, {2} fps, {3}", Int(timeline.canvasSize.width),
-                                                   Int(timeline.canvasSize.height), format(timeline.fps), duration(timeline.duration)))
+                                                   Int(timeline.canvasSize.height), format(timeline.fps()), duration(timeline.duration())))
             } else if let error = model.loadError {
                 Text(error).foregroundStyle(.red)
             } else if model.selectedProject != nil {
@@ -91,7 +91,7 @@ struct ExportView: View {
                 LabeledContent(L("Output size"), value: "\(Int(size.width))×\(Int(size.height))")
             }
             Picker(L("Frame rate"), selection: $model.settings.frameRate) {
-                Text(model.timeline.map { L("From project ({0})", format($0.fps)) } ?? L("From project")).tag(0.0)
+                Text(model.timeline.map { L("From project ({0})", format($0.fps())) } ?? L("From project")).tag(0.0)
                 ForEach([24.0, 25, 30, 60], id: \.self) { Text(format($0)).tag($0) }
             }
             Picker(L("Codec"), selection: $model.settings.codec) {
@@ -120,7 +120,7 @@ struct ExportView: View {
                     }
                 }
             }
-            if model.timeline?.hasSubtitles == true {
+            if model.timeline?.hasSubtitles() == true {
                 Toggle(L("Burn in captions (auto-subtitles)"), isOn: $model.settings.burnInSubtitles)
             }
         }
@@ -166,7 +166,7 @@ struct ExportView: View {
 
     @ViewBuilder
     private var unsupportedSection: some View {
-        if let report = model.timeline?.report, !report.isEmpty {
+        if let report = model.timeline?.report(), !report.isEmpty {
             Section {
                 ForEach(groupedUnsupported(report), id: \.0) { category, items in
                     VStack(alignment: .leading, spacing: 2) {
@@ -283,7 +283,7 @@ struct ExportView: View {
 
     // MARK: Helpers
 
-    private func groupedUnsupported(_ report: RenderReport) -> [(String, [RenderReport.Item])] {
+    private func groupedUnsupported(_ report: RenderReport) -> [(String, [ReportItem])] {
         Dictionary(grouping: report.unsupported, by: \.category)
             .map { ($0.key, $0.value.sorted { $0.count > $1.count }) }
             .sorted { $0.0 < $1.0 }

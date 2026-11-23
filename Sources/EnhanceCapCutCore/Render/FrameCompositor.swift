@@ -12,6 +12,9 @@ final class FrameCompositor {
     static let outputColorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
 
     let timeline: Timeline
+    /// The timeline's layers (paint order) and filter-track filters, fetched once; `LayerFrame.index` points into them.
+    private let layers: [VisualLayer]
+    private let filterLayers: [FilterLayer]
     /// Output (canvas) size in pixels.
     let size: CGSize
     private let photos: PhotoCache
@@ -35,6 +38,8 @@ final class FrameCompositor {
 
     init(timeline: Timeline, size: CGSize, photos: PhotoCache = PhotoCache(), opaque: Bool = true) {
         self.timeline = timeline
+        layers = timeline.layers()
+        filterLayers = timeline.filters()
         self.size = size
         self.photos = photos
         self.opaque = opaque
@@ -42,52 +47,49 @@ final class FrameCompositor {
 
     var rect: CGRect { CGRect(origin: .zero, size: size) }
 
-    /// The composited frame at timeline time `t` (µs), extent = `rect`; opaque unless `opaque` is false.
+    /// The composited frame at timeline time `t` (µs), extent = `rect`; opaque unless `opaque` is false. The core
+    /// says what is on screen and where (`Timeline.frame`): both clips of a transition stay on screen for its range.
     func frame(at t: Int64) async -> CIImage {
-        // Both clips of a transition stay on screen for its whole range.
-        let mixing = Set(timeline.layers.flatMap { layer -> [String] in
-            guard let transition = layer.transitionOut, transition.contains(t) else { return [] }
-            return [layer.id, transition.next.id]
-        })
-        let active = timeline.layers.filter { $0.isActive(at: t) || mixing.contains($0.id) }
-        releaseInactive(active: Set(active.map(\.id)))
+        let state = (try? timeline.frame(t: t)) ?? FrameState(time: t, layers: [], filters: [])
+        releaseInactive(active: Set(state.layers.map { layers[Int($0.index)].id }))
 
         var result = CIImage(color: opaque ? .black : .clear).cropped(to: rect)
         var mainImage: (VisualLayer, CIImage)?
-        var layerImages: [(VisualLayer, CIImage)] = []
-        for layer in active {
-            guard let content = await content(of: layer, at: t) else { continue }
-            let image = withEffects(colored(content, by: layer.filters), layer: layer, at: t)
+        var layerImages: [(frame: LayerFrame, image: CIImage)] = []
+        for frame in state.layers {
+            let layer = layers[Int(frame.index)]
+            guard let content = await content(of: layer, frame: frame) else { continue }
+            let image = withEffects(colored(content, by: layer.filters), effect: frame.effect)
             if layer.isMainTrack && mainImage == nil { mainImage = (layer, image) }
-            layerImages.append((layer, image))
+            layerImages.append((frame, image))
         }
 
         if let (layer, image) = mainImage, let canvas = layer.canvas {
             result = background(canvas, source: image).composited(over: result)
         }
         // A clip in a transition is drawn mixed with the next one, in the outgoing clip's place.
-        var incoming: [String: CIImage] = [:]
-        for (layer, _) in layerImages {
-            if let transition = layer.transitionOut, transition.contains(t),
-               let next = layerImages.first(where: { $0.0 === transition.next }) {
-                incoming[next.0.id] = next.1
+        var incoming: [UInt64: (frame: LayerFrame, image: CIImage)] = [:]
+        for (frame, _) in layerImages {
+            if let transition = frame.transition, let next = layerImages.first(where: { $0.frame.index == transition.next }) {
+                incoming[next.frame.index] = next
             }
         }
         // Filter-track filters colour what's painted below them.
-        var filters = timeline.filters.filter { $0.isActive(at: t) }
+        var filters = state.filters.map { filterLayers[Int($0)] }
             .sorted { ($0.renderIndex, $0.trackIndex) < ($1.renderIndex, $1.trackIndex) }
-        for (layer, image) in layerImages where incoming[layer.id] == nil {
+        for (frame, image) in layerImages where incoming[frame.index] == nil {
+            let layer = layers[Int(frame.index)]
             while let filter = filters.first, !filter.covers(layer) {
                 result = colored(result, by: [filter.filter]).cropped(to: rect)
                 filters.removeFirst()
             }
-            if let transition = layer.transitionOut, transition.contains(t), let next = incoming[transition.next.id] {
-                let mixed = TransitionMixer.mix(transition.kind, from: plate(image, layer: layer, at: t),
-                                                to: plate(next, layer: transition.next, at: t),
-                                                progress: transition.progress(at: t), rect: rect)
+            if let transition = frame.transition, let next = incoming[transition.next] {
+                let mixed = TransitionMixer.mix(transition.kind, from: plate(image, layer: layer, frame: frame),
+                                                to: plate(next.image, layer: layers[Int(transition.next)], frame: next.frame),
+                                                progress: transition.progress, rect: rect)
                 result = mixed.composited(over: result)
             } else {
-                result = Self.blended(place(image, layer: layer, at: t), over: result, mode: layer.blendMode)
+                result = Self.blended(place(image, layer: layer, frame: frame), over: result, mode: layer.blendMode)
             }
         }
         result = colored(result, by: filters.map(\.filter))
@@ -95,8 +97,8 @@ final class FrameCompositor {
     }
 
     /// A clip placed on the frame, over its canvas background (and black, when opaque) on the main track.
-    private func plate(_ image: CIImage, layer: VisualLayer, at t: Int64) -> CIImage {
-        var plate = place(image, layer: layer, at: t)
+    private func plate(_ image: CIImage, layer: VisualLayer, frame: LayerFrame) -> CIImage {
+        var plate = place(image, layer: layer, frame: frame)
         if layer.isMainTrack {
             if let canvas = layer.canvas { plate = plate.composited(over: background(canvas, source: image)) }
             if opaque { plate = plate.composited(over: CIImage(color: .black).cropped(to: rect)) }
@@ -106,19 +108,19 @@ final class FrameCompositor {
 
     // MARK: Content
 
-    private func content(of layer: VisualLayer, at t: Int64) async -> CIImage? {
-        let offset = t - layer.target.start
+    private func content(of layer: VisualLayer, frame: LayerFrame) async -> CIImage? {
+        let time = frame.sourceTime
         switch layer.content {
-        case let .video(url):
+        case let .video(path):
+            let url = path.fileURL
             guard let source = await source(for: layer, url: url) else { return nil }
-            let time = layer.timeMap.sourceTime(atOffset: offset)
-            let frame = await stabilized(cutOut(source.image(at: time), layer: layer, at: time), layer: layer, url: url,
+            let image = await stabilized(cutOut(source.image(at: time), layer: layer, at: time), layer: layer, url: url,
                                          at: time)
-            return cropped(masked(frame, layer: layer, at: time), layer.crop)
+            return cropped(masked(image, layer: layer, frame: frame), layer.crop)
 
-        case let .photo(url):
-            return cropped(masked(cutOut(photos.image(url, maxDimension: max(size.width, size.height)), layer: layer, at: 0),
-                                  layer: layer, at: layer.timeMap.sourceTime(atOffset: offset)), layer.crop)
+        case let .photo(path):
+            let image = photos.image(path.fileURL, maxDimension: max(size.width, size.height))
+            return cropped(masked(cutOut(image, layer: layer, at: 0), layer: layer, frame: frame), layer.crop)
 
         case let .compound(inner):
             let compositor: FrameCompositor
@@ -132,19 +134,17 @@ final class FrameCompositor {
                 compositor = FrameCompositor(timeline: inner, size: innerSize, photos: photos, opaque: false)
                 nested[layer.id] = compositor
             }
-            let time = layer.timeMap.sourceTime(atOffset: offset)
-            return masked(cutOut(await compositor.frame(at: time), layer: layer, at: time), layer: layer, at: time)
+            return masked(cutOut(await compositor.frame(at: time), layer: layer, at: time), layer: layer, frame: frame)
 
         case let .text(spec):
-            let reveal = spec.animations.state(atOffset: offset, duration: layer.target.duration).reveal
-            let visible = TextAnimationState.visibleLength(of: spec.content.text, reveal: reveal)
+            let visible = Int(visibleTextLength(text: spec.content.text, reveal: frame.text?.reveal ?? 1))
             return textImage(spec, layer: layer, visible: visible).image
 
         case let .sticker(spec):
             // Drawn every frame at the size it's shown at.
-            let pixels = spec.clock.diameter * Double(min(size.width, size.height)) * Self.maxScale(of: layer)
+            let pixels = spec.clock.diameter * Double(min(size.width, size.height)) * layer.maxScale
             return StickerRenderer.render(spec.clock, pixels: Int(pixels.rounded(.up)),
-                                          atOffset: layer.timeMap.sourceTime(atOffset: offset))
+                                          angles: frame.clockHands ?? ClockHands(minute: 0, hour: 90))
         }
     }
 
@@ -153,9 +153,9 @@ final class FrameCompositor {
         guard !failed.contains(layer.id) else { return nil }
         let map = layer.timeMap
         do {
-            let source = try await VideoFrameSource.open(url: url, from: map.sourceStart,
-                                                         to: map.sourceStart + map.sourceDuration,
-                                                         toneMapsHDR: layer.toneMapsHDR)
+            let source = try await VideoFrameSource.open(url: url, from: map.sourceStart(),
+                                                         to: map.sourceStart() + map.sourceDuration(),
+                                                         toneMapsHDR: layer.toneMapsHdr)
             sources[layer.id] = source
             return source
         } catch {
@@ -171,7 +171,8 @@ final class FrameCompositor {
         if stabilizations[layer.id] == nil {
             let map = layer.timeMap
             stabilizations[layer.id] = await VideoStabilization.analyze(
-                url: url, from: map.sourceStart, to: map.sourceStart + map.sourceDuration, level: layer.stabilization)
+                url: url, from: map.sourceStart(), to: map.sourceStart() + map.sourceDuration(),
+                level: Int(layer.stabilization))
                 ?? StabilizationPlan(times: [], corrections: [])
         }
         guard let plan = stabilizations[layer.id], !plan.times.isEmpty else { return image }
@@ -198,7 +199,7 @@ final class FrameCompositor {
     /// `image` through CapCut filters' lookup tables, in order.
     private func colored(_ image: CIImage, by filters: [ColorFilter]) -> CIImage {
         filters.reduce(image) { image, filter in
-            if luts[filter] == nil { luts[filter] = filter.luts.compactMap { ColorLUT($0, intensity: filter.intensity) } }
+            if luts[filter] == nil { luts[filter] = filter.luts.compactMap { ColorLUT($0.fileURL, intensity: filter.intensity) } }
             return luts[filter, default: []].reduce(image) { $1.apply(to: $0) }
         }
     }
@@ -210,13 +211,14 @@ final class FrameCompositor {
         return chromaKeys[layer.id]?.apply(image) ?? image
     }
 
-    /// Clip masks: the frame with the union of its masks at source time `t` as its alpha.
-    private func masked(_ image: CIImage?, layer: VisualLayer, at t: Int64) -> CIImage? {
+    /// Clip masks: the frame with the union of its masks in this frame (geometry from `LayerFrame.masks`) as its alpha.
+    private func masked(_ image: CIImage?, layer: VisualLayer, frame layerFrame: LayerFrame) -> CIImage? {
         guard let image, !layer.masks.isEmpty else { return image }
         let extent = image.extent
         var entry = clipMasks[layer.id] ?? (ClipMaskFrames(layer.masks), nil)
         guard extent.width > 0, extent.height > 0,
-              let frame = entry.frames.frame(at: t, width: extent.width, height: extent.height) else { return image }
+              let frame = entry.frames.frame(at: layerFrame.sourceTime, geometries: layerFrame.masks, width: extent.width,
+                                             height: extent.height) else { return image }
         if frame.changed || entry.image == nil {
             entry.image = CIImage(bitmapData: Data(frame.pixels), bytesPerRow: frame.width,
                                   size: CGSize(width: frame.width, height: frame.height), format: .L8, colorSpace: nil)
@@ -270,9 +272,9 @@ final class FrameCompositor {
         if let cached = textImages[layer.id], cached.visible == visible { return (cached.image, cached.scale) }
         var maxScale = max(abs(layer.clip.scale.x), abs(layer.clip.scale.y))
         for p in [LayerProperty.scaleX, .scaleY] {
-            if let values = layer.keyframes[p]?.values { maxScale = max(maxScale, values.map(abs).max() ?? 0) }
+            if let values = layer.keyframes[p]?.values() { maxScale = max(maxScale, values.map(abs).max() ?? 0) }
         }
-        maxScale *= spec.animations.maxScale
+        maxScale *= spec.animationMaxScale
         let scale = CGFloat(min(max(maxScale, 1), 8))
         guard let image = TextRasterizer.render(spec, canvasWidth: size.width, scale: scale, visibleLength: visible) else {
             textImages[layer.id] = nil
@@ -282,21 +284,12 @@ final class FrameCompositor {
         return (image, scale)
     }
 
-    /// The largest scale a layer reaches (clip scale or keyframes), 0.05…8.
-    static func maxScale(of layer: VisualLayer) -> Double {
-        var scale = max(abs(layer.clip.scale.x), abs(layer.clip.scale.y))
-        for p in [LayerProperty.scaleX, .scaleY] {
-            if let values = layer.keyframes[p]?.values { scale = max(scale, values.map(abs).max() ?? 0) }
-        }
-        return min(max(scale, 0.05), 8)
-    }
-
     // MARK: Layout
 
-    private func place(_ image: CIImage, layer: VisualLayer, at t: Int64) -> CIImage {
-        var tr = layer.transform(at: t)
-        if case let .text(spec) = layer.content, !spec.animations.isEmpty {
-            let s = spec.animations.state(atOffset: t - layer.target.start, duration: layer.target.duration)
+    /// The clip transform (keyframes and clip animations, from the core) and a text clip's animation on top.
+    private func place(_ image: CIImage, layer: VisualLayer, frame: LayerFrame) -> CIImage {
+        var tr = frame.transform
+        if let s = frame.text {
             tr.scaleX *= s.scale
             tr.scaleY *= s.scale
             tr.positionX += s.offsetX

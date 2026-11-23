@@ -46,6 +46,11 @@ public final class SubtitlePipeline {
     public struct Output {
         public var captions: [SubtitleTrack]
         public var voiceOver: [VoiceOverTrack]
+
+        /// What writing the run changes in a draft (an empty part leaves the draft's earlier one alone).
+        public func edits(original: OriginalAudio, replacePrevious: Bool) -> DraftEdits {
+            DraftWriter.edits(captions: captions, voiceOver: voiceOver, original: original, replacePrevious: replacePrevious)
+        }
     }
 
     public typealias Report = (_ step: String, _ fraction: Double) -> Void
@@ -55,12 +60,13 @@ public final class SubtitlePipeline {
 
     public init(translator: TranslationProvider) {
         self.translator = translator
+        NativeWordBreaker.install
     }
 
     public func cancel() { cancelled = true }
 
     public func run(timeline: Timeline, options: Options, report: @escaping Report) async throws -> Output {
-        let duration = Double(timeline.duration) / 1_000_000
+        let duration = Double(timeline.duration()) / 1_000_000
         let work = FileManager.default.temporaryDirectory.appendingPathComponent("EnhanceCapCut-subtitles-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: work) }
@@ -103,7 +109,7 @@ public final class SubtitlePipeline {
         }
         try checkCancelled()
 
-        let cues = Segmenter.cues(from: words, language: sourceLanguage.code)
+        let cues = try captionCues(words: words, language: sourceLanguage.code)
 
         // 3. Translations
         var tracks: [SubtitleTrack] = []
@@ -120,7 +126,7 @@ public final class SubtitlePipeline {
             spoken[target.code] = zip(cues, translated).map { CaptionCue(start: $0.start, end: $0.end, text: $1) }
             guard options.captions else { continue }
             let wrapped = zip(cues, translated).map {
-                CaptionCue(start: $0.start, end: $0.end, text: LineWrapper.wrap($1, language: target.code))
+                CaptionCue(start: $0.start, end: $0.end, text: (try? wrapCaption(text: $1, language: target.code)) ?? $1)
             }
             tracks.append(SubtitleTrack(language: target, cues: wrapped, isOriginal: false, isVisible: false))
         }
@@ -136,7 +142,7 @@ public final class SubtitlePipeline {
             if cloning {
                 report(L("Isolating the original voice…"), translateEnd)
                 let voiceURL = work.appendingPathComponent("voice.wav")
-                try await VoiceEffectsRenderer.render(audioURL, effects: VoiceEffects(separation: .keepVoice), to: voiceURL)
+                try await VoiceEffectsRenderer.render(audioURL, effects: .only(.keepVoice), to: voiceURL)
                 originalVoice = try MonoAudio.read(voiceURL, sampleRate: VoiceCloner.sampleRate)
                 try checkCancelled()
                 report(L("Loading the voice cloning model…"), translateEnd)
@@ -173,14 +179,14 @@ public final class SubtitlePipeline {
             if options.background {
                 report(L("Separating the background…"), 0.99)
                 let backgroundURL = work.appendingPathComponent("background-full.wav")
-                try await VoiceEffectsRenderer.render(audioURL, effects: VoiceEffects(separation: .removeVoice), to: backgroundURL)
+                try await VoiceEffectsRenderer.render(audioURL, effects: .only(.removeVoice), to: backgroundURL)
                 try checkCancelled()
-                let ranges = DraftVoiceOverWriter.duckedRanges(voiceOver[audible].lines)
+                let ranges = duckedRanges(lines: voiceOver[audible].core.lines)
                 let url = folder.appendingPathComponent("background.wav")
                 try Self.writeBackground(from: backgroundURL, ranges: ranges, duration: duration, to: url)
+                let ramps = duckingRamps()
                 let lines = ranges.map {
-                    max(0, Double($0.lowerBound - DraftVoiceOverWriter.fadeDown) / 1_000_000)
-                        ... min(duration, Double($0.upperBound + DraftVoiceOverWriter.fadeUp) / 1_000_000)
+                    max(0, Double($0.start - ramps.down) / 1_000_000) ... min(duration, Double($0.end + ramps.up) / 1_000_000)
                 }
                 voiceOver.append(VoiceOverTrack(language: voiceOver[audible].language, url: url, fileDuration: duration,
                                                 lines: lines, isAudible: true, isBackground: true))
@@ -190,8 +196,9 @@ public final class SubtitlePipeline {
         return Output(captions: tracks, voiceOver: voiceOver)
     }
 
-    /// `source` (timeline-aligned, 48 kHz) with `DraftVoiceOverWriter.backgroundGain` applied, as 16-bit stereo WAV.
-    static func writeBackground(from source: URL, ranges: [Range<Int64>], duration: Double, to url: URL) throws {
+    /// `source` (timeline-aligned, 48 kHz) with the core's `backgroundGain` applied, as 16-bit stereo WAV.
+    static func writeBackground(from source: URL, ranges: [TimeSpan], duration: Double, to url: URL) throws {
+        let up = duckingRamps().up
         let input = try AVAudioFile(forReading: source)
         let format = input.processingFormat
         try? FileManager.default.removeItem(at: url)
@@ -211,8 +218,8 @@ public final class SubtitlePipeline {
             guard buffer.frameLength > 0 else { break }
             for f in 0..<Int(buffer.frameLength) {
                 let t = Int64(Double(position + AVAudioFramePosition(f)) / format.sampleRate * 1_000_000)
-                while next < ranges.count && t >= ranges[next].upperBound + DraftVoiceOverWriter.fadeUp { next += 1 }
-                let gain = next < ranges.count ? Float(DraftVoiceOverWriter.backgroundGain(at: t, range: ranges[next])) : 0
+                while next < ranges.count && t >= ranges[next].end + up { next += 1 }
+                let gain = next < ranges.count ? Float(backgroundGain(t: t, range: ranges[next])) : 0
                 for c in 0..<Int(format.channelCount) { buffer.floatChannelData![c][f] *= gain }
             }
             try output.write(from: buffer)
@@ -226,8 +233,8 @@ public final class SubtitlePipeline {
 
     /// The timeline to transcribe: without voice-over (and its ducking) that earlier runs added.
     public static func speechTimeline(project: CapCutProject, timeline: ProjectTimeline) throws -> Timeline {
-        let data = try DraftVoiceOverWriter.withoutVoiceOver(Data(contentsOf: timeline.draftURL))
-        return TimelineBuilder.build(draft: try JSONDecoder().decode(Draft.self, from: data), projectURL: project.url)
+        let data = try withoutVoiceOver(draft: Data(contentsOf: timeline.draftURL), ids: .random)
+        return try Timeline.fromDraft(draft: data, projectPath: project.path, env: .current)
     }
 
     /// A new folder for a run's voice-over audio, inside the project so CapCut can read it.
@@ -240,15 +247,8 @@ public final class SubtitlePipeline {
     /// without captions the draft's earlier subtitles stay, without voice-over its earlier voice-over.
     public static func apply(_ output: Output, to draft: Data, original: OriginalAudio, replacePrevious: Bool,
                              projectURL: URL?) throws -> Data {
-        var data = draft
-        if !output.captions.isEmpty {
-            data = try DraftSubtitleWriter.apply(output.captions, to: data, replacePrevious: replacePrevious)
-        }
-        if !output.voiceOver.isEmpty {
-            data = try DraftVoiceOverWriter.apply(output.voiceOver, to: data, original: original,
-                                                  replacePrevious: replacePrevious, projectURL: projectURL)
-        }
-        return data
+        try applyEdits(edits: output.edits(original: original, replacePrevious: replacePrevious), draft: draft,
+                       projectPath: projectURL?.path, ids: .random, nowUs: DraftWriter.nowUs)
     }
 
     /// Writes one `.srt` per track into `folder`, named `<base> <code>.srt`.
@@ -257,7 +257,7 @@ public final class SubtitlePipeline {
         let safe = String(baseName.map { "/:\\".contains($0) ? "-" : $0 })
         return try tracks.map { track in
             let url = folder.appendingPathComponent("\(safe) \(track.language.code).srt")
-            try SRTWriter.srt(track.cues).write(to: url, atomically: true, encoding: .utf8)
+            try srt(cues: track.cues).write(to: url, atomically: true, encoding: .utf8)
             return url
         }
     }

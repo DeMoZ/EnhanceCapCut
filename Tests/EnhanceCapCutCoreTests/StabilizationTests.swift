@@ -108,26 +108,4 @@ final class StabilizationTests: XCTestCase {
         XCTAssertEqual(small.pixels, [25, 45])
     }
 
-    func testStabilizedVideoClipsAreNotReported() throws {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("ecc-stable-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: dir) }
-        let video = dir.appendingPathComponent("v.mov"), photo = dir.appendingPathComponent("p.png")
-        try Data([0]).write(to: video)
-        try Data([0]).write(to: photo)
-        let json = """
-        {"tracks": [{"type": "video", "segments": [
-           {"id": "S1", "material_id": "V1", "target_timerange": {"start": 0, "duration": 1000000}},
-           {"id": "S2", "material_id": "V2", "target_timerange": {"start": 1000000, "duration": 1000000}},
-           {"id": "S3", "material_id": "V3", "target_timerange": {"start": 2000000, "duration": 1000000}}]}],
-         "materials": {"videos": [
-           {"id": "V1", "type": "video", "path": "\(video.path)", "stable": {"stable_level": 3, "matrix_path": ""}},
-           {"id": "V2", "type": "video", "path": "\(video.path)"},
-           {"id": "V3", "type": "photo", "path": "\(photo.path)", "stable": {"stable_level": 2}}]}}
-        """
-        let draft = try JSONDecoder().decode(Draft.self, from: Data(json.utf8))
-        let timeline = TimelineBuilder.build(draft: draft, projectURL: dir)
-        XCTAssertEqual(timeline.layers.map(\.stabilization), [3, 0, 0])
-        XCTAssertEqual(timeline.report.unsupported.map { "\($0.category): \($0.name)" }, ["Stabilization: level 2"])
-    }
 }

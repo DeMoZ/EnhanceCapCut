@@ -16,15 +16,13 @@ final class AudioMixTests: XCTestCase {
         let volumes = [5, 0.5, 8, 0.5, 1, 2]
         let length: Int64 = 1_500_000
         let clips = volumes.enumerated().map { i, volume in
-            AudioClip(url: toneURL, target: TimeRange(start: Int64(i) * length, duration: length),
-                      timeMap: TimeMap(sourceStart: Int64(i) * length, sourceDuration: length, targetDuration: length),
+            audioClip(url: toneURL, target: TimeRange(start: Int64(i) * length, duration: length),
+                      timeMap: TimeMap.constant(sourceStart: Int64(i) * length, sourceDuration: length, targetDuration: length),
                       volume: volume, fadeIn: 0, fadeOut: 0, preservePitch: true)
         }
-        let timeline = Timeline(name: "tone", canvasSize: CGSize(width: 16, height: 16),
-                                duration: Int64(volumes.count) * length, fps: 30, layers: [], audioClips: clips,
-                                report: RenderReport())
         let out = dir.appendingPathComponent("mix.caf")
-        try await AudioRenderer.render(timeline, to: out, isCancelled: { false }, progress: { _ in })
+        try await AudioRenderer.render(clips, duration: Int64(volumes.count) * length, to: out, isCancelled: { false },
+                                       progress: { _ in })
         let mixed = try VoiceSignal.read(out)
 
         let toneDB = 20 * log10(1 / (8 * sqrt(2.0)))
@@ -60,10 +58,8 @@ final class AudioMixDeadlockTests: XCTestCase {
 
     private func render(_ clips: [AudioClip], duration: Int64, tracksPerMix: Int = AudioRenderer.maxTracksPerMix,
                         in dir: URL, name: String) async throws -> [Float] {
-        let timeline = Timeline(name: name, canvasSize: CGSize(width: 16, height: 16), duration: duration, fps: 30,
-                                layers: [], audioClips: clips, report: RenderReport())
         let url = dir.appendingPathComponent("\(name).caf")
-        try await AudioRenderer.render(timeline, to: url, tracksPerMix: tracksPerMix, isCancelled: { false },
+        try await AudioRenderer.render(clips, duration: duration, to: url, tracksPerMix: tracksPerMix, isCancelled: { false },
                                        progress: { _ in })
         return try VoiceSignal.read(url)
     }
@@ -75,8 +71,8 @@ final class AudioMixDeadlockTests: XCTestCase {
         let tone = try toneFile(dir, hz: 300)
         let rate = Int(VoiceProcessor.sampleRate)
         for preservePitch in [false, true] {
-            let clip = AudioClip(url: tone, target: TimeRange(start: 0, duration: 1_000_000),
-                                 timeMap: TimeMap(sourceStart: 0, sourceDuration: 2_000_000, targetDuration: 1_000_000),
+            let clip = audioClip(url: tone, target: TimeRange(start: 0, duration: 1_000_000),
+                                 timeMap: TimeMap.constant(sourceStart: 0, sourceDuration: 2_000_000, targetDuration: 1_000_000),
                                  volume: 1, fadeIn: 0, fadeOut: 0, preservePitch: preservePitch)
             let mixed = try await render([clip], duration: 1_500_000, in: dir, name: "speed\(preservePitch)")
             let body = mixed[(rate / 5)..<(rate * 4 / 5)]
@@ -95,8 +91,8 @@ final class AudioMixDeadlockTests: XCTestCase {
         var clips: [AudioClip] = []
         for i in 0..<40 {
             let sourceDuration: Int64 = i == 7 ? 2_000_000 : 1_000_000
-            clips.append(AudioClip(url: tone, target: TimeRange(start: Int64(i) * 50_000, duration: 1_000_000),
-                                   timeMap: TimeMap(sourceStart: Int64(i % 5) * 100_000, sourceDuration: sourceDuration,
+            clips.append(audioClip(url: tone, target: TimeRange(start: Int64(i) * 50_000, duration: 1_000_000),
+                                   timeMap: TimeMap.constant(sourceStart: Int64(i % 5) * 100_000, sourceDuration: sourceDuration,
                                                     targetDuration: 1_000_000),
                                    volume: 0.05 + Double(i % 3) * 0.02, fadeIn: i % 4 == 0 ? 200_000 : 0,
                                    fadeOut: i % 6 == 0 ? 300_000 : 0, preservePitch: i % 2 == 0))

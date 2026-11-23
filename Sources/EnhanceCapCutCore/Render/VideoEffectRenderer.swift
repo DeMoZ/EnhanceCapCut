@@ -1,11 +1,11 @@
 import CoreImage
 
 extension FrameCompositor {
-    /// `image` (a clip's picture) with the clip's video effects at timeline time `t`, inside its own extent.
-    func withEffects(_ image: CIImage, layer: VisualLayer, at t: Int64) -> CIImage {
-        guard !layer.effects.isEmpty else { return image }
-        let offset = t - layer.target.start
-        return VideoEffectRenderer.apply(.combined(layer.effects.map { $0.state(atOffset: offset) }), to: image)
+    /// `image` (a clip's picture) with the clip's video effects in this frame (`LayerFrame.effect`), inside its own
+    /// extent.
+    func withEffects(_ image: CIImage, effect: VideoEffectState?) -> CIImage {
+        guard let effect else { return image }
+        return VideoEffectRenderer.apply(effect, to: image)
     }
 }
 

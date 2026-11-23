@@ -13,7 +13,7 @@ enum ClipSpeedRenderer {
 
     /// Whether the clip plays its source at anything other than 1×.
     static func changesSpeed(_ map: TimeMap) -> Bool {
-        !map.isConstant || map.sourceDuration != map.targetDuration
+        !map.isConstant() || map.sourceDuration() != map.targetDuration()
     }
 
     /// Writes the clip at timeline speed to a new file of `voice`'s directory: frame 0 is the clip's first
@@ -26,7 +26,7 @@ enum ClipSpeedRenderer {
             (sourceURL, sourceStart) = (processed.url, processed.sourceOffset)
         } else {
             try FileManager.default.createDirectory(at: voice.directory, withIntermediateDirectories: true)
-            let from = max(0, map.sourceStart - decodeMargin), to = map.sourceStart + map.sourceDuration + decodeMargin
+            let from = max(0, map.sourceStart() - decodeMargin), to = map.sourceStart() + map.sourceDuration() + decodeMargin
             guard let decoded = try await voice.decode(clip.url, from: from, to: to) else { return nil }
             (sourceURL, sourceStart) = decoded
         }
@@ -39,7 +39,7 @@ enum ClipSpeedRenderer {
         guard count > 0 else { return nil }
         // Source position (in decoded frames) heard at output frame j of the clip.
         let sourceFrame = { (j: Double) -> Double in
-            (map.preciseSourceTime(atOffset: j * 1_000_000 / rate) - Double(sourceStart)) * rate / 1_000_000
+            (map.preciseSourceTime(offset: j * 1_000_000 / rate) - Double(sourceStart)) * rate / 1_000_000
         }
         var output = [Float](repeating: 0, count: count * 2)
         if clip.preservePitch {

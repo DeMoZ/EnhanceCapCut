@@ -465,6 +465,33 @@ adding C#-only cases). Swift and C# keep thin binding smoke tests (build a fixtu
 evaluate a frame, write captions) and all tests of the code that stays native. The localization key tests stay
 on both sides and learn about `core/`.
 
+**Stage-3 outcome (macOS switch).**
+- **Deleted from Swift:** `Draft/`, `Timeline/`, the caption and voice-over writers, `DubTimeline`, the segmenter and
+  `Golden.swift`, about 4,300 lines.
+- **What stays native:**
+  - the renderers: `FrameCompositor` asks `Timeline.frame` once per video frame and draws what it returns;
+  - `AudioRenderer`, which mixes `[AudioClip]` (the whole timeline, or `Timeline.audioClipsIn` for a partial
+    export, the trimming both apps did);
+  - speech, translation and voices;
+  - the app's tracks with their `SubtitleLanguage` and URLs, which become core records at the writer boundary
+    (`DraftTracks.swift`, `DraftWriter` passing "CapCut runs", the clock and random ids).
+- **New core exports for the renderers:** `visible_text_length`, `lut_layout` / `lut_max_size`, `flashback_frame`,
+  `ducking_ramps`, `locate_voice_filter`, the clock sticker's look in `ClockSticker`,
+  `TextLayerSpec.animation_max_scale`, and UTF-16 style runs (`TextStyle.utf16_start/end`).
+- **Swift tests:** logic tests whose Rust twins came over in stage 1 were dropped. 83 Swift tests remain: renderers,
+  audio, voice, stabilization, export settings, chunking, the bindings, localization, and Thai wrapping through
+  `NLTokenizer`. `LocalizationTests` also collects `tr!` keys from `core/`.
+- **Results:**
+  - `ecc info` of the old and new CLI match on all 79 library projects. In 9 of them, file and folder names now come
+    out in the draft's Unicode normalization (NFC) instead of the file system's: the known difference of decision 11.
+  - Three renders (Pullups7, GymCrowd, PullUps9) match the old build within run-to-run noise. The same build rendered
+    twice gives SSIM 0.9996–0.9998, old against new 0.9996–1.0, and an amplified difference image shows no structure.
+  - Export time is unchanged: 7.3 s against 7.45 s for 20 s of GymCrowd, on a loaded machine.
+  - No library project has eased keyframes; those are covered by the `keyframes-and-motion` fixture.
+- **Correction to stage 2:** sharing one `CARGO_TARGET_DIR` between checkouts is unsafe, and DEVELOPMENT.md now
+  says not to. Cargo uplifts `target/<triple>/release/libecc_core.*` only when it rebuilds, so a fresh build in
+  checkout A leaves checkout B's library in place. Seen when the old build's library got packaged.
+
 ## Risks / Trade-offs
 
 - [`uniffi-bindgen-cs` lags or stalls] → pinned pair of versions; spike in stage 0 before committing; fallback in

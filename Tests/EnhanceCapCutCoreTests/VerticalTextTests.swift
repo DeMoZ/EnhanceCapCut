@@ -52,8 +52,7 @@ final class VerticalTextTests: XCTestCase {
             let json = """
                 {"content":\(String(reflecting: content)),"typesetting":\(typesetting)}
                 """
-            let material = try JSONDecoder().decode(TextMaterial.self, from: Data(json.utf8))
-            let spec = TextLayerSpec(material: material, content: try XCTUnwrap(TextContent.parse(content)))
+            let spec = try textSpec(json)
             return TextRasterizer.render(spec, canvasWidth: 1080, scale: 1)
         }
         let horizontal = try XCTUnwrap(image(0)).extent, vertical = try XCTUnwrap(image(1)).extent

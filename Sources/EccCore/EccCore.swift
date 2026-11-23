@@ -460,7 +460,13 @@ fileprivate final class UniffiHandleMap<T>: @unchecked Sendable {
 
 
 // Public interface members begin here.
-
+// Magic number for the Rust proxy to call using the same mechanism as every other method,
+// to free the callback once it's dropped by Rust.
+private let IDX_CALLBACK_FREE: Int32 = 0
+// Callback return codes
+private let UNIFFI_CALLBACK_SUCCESS: Int32 = 0
+private let UNIFFI_CALLBACK_ERROR: Int32 = 1
+private let UNIFFI_CALLBACK_UNEXPECTED_ERROR: Int32 = 2
 
 #if swift(>=5.8)
 @_documentation(visibility: private)
@@ -1132,6 +1138,11 @@ public protocol TimelineProtocol: AnyObject, Sendable {
     func audioClips()  -> [AudioClip]
     
     /**
+     * For partial exports: the audio clips that play in `range`, cut to it and shifted so it starts at 0.
+     */
+    func audioClipsIn(range: TimeRange)  -> [AudioClip]
+    
+    /**
      * The draft's canvas in pixels.
      */
     func canvas()  -> Size
@@ -1266,6 +1277,19 @@ open func audioClips() -> [AudioClip]  {
         uniffiCallStatus in
     uniffi_ecc_core_fn_method_timeline_audio_clips(
             self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * For partial exports: the audio clips that play in `range`, cut to it and shifted so it starts at 0.
+     */
+open func audioClipsIn(range: TimeRange) -> [AudioClip]  {
+    return try!  FfiConverterSequenceTypeAudioClip.lift(try! rustCall() {
+        uniffiCallStatus in
+    uniffi_ecc_core_fn_method_timeline_audio_clips_in(
+            self.uniffiCloneHandle(),
+        FfiConverterTypeTimeRange_lower(range),uniffiCallStatus
     )
 })
 }
@@ -1459,6 +1483,222 @@ public func FfiConverterTypeTimeline_lift(_ handle: UInt64) throws -> Timeline {
 #endif
 public func FfiConverterTypeTimeline_lower(_ value: Timeline) -> UInt64 {
     return FfiConverterTypeTimeline.lower(value)
+}
+
+
+
+
+
+
+/**
+ * The platform's word breaks for scripts without spaces (Thai, Lao, Khmer, Burmese, Chinese, Japanese): the macOS app
+ * implements it with `NLTokenizer` (design decision 7, option b).
+ */
+public protocol WordBreaker: AnyObject, Sendable {
+    
+    /**
+     * The words of `text` in `language` (our code: `th`, `zh-Hans`…), in order; `None` to let the core use ICU4X.
+     */
+    func words(text: String, language: String)  -> [WordRange]?
+    
+}
+/**
+ * The platform's word breaks for scripts without spaces (Thai, Lao, Khmer, Burmese, Chinese, Japanese): the macOS app
+ * implements it with `NLTokenizer` (design decision 7, option b).
+ */
+open class WordBreakerImpl: WordBreaker, @unchecked Sendable {
+    fileprivate let handle: UInt64
+
+    /// Used to instantiate a [FFIObject] without an actual handle, for fakes in tests, mostly.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public struct NoHandle {
+        public init() {}
+    }
+
+    // TODO: We'd like this to be `private` but for Swifty reasons,
+    // we can't implement `FfiConverter` without making this `required` and we can't
+    // make it `required` without making it `public`.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    required public init(unsafeFromHandle handle: UInt64) {
+        self.handle = handle
+    }
+
+    // This constructor can be used to instantiate a fake object.
+    // - Parameter noHandle: Placeholder value so we can have a constructor separate from the default empty one that may be implemented for classes extending [FFIObject].
+    //
+    // - Warning:
+    //     Any object instantiated with this constructor cannot be passed to an actual Rust-backed object. Since there isn't a backing handle the FFI lower functions will crash.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public init(noHandle: NoHandle) {
+        self.handle = 0
+    }
+
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public func uniffiCloneHandle() -> UInt64 {
+        return try! rustCall { uniffi_ecc_core_fn_clone_wordbreaker(self.handle, $0) }
+    }
+    // No primary constructor declared for this class.
+
+    deinit {
+        if handle == 0 {
+            // Mock objects have handle=0 don't try to free them
+            return
+        }
+
+        try! rustCall { uniffi_ecc_core_fn_free_wordbreaker(handle, $0) }
+    }
+
+    
+
+    
+    /**
+     * The words of `text` in `language` (our code: `th`, `zh-Hans`…), in order; `None` to let the core use ICU4X.
+     */
+open func words(text: String, language: String) -> [WordRange]?  {
+    return try!  FfiConverterOptionSequenceTypeWordRange.lift(try! rustCall() {
+        uniffiCallStatus in
+    uniffi_ecc_core_fn_method_wordbreaker_words(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(text),
+        FfiConverterString.lower(language),uniffiCallStatus
+    )
+})
+}
+    
+
+    
+}
+
+
+
+// Put the implementation in a struct so we don't pollute the top-level namespace
+fileprivate struct UniffiCallbackInterfaceWordBreaker {
+
+    // Create the VTable using a series of closures.
+    // Swift automatically converts these into C callback functions.
+    //
+    // Store the vtable directly.
+    static let vtable: UniffiVTableCallbackInterfaceWordBreaker = UniffiVTableCallbackInterfaceWordBreaker(
+        uniffiFree: { (uniffiHandle: UInt64) -> () in
+            do {
+                try FfiConverterTypeWordBreaker.handleMap.remove(handle: uniffiHandle)
+            } catch {
+                print("Uniffi callback interface WordBreaker: handle missing in uniffiFree")
+            }
+        },
+        uniffiClone: { (uniffiHandle: UInt64) -> UInt64 in
+            do {
+                return try FfiConverterTypeWordBreaker.handleMap.clone(handle: uniffiHandle)
+            } catch {
+                fatalError("Uniffi callback interface WordBreaker: handle missing in uniffiClone")
+            }
+        },
+        words: { (
+            uniffiHandle: UInt64,
+            text: RustBuffer,
+            language: RustBuffer,
+            uniffiOutReturn: UnsafeMutablePointer<RustBuffer>,
+            uniffiCallStatus: UnsafeMutablePointer<RustCallStatus>
+        ) in
+            let makeCall = {
+                () throws -> [WordRange]? in
+                guard let uniffiObj = try? FfiConverterTypeWordBreaker.handleMap.get(handle: uniffiHandle) else {
+                    throw UniffiInternalError.unexpectedStaleHandle
+                }
+                return uniffiObj.words(
+                     text: try FfiConverterString.lift(text),
+                     language: try FfiConverterString.lift(language)
+                )
+            }
+
+            
+            let writeReturn = { uniffiOutReturn.pointee = FfiConverterOptionSequenceTypeWordRange.lower($0) }
+            uniffiTraitInterfaceCall(
+                callStatus: uniffiCallStatus,
+                makeCall: makeCall,
+                writeReturn: writeReturn
+            )
+        }
+    )
+
+    // Rust stores this pointer for future callback invocations, so it must live
+    // for the process lifetime (not just for the init function call).
+    //
+    // `nonisolated(unsafe)` is needed under Swift 6 strict concurrency.
+    // This is safe because the pointee is initialized once during static init
+    // and never mutated by either side of the FFI.  Its fields are C function pointers.
+    nonisolated(unsafe) static let vtablePtr: UnsafePointer<UniffiVTableCallbackInterfaceWordBreaker> = {
+        let ptr = UnsafeMutablePointer<UniffiVTableCallbackInterfaceWordBreaker>.allocate(capacity: 1)
+        ptr.initialize(to: vtable)
+        return UnsafePointer(ptr)
+    }()
+}
+
+private func uniffiCallbackInitWordBreaker() {
+    uniffi_ecc_core_fn_init_callback_vtable_wordbreaker(UniffiCallbackInterfaceWordBreaker.vtablePtr)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeWordBreaker: FfiConverter {
+    fileprivate static let handleMap = UniffiHandleMap<WordBreaker>()
+
+    typealias FfiType = UInt64
+    typealias SwiftType = WordBreaker
+
+    public static func lift(_ handle: UInt64) throws -> WordBreaker {
+        if ((handle & 1) == 0) {
+            // Rust-generated handle, construct a new class that uses the handle to implement the
+            // interface
+            return WordBreakerImpl(unsafeFromHandle: handle)
+        } else {
+            // Swift-generated handle, get the object from the handle map
+            return try handleMap.remove(handle: handle)
+        }
+    }
+
+    public static func lower(_ value: WordBreaker) -> UInt64 {
+         if let rustImpl = value as? WordBreakerImpl {
+             // Rust-implemented object.  Clone the handle and return it
+            return rustImpl.uniffiCloneHandle()
+         } else {
+            // Swift object, generate a new vtable handle and return that.
+            return handleMap.insert(obj: value)
+         }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> WordBreaker {
+        let handle: UInt64 = try readInt(&buf)
+        return try lift(handle)
+    }
+
+    public static func write(_ value: WordBreaker, into buf: inout [UInt8]) {
+        writeInt(&buf, lower(value))
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeWordBreaker_lift(_ handle: UInt64) throws -> WordBreaker {
+    return try FfiConverterTypeWordBreaker.lift(handle)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeWordBreaker_lower(_ value: WordBreaker) -> UInt64 {
+    return FfiConverterTypeWordBreaker.lower(value)
 }
 
 
@@ -2081,13 +2321,34 @@ public func FfiConverterTypeClockHands_lower(_ value: ClockHands) -> RustBuffer 
 }
 
 
+/**
+ * A "Clock Time" sticker, drawn natively: its style and the look of that style (sizes as fractions of the radius,
+ * except `diameter`: of the canvas's shorter side at clip scale 1; sRGB colours 0…1, `face_color` `None` =
+ * transparent). The hands' angles come with each frame (`LayerFrame.clock_hands`).
+ */
 public struct ClockSticker: Equatable, Hashable {
     public var style: ClockStyle
+    public var diameter: Double
+    public var ringWidth: Double
+    public var minuteHand: Double
+    public var hourHand: Double
+    public var handWidth: Double
+    public var ringColor: [Double]
+    public var faceColor: [Double]?
+    public var handColor: [Double]
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
-    public init(style: ClockStyle) {
+    public init(style: ClockStyle, diameter: Double, ringWidth: Double, minuteHand: Double, hourHand: Double, handWidth: Double, ringColor: [Double], faceColor: [Double]?, handColor: [Double]) {
         self.style = style
+        self.diameter = diameter
+        self.ringWidth = ringWidth
+        self.minuteHand = minuteHand
+        self.hourHand = hourHand
+        self.handWidth = handWidth
+        self.ringColor = ringColor
+        self.faceColor = faceColor
+        self.handColor = handColor
     }
 
     
@@ -2106,12 +2367,28 @@ public struct FfiConverterTypeClockSticker: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> ClockSticker {
         return
             try ClockSticker(
-                style: FfiConverterTypeClockStyle.read(from: &buf)
+                style: FfiConverterTypeClockStyle.read(from: &buf), 
+                diameter: FfiConverterDouble.read(from: &buf), 
+                ringWidth: FfiConverterDouble.read(from: &buf), 
+                minuteHand: FfiConverterDouble.read(from: &buf), 
+                hourHand: FfiConverterDouble.read(from: &buf), 
+                handWidth: FfiConverterDouble.read(from: &buf), 
+                ringColor: FfiConverterSequenceDouble.read(from: &buf), 
+                faceColor: FfiConverterOptionSequenceDouble.read(from: &buf), 
+                handColor: FfiConverterSequenceDouble.read(from: &buf)
         )
     }
 
     public static func write(_ value: ClockSticker, into buf: inout [UInt8]) {
         FfiConverterTypeClockStyle.write(value.style, into: &buf)
+        FfiConverterDouble.write(value.diameter, into: &buf)
+        FfiConverterDouble.write(value.ringWidth, into: &buf)
+        FfiConverterDouble.write(value.minuteHand, into: &buf)
+        FfiConverterDouble.write(value.hourHand, into: &buf)
+        FfiConverterDouble.write(value.handWidth, into: &buf)
+        FfiConverterSequenceDouble.write(value.ringColor, into: &buf)
+        FfiConverterOptionSequenceDouble.write(value.faceColor, into: &buf)
+        FfiConverterSequenceDouble.write(value.handColor, into: &buf)
     }
 }
 
@@ -2507,6 +2784,63 @@ public func FfiConverterTypeDubResult_lower(_ value: DubResult) -> RustBuffer {
 }
 
 
+/**
+ * The ducking ramps (µs): the original goes down `down` before a line and back up `up` after it.
+ */
+public struct DuckingRamps: Equatable, Hashable {
+    public var down: Int64
+    public var up: Int64
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(down: Int64, up: Int64) {
+        self.down = down
+        self.up = up
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension DuckingRamps: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeDuckingRamps: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> DuckingRamps {
+        return
+            try DuckingRamps(
+                down: FfiConverterInt64.read(from: &buf), 
+                up: FfiConverterInt64.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: DuckingRamps, into buf: inout [UInt8]) {
+        FfiConverterInt64.write(value.down, into: &buf)
+        FfiConverterInt64.write(value.up, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDuckingRamps_lift(_ buf: RustBuffer) throws -> DuckingRamps {
+    return try FfiConverterTypeDuckingRamps.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDuckingRamps_lower(_ value: DuckingRamps) -> RustBuffer {
+    return FfiConverterTypeDuckingRamps.lower(value)
+}
+
+
 public struct FilterLayer: Equatable, Hashable {
     public var id: String
     public var target: TimeRange
@@ -2570,6 +2904,125 @@ public func FfiConverterTypeFilterLayer_lift(_ buf: RustBuffer) throws -> Filter
 #endif
 public func FfiConverterTypeFilterLayer_lower(_ value: FilterLayer) -> RustBuffer {
     return FfiConverterTypeFilterLayer.lower(value)
+}
+
+
+/**
+ * One blur copy of the flashback transition: scale and clockwise rotation (degrees) about the frame centre.
+ */
+public struct FlashbackCopy: Equatable, Hashable {
+    public var scale: Double
+    public var rotation: Double
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(scale: Double, rotation: Double) {
+        self.scale = scale
+        self.rotation = rotation
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension FlashbackCopy: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFlashbackCopy: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FlashbackCopy {
+        return
+            try FlashbackCopy(
+                scale: FfiConverterDouble.read(from: &buf), 
+                rotation: FfiConverterDouble.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FlashbackCopy, into buf: inout [UInt8]) {
+        FfiConverterDouble.write(value.scale, into: &buf)
+        FfiConverterDouble.write(value.rotation, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFlashbackCopy_lift(_ buf: RustBuffer) throws -> FlashbackCopy {
+    return try FfiConverterTypeFlashbackCopy.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFlashbackCopy_lower(_ value: FlashbackCopy) -> RustBuffer {
+    return FfiConverterTypeFlashbackCopy.lower(value)
+}
+
+
+/**
+ * The flashback transition at one moment: how much of the next clip shows, the effect's strength (0 at the edges,
+ * 1 at the cut) and the blur copies averaged over the dissolved picture.
+ */
+public struct FlashbackFrame: Equatable, Hashable {
+    public var mix: Double
+    public var strength: Double
+    public var copies: [FlashbackCopy]
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(mix: Double, strength: Double, copies: [FlashbackCopy]) {
+        self.mix = mix
+        self.strength = strength
+        self.copies = copies
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension FlashbackFrame: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFlashbackFrame: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FlashbackFrame {
+        return
+            try FlashbackFrame(
+                mix: FfiConverterDouble.read(from: &buf), 
+                strength: FfiConverterDouble.read(from: &buf), 
+                copies: FfiConverterSequenceTypeFlashbackCopy.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FlashbackFrame, into buf: inout [UInt8]) {
+        FfiConverterDouble.write(value.mix, into: &buf)
+        FfiConverterDouble.write(value.strength, into: &buf)
+        FfiConverterSequenceTypeFlashbackCopy.write(value.copies, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFlashbackFrame_lift(_ buf: RustBuffer) throws -> FlashbackFrame {
+    return try FfiConverterTypeFlashbackFrame.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFlashbackFrame_lower(_ value: FlashbackFrame) -> RustBuffer {
+    return FfiConverterTypeFlashbackFrame.lower(value)
 }
 
 
@@ -3711,18 +4164,24 @@ public func FfiConverterTypeTextGlow_lower(_ value: TextGlow) -> RustBuffer {
 }
 
 
+/**
+ * A text clip: its material, text and styles, animations (`animation_max_scale`: the largest scale they reach, so the
+ * text can be rasterized sharp at it) and the approximated look of its CapCut text effect (`glow`).
+ */
 public struct TextLayerSpec: Equatable, Hashable {
     public var material: TextMaterial
     public var content: TextContent
     public var animations: TextAnimations
+    public var animationMaxScale: Double
     public var glow: TextGlow?
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
-    public init(material: TextMaterial, content: TextContent, animations: TextAnimations, glow: TextGlow?) {
+    public init(material: TextMaterial, content: TextContent, animations: TextAnimations, animationMaxScale: Double, glow: TextGlow?) {
         self.material = material
         self.content = content
         self.animations = animations
+        self.animationMaxScale = animationMaxScale
         self.glow = glow
     }
 
@@ -3745,6 +4204,7 @@ public struct FfiConverterTypeTextLayerSpec: FfiConverterRustBuffer {
                 material: FfiConverterTypeTextMaterial.read(from: &buf), 
                 content: FfiConverterTypeTextContent.read(from: &buf), 
                 animations: FfiConverterTypeTextAnimations.read(from: &buf), 
+                animationMaxScale: FfiConverterDouble.read(from: &buf), 
                 glow: FfiConverterOptionTypeTextGlow.read(from: &buf)
         )
     }
@@ -3753,6 +4213,7 @@ public struct FfiConverterTypeTextLayerSpec: FfiConverterRustBuffer {
         FfiConverterTypeTextMaterial.write(value.material, into: &buf)
         FfiConverterTypeTextContent.write(value.content, into: &buf)
         FfiConverterTypeTextAnimations.write(value.animations, into: &buf)
+        FfiConverterDouble.write(value.animationMaxScale, into: &buf)
         FfiConverterOptionTypeTextGlow.write(value.glow, into: &buf)
     }
 }
@@ -3994,10 +4455,13 @@ public func FfiConverterTypeTextStroke_lower(_ value: TextStroke) -> RustBuffer 
 
 
 /**
- * `range` is in UTF-16 units of `TextContent.text`.
+ * A style run of a text. `range` is the draft's (code points); `utf16_start`/`utf16_end` are the same run in UTF-16
+ * units of `TextContent.text`, clamped to it (an `NSRange` / .NET string range).
  */
 public struct TextStyle: Equatable, Hashable {
     public var range: [Int64]
+    public var utf16Start: UInt64
+    public var utf16End: UInt64
     public var size: Double?
     public var fontPath: String?
     public var fillColor: [Double]?
@@ -4010,8 +4474,10 @@ public struct TextStyle: Equatable, Hashable {
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
-    public init(range: [Int64], size: Double?, fontPath: String?, fillColor: [Double]?, fillAlpha: Double?, strokes: [TextStroke], bold: Bool, italic: Bool, underline: Bool, effectStylePath: String?) {
+    public init(range: [Int64], utf16Start: UInt64, utf16End: UInt64, size: Double?, fontPath: String?, fillColor: [Double]?, fillAlpha: Double?, strokes: [TextStroke], bold: Bool, italic: Bool, underline: Bool, effectStylePath: String?) {
         self.range = range
+        self.utf16Start = utf16Start
+        self.utf16End = utf16End
         self.size = size
         self.fontPath = fontPath
         self.fillColor = fillColor
@@ -4040,6 +4506,8 @@ public struct FfiConverterTypeTextStyle: FfiConverterRustBuffer {
         return
             try TextStyle(
                 range: FfiConverterSequenceInt64.read(from: &buf), 
+                utf16Start: FfiConverterUInt64.read(from: &buf), 
+                utf16End: FfiConverterUInt64.read(from: &buf), 
                 size: FfiConverterOptionDouble.read(from: &buf), 
                 fontPath: FfiConverterOptionString.read(from: &buf), 
                 fillColor: FfiConverterOptionSequenceDouble.read(from: &buf), 
@@ -4054,6 +4522,8 @@ public struct FfiConverterTypeTextStyle: FfiConverterRustBuffer {
 
     public static func write(_ value: TextStyle, into buf: inout [UInt8]) {
         FfiConverterSequenceInt64.write(value.range, into: &buf)
+        FfiConverterUInt64.write(value.utf16Start, into: &buf)
+        FfiConverterUInt64.write(value.utf16End, into: &buf)
         FfiConverterOptionDouble.write(value.size, into: &buf)
         FfiConverterOptionString.write(value.fontPath, into: &buf)
         FfiConverterOptionSequenceDouble.write(value.fillColor, into: &buf)
@@ -4802,6 +5272,63 @@ public func FfiConverterTypeVoiceOverTrack_lift(_ buf: RustBuffer) throws -> Voi
 #endif
 public func FfiConverterTypeVoiceOverTrack_lower(_ value: VoiceOverTrack) -> RustBuffer {
     return FfiConverterTypeVoiceOverTrack.lower(value)
+}
+
+
+/**
+ * A word in a text: UTF-8 byte offsets, the end excluded.
+ */
+public struct WordRange: Equatable, Hashable {
+    public var start: UInt64
+    public var end: UInt64
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(start: UInt64, end: UInt64) {
+        self.start = start
+        self.end = end
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension WordRange: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeWordRange: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> WordRange {
+        return
+            try WordRange(
+                start: FfiConverterUInt64.read(from: &buf), 
+                end: FfiConverterUInt64.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: WordRange, into buf: inout [UInt8]) {
+        FfiConverterUInt64.write(value.start, into: &buf)
+        FfiConverterUInt64.write(value.end, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeWordRange_lift(_ buf: RustBuffer) throws -> WordRange {
+    return try FfiConverterTypeWordRange.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeWordRange_lower(_ value: WordRange) -> RustBuffer {
+    return FfiConverterTypeWordRange.lower(value)
 }
 
 
@@ -5656,6 +6183,101 @@ public func FfiConverterTypeLayerProperty_lift(_ buf: RustBuffer) throws -> Laye
 #endif
 public func FfiConverterTypeLayerProperty_lower(_ value: LayerProperty) -> RustBuffer {
     return FfiConverterTypeLayerProperty.lower(value)
+}
+
+
+
+/**
+ * How a lookup-table image holds its N×N×N entries.
+ */
+
+public enum LutLayout: Equatable, Hashable {
+    
+    /**
+     * √N × √N tiles of N×N pixels, blue tile by tile, row by row (512×512 for N = 64).
+     */
+    case grid(size: UInt64, tilesPerRow: UInt64
+    )
+    /**
+     * N tiles of N×N side by side (N² × N).
+     */
+    case row(size: UInt64
+    )
+    /**
+     * N tiles of N×N stacked (N × N²).
+     */
+    case column(size: UInt64
+    )
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension LutLayout: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeLutLayout: FfiConverterRustBuffer {
+    typealias SwiftType = LutLayout
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> LutLayout {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .grid(size: try FfiConverterUInt64.read(from: &buf), tilesPerRow: try FfiConverterUInt64.read(from: &buf)
+        )
+        
+        case 2: return .row(size: try FfiConverterUInt64.read(from: &buf)
+        )
+        
+        case 3: return .column(size: try FfiConverterUInt64.read(from: &buf)
+        )
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: LutLayout, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case let .grid(size,tilesPerRow):
+            writeInt(&buf, Int32(1))
+            FfiConverterUInt64.write(size, into: &buf)
+            FfiConverterUInt64.write(tilesPerRow, into: &buf)
+            
+        
+        case let .row(size):
+            writeInt(&buf, Int32(2))
+            FfiConverterUInt64.write(size, into: &buf)
+            
+        
+        case let .column(size):
+            writeInt(&buf, Int32(3))
+            FfiConverterUInt64.write(size, into: &buf)
+            
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLutLayout_lift(_ buf: RustBuffer) throws -> LutLayout {
+    return try FfiConverterTypeLutLayout.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLutLayout_lower(_ value: LutLayout) -> RustBuffer {
+    return FfiConverterTypeLutLayout.lower(value)
 }
 
 
@@ -6542,6 +7164,30 @@ fileprivate struct FfiConverterOptionTypeKeyframeTrack: FfiConverterRustBuffer {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterOptionTypeWordBreaker: FfiConverterRustBuffer {
+    typealias SwiftType = WordBreaker?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeWordBreaker.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeWordBreaker.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterOptionTypeCanvasMaterial: FfiConverterRustBuffer {
     typealias SwiftType = CanvasMaterial?
 
@@ -6878,6 +7524,30 @@ fileprivate struct FfiConverterOptionTypeBlendMode: FfiConverterRustBuffer {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterOptionTypeLutLayout: FfiConverterRustBuffer {
+    typealias SwiftType = LutLayout?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeLutLayout.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeLutLayout.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterOptionTypeOriginalAudio: FfiConverterRustBuffer {
     typealias SwiftType = OriginalAudio?
 
@@ -6918,6 +7588,30 @@ fileprivate struct FfiConverterOptionSequenceDouble: FfiConverterRustBuffer {
         switch try readInt(&buf) as Int8 {
         case 0: return nil
         case 1: return try FfiConverterSequenceDouble.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionSequenceTypeWordRange: FfiConverterRustBuffer {
+    typealias SwiftType = [WordRange]?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterSequenceTypeWordRange.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterSequenceTypeWordRange.read(from: &buf)
         default: throw UniffiInternalError.unexpectedOptionalTag
         }
     }
@@ -7193,6 +7887,31 @@ fileprivate struct FfiConverterSequenceTypeFilterLayer: FfiConverterRustBuffer {
         seq.reserveCapacity(Int(len))
         for _ in 0 ..< len {
             seq.append(try FfiConverterTypeFilterLayer.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeFlashbackCopy: FfiConverterRustBuffer {
+    typealias SwiftType = [FlashbackCopy]
+
+    public static func write(_ value: [FlashbackCopy], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeFlashbackCopy.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [FlashbackCopy] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [FlashbackCopy]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeFlashbackCopy.read(from: &buf))
         }
         return seq
     }
@@ -7551,6 +8270,31 @@ fileprivate struct FfiConverterSequenceTypeVoiceOverTrack: FfiConverterRustBuffe
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterSequenceTypeWordRange: FfiConverterRustBuffer {
+    typealias SwiftType = [WordRange]
+
+    public static func write(_ value: [WordRange], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeWordRange.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [WordRange] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [WordRange]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeWordRange.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterDictionaryTypeLayerPropertyTypeKeyframeTrack: FfiConverterRustBuffer {
     public static func write(_ value: [LayerProperty: KeyframeTrack], into buf: inout [UInt8]) {
         let len = Int32(value.count)
@@ -7608,6 +8352,75 @@ public func debugPanic(message: String)throws   {try rustCallWithError(FfiConver
         FfiConverterString.lower(message),uniffiCallStatus
     )
 }
+}
+/**
+ * `progress` 0…1 over the transition.
+ */
+public func flashbackFrame(progress: Double) -> FlashbackFrame  {
+    return try!  FfiConverterTypeFlashbackFrame_lift(try! rustCall() {
+        uniffiCallStatus in
+    uniffi_ecc_core_fn_func_flashback_frame(
+        FfiConverterDouble.lower(progress),uniffiCallStatus
+    )
+})
+}
+/**
+ * A voice filter preset folder in CapCut's effect cache: `path` when it is one, else the cached resource
+ * `resource_id` under `cache_roots`.
+ */
+public func locateVoiceFilter(path: String?, resourceId: String, cacheRoots: [String]) -> String?  {
+    return try!  FfiConverterOptionString.lift(try! rustCall() {
+        uniffiCallStatus in
+    uniffi_ecc_core_fn_func_locate_voice_filter(
+        FfiConverterOptionString.lower(path),
+        FfiConverterString.lower(resourceId),
+        FfiConverterSequenceString.lower(cacheRoots),uniffiCallStatus
+    )
+})
+}
+/**
+ * The layout of a lookup image of this size, or `None` when it isn't one.
+ */
+public func lutLayout(width: UInt64, height: UInt64) -> LutLayout?  {
+    return try!  FfiConverterOptionTypeLutLayout.lift(try! rustCall() {
+        uniffiCallStatus in
+    uniffi_ecc_core_fn_func_lut_layout(
+        FfiConverterUInt64.lower(width),
+        FfiConverterUInt64.lower(height),uniffiCallStatus
+    )
+})
+}
+/**
+ * The largest lookup table read (entries per channel); `.cube` files above it are skipped.
+ */
+public func lutMaxSize() -> UInt64  {
+    return try!  FfiConverterUInt64.lift(try! rustCall() {
+        uniffiCallStatus in
+    uniffi_ecc_core_fn_func_lut_max_size(uniffiCallStatus
+    )
+})
+}
+/**
+ * Sets the word breaker caption wrapping uses for no-space scripts, or with `None` goes back to ICU4X (the default).
+ */
+public func setWordBreaker(breaker: WordBreaker?)  {try! rustCall() {
+        uniffiCallStatus in
+    uniffi_ecc_core_fn_func_set_word_breaker(
+        FfiConverterOptionTypeWordBreaker.lower(breaker),uniffiCallStatus
+    )
+}
+}
+/**
+ * UTF-16 length of the part of `text` a typewriter animation shows at `reveal` (whole characters, rounded down).
+ */
+public func visibleTextLength(text: String, reveal: Double) -> UInt64  {
+    return try!  FfiConverterUInt64.lift(try! rustCall() {
+        uniffiCallStatus in
+    uniffi_ecc_core_fn_func_visible_text_length(
+        FfiConverterString.lower(text),
+        FfiConverterDouble.lower(reveal),uniffiCallStatus
+    )
+})
 }
 /**
  * All projects under `root` that have a draft, most recently modified first.
@@ -7819,6 +8632,13 @@ public func duckedRanges(lines: [LineRange]) -> [TimeSpan]  {
     )
 })
 }
+public func duckingRamps() -> DuckingRamps  {
+    return try!  FfiConverterTypeDuckingRamps_lift(try! rustCall() {
+        uniffiCallStatus in
+    uniffi_ecc_core_fn_func_ducking_ramps(uniffiCallStatus
+    )
+})
+}
 /**
  * Languages written without spaces between words (Thai, Chinese, Japanese…).
  */
@@ -7945,6 +8765,24 @@ private let initializationResult: InitializationResult = {
     if (uniffi_ecc_core_checksum_func_debug_panic() != 32013) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_ecc_core_checksum_func_flashback_frame() != 39652) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ecc_core_checksum_func_locate_voice_filter() != 37275) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ecc_core_checksum_func_lut_layout() != 19055) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ecc_core_checksum_func_lut_max_size() != 30716) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ecc_core_checksum_func_set_word_breaker() != 59204) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ecc_core_checksum_func_visible_text_length() != 58934) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_ecc_core_checksum_func_all_projects() != 65313) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -7996,6 +8834,9 @@ private let initializationResult: InitializationResult = {
     if (uniffi_ecc_core_checksum_func_ducked_ranges() != 16049) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_ecc_core_checksum_func_ducking_ramps() != 60158) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_ecc_core_checksum_func_is_no_space_language() != 20453) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -8021,6 +8862,9 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_ecc_core_checksum_func_write_timeline() != 27515) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ecc_core_checksum_method_wordbreaker_words() != 136) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_ecc_core_checksum_method_keyframetrack_breaks() != 45227) {
@@ -8080,6 +8924,9 @@ private let initializationResult: InitializationResult = {
     if (uniffi_ecc_core_checksum_method_timeline_audio_clips() != 14530) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_ecc_core_checksum_method_timeline_audio_clips_in() != 19175) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_ecc_core_checksum_method_timeline_canvas() != 63470) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -8126,6 +8973,7 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
 
+    uniffiCallbackInitWordBreaker()
     return InitializationResult.ok
 }()
 

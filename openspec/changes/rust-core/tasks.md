@@ -116,23 +116,24 @@ Stages follow design.md → Migration Plan. Each group ends in a state where bot
 
 ## 7. Stage 3 — macOS switch
 
-- [ ] 7.1 Add Swift convenience extensions on the generated types (`.url`, `CGSize`, `Identifiable` /
+- [x] 7.1 Add Swift convenience extensions on the generated types (`.url`, `CGSize`, `Identifiable` /
   `Hashable` conformances, `Date`) and verify they compile with no change to call sites' meaning
-- [ ] 7.2 Move `Render/` (`FrameCompositor`, `MaskRaster`, `VideoEffectRenderer`, `AudioRenderer`, voice and
+- [x] 7.2 Move `Render/` (`FrameCompositor`, `MaskRaster`, `VideoEffectRenderer`, `AudioRenderer`, voice and
   stabilization users) to the generated types and `frame(t)` / vectorized sampling, and verify `swift test`
   render tests pass
-- [ ] 7.3 Move `Export/`, `Subtitles/` (`SubtitlePipeline`, `Dubber`), `Automation/MCPServer`, `Sources/ecc`
+- [x] 7.3 Move `Export/`, `Subtitles/` (`SubtitlePipeline`, `Dubber`), `Automation/MCPServer`, `Sources/ecc`
   (`info` prints `format_info`) and the app models to the Rust core, call `set_core_language` next to
   `Localization.use`, and verify `swift test` and `golden.sh local` pass
-- [ ] 7.4 Extend `LocalizationTests` to collect `tr!` keys from `core/**/*.rs` and verify it fails on a
+- [x] 7.4 Extend `LocalizationTests` to collect `tr!` keys from `core/**/*.rs` and verify it fails on a
   `ru.json` entry used by no Swift, C# or Rust code
-- [ ] 7.5 Render three recent projects (keyframes with easing, a compound clip, captions in Thai) with the old and
+- [x] 7.5 Render three recent projects (keyframes with easing, a compound clip, captions in Thai) with the old and
   new builds via `ecc render`, and verify frame grabs match within tolerance and look right next to the matching
   CapCut exports among the 10 newest in `/Volumes/NVME_4TB/VideoFromCapCut/`
 - [ ] 7.6 Write captions and a voice-over into a test project from the app, open it in CapCut, and verify the
   tracks appear and play; verify export time of a reference project is within 2 % of the previous build
-- [ ] 7.7 Note the Thai/CJK line-break change in the next release notes and verify it is in
-  `docs/releases/<tag>.md`
+- [x] 7.7 Note the Thai/CJK line-break change in the next release notes and verify it is in
+  `docs/releases/<tag>.md` (nothing to note on macOS: with option (b) of decision 7 the Mac keeps NLTokenizer's
+  breaks; the Windows change goes into stage 4's notes)
 
 ## 8. Stage 4 — Windows switch
 

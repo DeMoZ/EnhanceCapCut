@@ -2,18 +2,6 @@ import AVFoundation
 import Speech
 
 /// A recognised word (or punctuation-attached token) with its position in the audio.
-public struct TimedWord {
-    public var text: String
-    public var start: Double
-    public var end: Double
-
-    public init(text: String, start: Double, end: Double) {
-        self.text = text
-        self.start = start
-        self.end = end
-    }
-}
-
 public enum TranscriberError: LocalizedError {
     case unsupportedLocale(String)
     case nothingRecognised

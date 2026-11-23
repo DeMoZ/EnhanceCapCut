@@ -58,8 +58,8 @@ final class VoiceProcessor {
     /// The processed audio for `clip`, or nil when the clip has no voice effects.
     func process(_ clip: AudioClip, isCancelled: () -> Bool) async throws -> Output? {
         guard !clip.voice.isEmpty else { return nil }
-        let start = max(0, clip.timeMap.sourceStart - Self.padding)
-        let end = clip.timeMap.sourceStart + clip.timeMap.sourceDuration + Self.padding
+        let start = max(0, clip.timeMap.sourceStart() - Self.padding)
+        let end = clip.timeMap.sourceStart() + clip.timeMap.sourceDuration() + Self.padding
         let key = Key(url: clip.url, start: start, end: end, effects: clip.voice)
         if let cached = cache[key] { return cached }
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -104,7 +104,7 @@ final class VoiceProcessor {
         if let filter = clip.voice.filter {
             if isCancelled() { throw RenderError.cancelled }
             let filtered = newFile("filtered")
-            let clipStart = AVAudioFramePosition((Double(clip.timeMap.sourceStart - offset) / 1_000_000 * Self.sampleRate).rounded())
+            let clipStart = AVAudioFramePosition((Double(clip.timeMap.sourceStart() - offset) / 1_000_000 * Self.sampleRate).rounded())
             try Self.applyFilter(filter, to: try Self.read(url), from: max(0, clipStart), output: try Self.write(filtered))
             url = filtered
         }
@@ -230,7 +230,7 @@ final class VoiceProcessor {
     /// Runs a voice filter over `input` from frame `start` on (earlier frames pass through untouched).
     static func applyFilter(_ filter: VoiceFilter, to input: AVAudioFile, from start: AVAudioFramePosition,
                             output: AVAudioFile) throws {
-        let graph = try VoiceFilterGraph.load(directory: filter.directory)
+        let graph = try VoiceFilterGraph.load(directory: filter.directory.fileURL)
         let format = input.processingFormat
         let frames = AVAudioFrameCount(input.length)
         guard frames > 0, let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames) else { return }
@@ -416,9 +416,9 @@ public enum VoiceEffectsRenderer {
     public static func render(_ media: URL, effects: VoiceEffects, to output: URL) async throws {
         let duration = try await AVURLAsset(url: media).load(.duration)
         let length = Int64(duration.seconds * 1_000_000)
-        let clip = AudioClip(url: media, target: TimeRange(start: 0, duration: length),
-                             timeMap: TimeMap(sourceStart: 0, sourceDuration: length, targetDuration: length),
-                             volume: 1, fadeIn: 0, fadeOut: 0, preservePitch: true, voice: effects)
+        let clip = AudioClip(path: media.path, target: TimeRange(start: 0, duration: length),
+                             timeMap: TimeMap.constant(sourceStart: 0, sourceDuration: length, targetDuration: length),
+                             volume: 1, fadeIn: 0, fadeOut: 0, preservePitch: true, volumeEnvelope: nil, voice: effects)
         let processor = VoiceProcessor(directory: FileManager.default.temporaryDirectory
             .appendingPathComponent("EnhanceCapCut-voice-\(UUID().uuidString)"))
         defer { processor.removeFiles() }

@@ -3,63 +3,6 @@ import XCTest
 @testable import EnhanceCapCutCore
 
 final class VoiceEffectsParsingTests: XCTestCase {
-    func testTogglesAreParsedLenientlyAndCarriedOnClips() throws {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("ecc-voice-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: dir) }
-        let media = dir.appendingPathComponent("a.caf")
-        try VoiceSignal.write([0, 0, 0, 0], to: media)
-
-        let json = """
-        {
-          "duration": 3000000,
-          "materials": {
-            "audios": [{"id": "A", "path": "\(media.path)", "type": "record"}],
-            "vocal_separations": [
-              {"id": "VS-KEEP", "type": "vocal_separation", "choice": 2},
-              {"id": "VS-REMOVE", "type": "vocal_separation", "choice": "1"},
-              {"id": "VS-OFF", "type": "vocal_separation", "choice": 0},
-              {"id": "VS-ODD", "type": "vocal_separation", "choice": 7}
-            ],
-            "realtime_denoises": [
-              {"id": "RD-ON", "is_denoise": true, "denoise_rate": 0.85},
-              {"id": "RD-OFF", "is_denoise": false, "denoise_rate": 0.85},
-              {"id": "RD-NORATE", "is_denoise": 1}
-            ],
-            "vocal_beautifys": [
-              {"id": "VB-ON", "type": "vocal_beautify", "enable": true, "ambient_sound_level": 75},
-              {"id": "VB-100", "enable": 1, "ambient_sound_level": "100"},
-              {"id": "VB-OFF", "enable": false, "ambient_sound_level": 75},
-              {"id": "VB-NOLEVEL", "enable": true, "ambient_sound_level": null}
-            ]
-          },
-          "tracks": [{"type": "audio", "segments": [
-            {"material_id": "A", "extra_material_refs": ["VS-KEEP", "RD-ON", "VB-ON"],
-             "target_timerange": {"start": 0, "duration": 1000000}, "source_timerange": {"start": 0, "duration": 1000000}},
-            {"material_id": "A", "extra_material_refs": ["VS-REMOVE", "RD-OFF", "VB-OFF"],
-             "target_timerange": {"start": 1000000, "duration": 1000000}},
-            {"material_id": "A", "extra_material_refs": ["VS-OFF", "RD-NORATE", "VB-100"],
-             "target_timerange": {"start": 2000000, "duration": 500000}},
-            {"material_id": "A", "extra_material_refs": ["VS-ODD", "VB-NOLEVEL"],
-             "target_timerange": {"start": 2500000, "duration": 500000}}
-          ]}]
-        }
-        """
-        let draft = try JSONDecoder().decode(Draft.self, from: Data(json.utf8))
-        XCTAssertEqual(draft.materials.vocalSeparations.map(\.choice), [2, 1, 0, 7])
-        let timeline = TimelineBuilder.build(draft: draft, projectURL: dir)
-        let voices = timeline.audioClips.sorted { $0.target.start < $1.target.start }.map(\.voice)
-        XCTAssertEqual(draft.materials.vocalBeautifys.map(\.enable), [true, true, false, true])
-        XCTAssertEqual(voices, [
-            VoiceEffects(separation: .keepVoice, denoise: 0.85, enhance: 0.75),
-            VoiceEffects(separation: .removeVoice),
-            VoiceEffects(denoise: 0.85, enhance: 1),
-            VoiceEffects(enhance: 0.75),
-        ])
-        // Supported effects are no longer listed; an unknown separation mode is.
-        let audioItems = timeline.report.unsupported.filter { $0.category == "Audio" }.map(\.name)
-        XCTAssertEqual(audioItems, ["vocal separation mode 7"])
-    }
 }
 
 final class SpectralProcessingTests: XCTestCase {
@@ -197,21 +140,21 @@ final class VoiceIsolationTests: XCTestCase {
             return try VoiceSignal.read(out)
         }
         // Keep voice: the output follows the clean speech closely and in sync (latency compensated).
-        let kept = try await render(VoiceEffects(separation: .keepVoice))
+        let kept = try await render(effects(separation: .keepVoice))
         let n = min(kept.count, speech.count)
         XCTAssertGreaterThan(VoiceSignal.correlation(Array(kept[..<n]), Array(speech[..<n])), 0.8)
         // Remove voice: little speech left, the noise bed stays.
-        let removed = try await render(VoiceEffects(separation: .removeVoice))
+        let removed = try await render(effects(separation: .removeVoice))
         let m = min(removed.count, noise.count)
         XCTAssertLessThan(abs(VoiceSignal.correlation(Array(removed[..<m]), Array(speech[..<m]))), 0.3)
         XCTAssertGreaterThan(VoiceSignal.correlation(Array(removed[..<m]), Array(noise[..<m])), 0.6)
         // Reduce noise: speech stays, the bed drops to roughly 1 − 0.85.
-        let denoised = try await render(VoiceEffects(denoise: 0.85))
+        let denoised = try await render(effects(denoise: 0.85))
         let d = min(denoised.count, speech.count)
         let residual = zip(denoised[..<d], speech[..<d]).map { $0 - $1 }
         XCTAssertLessThan(VoiceSignal.rms(residual[...]) / VoiceSignal.rms(noise[...]), 0.5)
         // Enhance voice: louder speech, in sync, with the bed turned down relative to it.
-        let enhanced = try await render(VoiceEffects(enhance: 0.75))
+        let enhanced = try await render(effects(enhance: 0.75))
         let e = min(enhanced.count, speech.count)
         XCTAssertGreaterThan(VoiceSignal.correlation(Array(enhanced[..<e]), Array(speech[..<e])), 0.8)
         XCTAssertGreaterThan(VoiceSignal.rms(enhanced[..<e]), VoiceSignal.rms(speech[..<e]))

@@ -3,8 +3,9 @@ import CoreImage
 
 /// Draws natively rendered stickers ("Clock Time", see `ClockSticker`) with Core Graphics.
 enum StickerRenderer {
-    /// The clock `offset` µs after its segment start, `pixels` wide (the outer diameter), a square image.
-    static func render(_ clock: ClockSticker, pixels: Int, atOffset offset: Int64) -> CIImage? {
+    /// The clock with its hands at `angles` (`LayerFrame.clockHands`), `pixels` wide (the outer diameter), a square
+    /// image.
+    static func render(_ clock: ClockSticker, pixels: Int, angles: ClockHands) -> CIImage? {
         let n = max(pixels, 4)
         guard let ctx = CGContext(data: nil, width: n, height: n, bitsPerComponent: 8, bytesPerRow: 0,
                                   space: CGColorSpace(name: CGColorSpace.sRGB)!,
@@ -25,7 +26,6 @@ enum StickerRenderer {
         ctx.strokeEllipse(in: CGRect(x: ring / 2, y: ring / 2, width: 2 * r - ring, height: 2 * r - ring))
 
         let width = CGFloat(clock.handWidth) * r
-        let angles = ClockSticker.handAngles(atOffset: offset)
         ctx.setStrokeColor(color(clock.handColor))
         ctx.setLineWidth(width)
         ctx.setLineCap(.round)
