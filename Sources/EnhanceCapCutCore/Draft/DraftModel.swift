@@ -130,12 +130,17 @@ public struct Keyframe: Decodable {
     public var timeOffset: Int64
     public var values: [Double]
     public var curveType: String
+    /// Bezier handles relative to the keyframe: x in µs, y in the property's units (see `KeyframeBezier`).
+    public var leftControl: Point2
+    public var rightControl: Point2
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.anyKeyed()
         timeOffset = c.int64("time_offset") ?? 0
         values = c.opt("values") ?? []
         curveType = c.str("curveType") ?? "Line"
+        leftControl = c.opt("left_control") ?? Point2(x: 0, y: 0)
+        rightControl = c.opt("right_control") ?? Point2(x: 0, y: 0)
     }
 }
 

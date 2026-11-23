@@ -128,12 +128,17 @@ public sealed class Keyframe
     public long TimeOffset { get; set; }
     public List<double> Values { get; set; } = [];
     public string CurveType { get; set; } = "Line";
+    /// <summary>Bezier handles relative to the keyframe: x in µs, y in the property's units (see <c>KeyframeBezier</c>).</summary>
+    public Point2 LeftControl { get; set; } = new(0, 0);
+    public Point2 RightControl { get; set; } = new(0, 0);
 
     public static Keyframe? From(JsonElement c) => c.ValueKind != JsonValueKind.Object ? null : new()
     {
         TimeOffset = c.Int64("time_offset") ?? 0,
         Values = c.Doubles("values") ?? [],
         CurveType = c.Str("curveType") ?? "Line",
+        LeftControl = c.Obj("left_control") is { } l ? Point2.From(l) ?? new(0, 0) : new(0, 0),
+        RightControl = c.Obj("right_control") is { } r ? Point2.From(r) ?? new(0, 0) : new(0, 0),
     };
 }
 

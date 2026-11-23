@@ -119,7 +119,9 @@ public sealed class VisualLayer(string id, VisualContent content, int trackIndex
     public LayerTransform Transform(long t)
     {
         var offset = t - Target.Start;
-        double? Kf(LayerProperty p) => Keyframes.TryGetValue(p, out var track) ? track.Value(offset) : null;
+        // Clip keyframes are on the source time axis, like mask keyframes (docs/FORMAT.md).
+        var keyTime = TimeMap.SourceTime(offset);
+        double? Kf(LayerProperty p) => Keyframes.TryGetValue(p, out var track) ? track.Value(keyTime) : null;
         var sx = Kf(LayerProperty.ScaleX) ?? Clip.Scale.X;
         var sy = Kf(LayerProperty.ScaleY) ?? Clip.Scale.Y;
         if (UniformScale)
