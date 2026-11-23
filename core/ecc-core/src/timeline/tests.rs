@@ -274,7 +274,7 @@ fn reports_unsupported_clip_features() {
                    "content": "{{\"text\":\"Hi\",\"styles\":[{{\"range\":[0,2],\"strokes\":[{{}},{{}}]}}]}}"}}]
       }}
     }}"#,
-        photo.display()
+        crate::testing::slash(&photo)
     );
     let timeline = build(&json);
     assert_eq!(
@@ -321,7 +321,7 @@ fn transitions_join_adjacent_clips() {
         segment("B", 2_000_000, 300_000, &["X"]),
         segment("C", 2_300_000, 1_000_000, &["F"]),
         segment("D", 4_000_000, 1_000_000, &[]),
-        photo.display()
+        crate::testing::slash(&photo)
     );
     let timeline = build(&json);
     // Centred on the cut.
@@ -372,7 +372,7 @@ fn cutout_uses_capcuts_mask_frames() {
     let videos: Vec<String> = mattings
         .iter()
         .enumerate()
-        .map(|(i, m)| format!(r#"{{"id": "V{i}", "type": "photo", "path": "{}", "matting": {m}}}"#, photo.display()))
+        .map(|(i, m)| format!(r#"{{"id": "V{i}", "type": "photo", "path": "{}", "matting": {m}}}"#, crate::testing::slash(&photo)))
         .collect();
     let segments: Vec<String> = (0..mattings.len())
         .map(|i| {
@@ -477,7 +477,7 @@ fn compound_with_detached_sound_plays_only_the_audio_track() {
     let nested = format!(
         r#"{{"duration": 1000000, "materials": {{"audios": [{{"id": "A", "path": "{}", "type": "record"}}]}},
          "tracks": [{{"type": "audio", "segments": [{{"material_id": "A", "target_timerange": {{"start": 0, "duration": 1000000}}}}]}}]}}"#,
-        media.display()
+        crate::testing::slash(&media)
     );
     // "Extract audio" on a compound clip: the video keeps the compound and gets has_sound_separated, an audio track
     // gets a second copy of the compound with the sound.
@@ -554,8 +554,8 @@ fn every_report_category() {
         "placeholder_things": [{{"id": "OTHER", "type": "thing"}}]
       }}
     }}"#,
-        v = video.display(),
-        p = photo.display()
+        v = crate::testing::slash(&video),
+        p = crate::testing::slash(&photo)
     );
     let timeline = build_in(&json, d);
     assert_eq!(
@@ -617,9 +617,9 @@ fn rendered_features_are_not_reported() {
         "stickers": [{{"id": "CLOCK", "name": "Clock", "resource_id": "7528282080199904565"}}]
       }}
     }}"##,
-        p = photo.display(),
-        v = video.display(),
-        r = reversed.display()
+        p = crate::testing::slash(&photo),
+        v = crate::testing::slash(&video),
+        r = crate::testing::slash(&reversed)
     );
     let timeline = build_in(&json, d);
     assert!(timeline.report.is_empty(), "{:?}", timeline.report);
@@ -638,7 +638,7 @@ fn compound_audio_follows_the_parent_speed() {
              "audios": [{{"id": "A", "path": "{}"}}], "audio_fades": [{{"id": "F", "fade_in_duration": 400000}}]}},
          "tracks": [{{"type": "audio", "segments": [{{"material_id": "A", "extra_material_refs": ["F"],
            "target_timerange": {{"start": 1000000, "duration": 2000000}}, "volume": 0.5}}]}}]}}"#,
-        media.display()
+        crate::testing::slash(&media)
     );
     // The compound plays its 0–4 s at 2x over 2 s starting at 10 s, at half volume.
     let json = format!(
@@ -684,7 +684,7 @@ fn without_subtitles_keeps_transitions_pointing_at_their_clips() {
       "materials": {{"videos": [{{"id": "P", "type": "photo", "path": "{}"}}],
         "texts": [{{"id": "X", "type": "subtitle", "content": "{{\"text\":\"Hi\"}}"}}],
         "transitions": [{{"id": "T", "name": "Flashback", "duration": 200000}}]}}}}"#,
-        photo.display()
+        crate::testing::slash(&photo)
     );
     let timeline = build_in(&json, dir.path());
     assert_eq!(timeline.layers.iter().map(|l| l.id.as_str()).collect::<Vec<_>>(), ["CAP", "A", "B"]);
@@ -733,7 +733,7 @@ fn rich_timeline(dir: &Path) -> Timeline {
         "stickers": [{{"id": "CLOCK", "name": "Clock", "resource_id": "7528280675909209405"}}],
         "effects": [{{"id": "FILTER", "type": "filter", "name": "Warm", "resource_id": "111"}}]
       }}}}"#,
-        photo.display()
+        crate::testing::slash(&photo)
     );
     build_in(&json, dir)
 }
