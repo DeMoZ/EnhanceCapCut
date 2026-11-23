@@ -337,7 +337,9 @@ quality, at the price of identical Thai/CJK breaks on both platforms; (c) a comp
   `.target(name: "EccCore", dependencies: ["EccCoreFFI"])`; `EnhanceCapCutCore` depends on `EccCore`.
 - `scripts/build-app.sh` runs `build-core.sh` first (`--universal` with `--pkg`). Static linking puts the core
   inside the `ecc` and `EnhanceCapCut` executables: nothing new to copy into `Contents/Frameworks`, sign or
-  notarize separately; the existing codesign/notarytool steps are unchanged.
+  notarize separately; the existing codesign/notarytool steps are unchanged. (Stage 2 replaced this with a
+  dynamic `EccCoreFFI.framework`, because Xcode 26 can't link the static one in a universal build; see the
+  stage-2 change below.)
 - Swift 6 toolchain in Swift 5 mode: generated code builds in both modes; the spike checks it with the current
   Xcode command line tools, without `-warnings-as-errors`.
 - Spike-verified (Xcode 27.1, Swift 6.4 locally; `macos-15` runner in CI): `cargo build` for both Apple triples →
@@ -348,13 +350,33 @@ quality, at the price of identical Thai/CJK breaks on both platforms; (c) a comp
   "x86_64 architecture is deprecated" for universal builds — a warning only, but a sign the x86_64 slice has a
   limited future.
 
-Stage-2 measurement: `scripts/build-app.sh --pkg` builds the core for both Apple targets (`rustup` adds
-`x86_64-apple-darwin` on first use). `lipo -info` shows `x86_64 arm64` for `ecc` and `EnhanceCapCut`, and `codesign
---verify --deep --strict` passes. The x86_64 `ecc` runs under Rosetta. The `.pkg` grew from 23.8 MB to 29.3 MB
-(+5.5 MB of the +6 MB budget) while nothing calls the core yet: the exported UniFFI symbols keep it linked, once per
-executable. Notarization isn't checked: the project has no Developer ID, and releases are ad-hoc signed
-(`DEV_ID_APP` unset in `release.yml`). With static linking nothing new is signed separately, so `notarytool` should
-see the same bundle shape as before. Check it the first time a Developer ID is set up.
+**Stage-2 change: a dynamic framework, not a static library.** The static library builds and links with
+Xcode 27.1 (the author's Mac), in both the single- and the multi-architecture build. Xcode 26.6 is the newest on
+the `macos-26` runner image. In the release's `swift build --arch arm64 --arch x86_64` (XCBuild), it prelinks
+`EccCore_Module.o` with `-lecc_core`, but without the XCFramework's folder: `ld: library not found`. Naming the
+library after the XCFramework didn't help.
+
+`whisper.framework`, a dynamic framework from an XCFramework, links in that same build, so the core takes the same
+shape:
+- `build-core.sh` `lipo`s the two `libecc_core.dylib` (the cdylib) into `EccCoreFFI.framework/Versions/A/EccCoreFFI`,
+  sets its install name to `@rpath/EccCoreFFI.framework/Versions/A/EccCoreFFI`, and adds the header, a
+  `framework module` map and an `Info.plist`. It then wraps it with `xcodebuild -create-xcframework -framework`.
+- `build-app.sh` copies it into `Contents/Frameworks` and signs it, like whisper. The executables already have
+  `@executable_path/../Frameworks` in their rpath.
+
+This is also smaller: one copy of the core (2.3 MB per architecture, from the dylib's dead-code stripping and the
+release profile) instead of one inside each executable.
+
+Measured on `scripts/build-app.sh --pkg`:
+- `lipo -info` shows `x86_64 arm64` for the framework, `ecc` and `EnhanceCapCut`.
+- `codesign --verify --deep --strict` passes.
+- A copy of the app outside the checkout runs `ecc` natively and under Rosetta.
+- The `.pkg` is 27.1 MB, against 23.8 MB without the core (+3.3 MB of the +6 MB budget). Each executable also
+  grows by about 2 MB of compiled generated Swift, and nothing calls the core yet.
+
+Notarization isn't checked: the project has no Developer ID, and releases are ad-hoc signed (`DEV_ID_APP` unset in
+`release.yml`). The new framework is signed the same way as `whisper.framework`. Check `notarytool` the first time
+a Developer ID is set up.
 
 Alternatives rejected: a SwiftPM build-tool plugin running `cargo` (sandboxed, no network for the registry, no
 writes outside the plugin work dir); committing prebuilt `.a` files (repo bloat, unclear provenance); a remote
