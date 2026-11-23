@@ -55,17 +55,17 @@ Stages follow design.md → Migration Plan. Each group ends in a state where bot
 
 ## 4. Stage 1 — subtitles and draft writers
 
-- [ ] 4.1 Port `Segmenter` and `SRTWriter` and verify the ported `SubtitleTests` segmentation and SRT cases pass
+- [x] 4.1 Port `Segmenter` and `SRTWriter` and verify the ported `SubtitleTests` segmentation and SRT cases pass
 - [ ] 4.2 Port `LineWrapper` on the ICU4X word segmenter with LSTM data (design decision 7: skipped characters
   attached to the previous unit, numbers kept with the next word, single-cluster units merged into a neighbour,
   spaces preferred, Chinese/Japanese by grapheme) and verify Thai, Lao, Chinese and Japanese tests never break
   inside a word or number (Thai checked against `NLTokenizer` breaks on real caption text), and that
   Latin/Cyrillic results equal today's Swift output
-- [ ] 4.3 Port `DraftSubtitleWriter` (apply, replace previous, Thai size factor, backups, `.locked` +
+- [x] 4.3 Port `DraftSubtitleWriter` (apply, replace previous, Thai size factor, backups, `.locked` +
   `capcut_running` refusal) with `IdSource` and `now` injection, and verify byte-exact tests on fixture drafts
-- [ ] 4.4 Port `DraftVoiceOverWriter` (all `OriginalAudio` modes, ducking fades, `withoutVoiceOver`) and verify
+- [x] 4.4 Port `DraftVoiceOverWriter` (all `OriginalAudio` modes, ducking fades, `withoutVoiceOver`) and verify
   the ported `VoiceOverTests` pass byte-exactly
-- [ ] 4.5 Port `DubTimeline` (unique names, project list entry, layout tab, root id) and verify the ported
+- [x] 4.5 Port `DubTimeline` (unique names, project list entry, layout tab, root id) and verify the ported
   `DubTimelineTests` pass on a temp project
 
 ## 5. Stage 1 — golden parity harness

@@ -8,7 +8,9 @@ pub mod info;
 pub mod l10n;
 pub mod lenient;
 pub mod project;
+pub mod subtitles;
 pub mod timeline;
+pub mod writers;
 
 #[cfg(test)]
 pub(crate) mod testing;

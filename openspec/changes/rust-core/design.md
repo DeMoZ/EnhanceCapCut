@@ -256,6 +256,20 @@ and task 4.2 checks Thai breaks against `NLTokenizer` on real caption text. Alte
 one shared dynamic library in `Contents/Frameworks` (like `whisper`, ≈ 4.4 MB once) if Chinese/Japanese word
 breaks turn out to matter; that changes decision 8 and is not taken now.
 
+**Stage-1 measurement (task 4.2).** The wrapper is ported (`subtitles::segmenter`): LSTM units, skipped characters
+kept with the unit before, single letters joined to a neighbour, numbers kept with the next word, a break at a space
+preferred within 10 characters of balance, Chinese/Japanese by grapheme with no break before closing or after opening
+punctuation. Russian and English output equals today's Swift `LineWrapper` on all 1,053 caption texts of the author's
+library. On the library's 784 Thai caption texts, 431 need wrapping. Their 527 breaks were checked against
+`NLTokenizer` (Thai), and 71 (13 %) fall inside one of its words. Today's Swift output has none, and Windows today breaks at
+any grapheme. Almost all of them split compounds that `NLTokenizer` keeps whole (`ออกกำลัง|กาย`, `ความ|ผิด`,
+`พวก|เขา`, `ไมโคร|โฟน`). ICU4X's dictionary data does no better (82 of 528), and stronger space preference helps
+little (66 with a 20-character margin) at the cost of balance. Options, to be chosen before the macOS switch:
+(a) accept it: one implementation, better than Windows today, a visible step back from macOS today for Thai;
+(b) a native word-break callback for no-space scripts (`NLTokenizer` on macOS, ICU4X on Windows): today's macOS
+quality, at the price of identical Thai/CJK breaks on both platforms; (c) a compound-aware join on top of ICU4X
+(e.g. a small list of common Thai compounds), cheap but never complete. Until the author decides, the port uses (a).
+
 ### 8. macOS build integration
 
 - `scripts/build-core.sh [--universal]`: `cargo build --release -p ecc-ffi` for the host target, or for
