@@ -152,7 +152,9 @@ public final class VisualLayer {
     /// Clip transform at timeline time `t`, with keyframes applied.
     public func transform(at t: Int64) -> LayerTransform {
         let offset = t - target.start
-        func kf(_ p: LayerProperty) -> Double? { keyframes[p]?.value(at: offset) }
+        // Clip keyframes are on the source time axis, like mask keyframes (docs/FORMAT.md).
+        let keyTime = timeMap.sourceTime(atOffset: offset)
+        func kf(_ p: LayerProperty) -> Double? { keyframes[p]?.value(at: keyTime) }
         var sx = kf(.scaleX) ?? clip.scale.x
         var sy = kf(.scaleY) ?? clip.scale.y
         if uniformScale {

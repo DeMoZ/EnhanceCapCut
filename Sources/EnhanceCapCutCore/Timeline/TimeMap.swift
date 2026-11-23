@@ -119,14 +119,18 @@ public struct TimeMap: Equatable {
     }
 }
 
-/// Linear interpolation over a segment's keyframes for one property.
+/// Interpolation over a segment's keyframes for one property: linear, or a cubic bezier between keyframes
+/// that aren't both "Line" (`KeyframeBezier`).
 public struct KeyframeTrack: Equatable {
     public var times: [Int64]
     public var values: [Double]
+    /// Per-keyframe bezier handles; nil when every keyframe is linear.
+    public var handles: [KeyframeHandles]?
 
-    public init(times: [Int64], values: [Double]) {
+    public init(times: [Int64], values: [Double], handles: [KeyframeHandles]? = nil) {
         self.times = times
         self.values = values
+        self.handles = handles
     }
 
     public func value(at offset: Int64) -> Double {
@@ -136,18 +140,40 @@ public struct KeyframeTrack: Equatable {
         var i = 1
         while i < times.count && times[i] < offset { i += 1 }
         let t0 = times[i - 1], t1 = times[i]
+        if let h = handles, isCurved(span: i, h) {
+            return KeyframeBezier.value(at: Double(offset - t0), span: Double(t1 - t0), from: values[i - 1],
+                                        to: values[i], out: h[i - 1].right, in: h[i].left)
+        }
         let f = t1 > t0 ? Double(offset - t0) / Double(t1 - t0) : 1
         return values[i - 1] + (values[i] - values[i - 1]) * f
     }
 
+    private func isCurved(span i: Int, _ h: [KeyframeHandles]) -> Bool {
+        h.count == times.count && !(h[i - 1].linear && h[i].linear)
+    }
+
+    /// The keyframe times plus, inside curved spans, a time every `step`: the breaks of a piecewise-linear
+    /// approximation (audio volume ramps).
+    public func breaks(step: Int64) -> [Int64] {
+        guard let h = handles, times.count > 1 else { return times }
+        var result = [times[0]]
+        for i in 1..<times.count {
+            if isCurved(span: i, h) {
+                result += stride(from: times[i - 1] + max(step, 1), to: times[i], by: Int(max(step, 1)))
+            }
+            result.append(times[i])
+        }
+        return result
+    }
+
     /// The same curve with every value multiplied by `factor`.
     public func scaled(by factor: Double) -> KeyframeTrack {
-        KeyframeTrack(times: times, values: values.map { $0 * factor })
+        KeyframeTrack(times: times, values: values.map { $0 * factor }, handles: handles?.map { $0.scaled(by: factor) })
     }
 
     /// The curve as seen from a clip that starts `offset` later (or earlier, when negative).
     public func shifted(by offset: Int64) -> KeyframeTrack {
-        KeyframeTrack(times: times.map { $0 - offset }, values: values)
+        KeyframeTrack(times: times.map { $0 - offset }, values: values, handles: handles)
     }
 
     /// `curve(u)` sampled every `step` over `0...length`, plus `length` itself.
@@ -162,5 +188,7 @@ public struct KeyframeTrack: Equatable {
         guard !frames.isEmpty else { return nil }
         times = frames.map(\.timeOffset)
         values = frames.map { $0.values[0] }
+        let handles = frames.map(KeyframeHandles.init)
+        self.handles = handles.allSatisfy(\.linear) ? nil : handles
     }
 }

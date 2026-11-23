@@ -244,7 +244,8 @@ instead of `draft_info.json`, and keeps its projects in
 
 - Text: text effects only as glows; only the common text animations (#68); vertical typesetting is rendered horizontally; CapCut breaks
   Cyrillic/Thai lines mid-word, we break at word boundaries; Cyrillic fallback weight differs slightly.
-- Keyframes: linear interpolation only; no bezier easing.
+- Keyframes: bezier easing (#46) follows the community-documented `left/right_control` layout; no curved keyframe
+  in the author's projects to check it against a CapCut export yet.
 - Speed curves: video follows the curve exactly; audio follows it in 50 ms steps.
 - Reverse: needs CapCut's reversed copy in the project folder; without it the clip plays forward.
 - Track bit `attribute & 2` is treated as "hidden"; tracks with other flags (e.g. locked) render normally.

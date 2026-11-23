@@ -39,7 +39,7 @@ with one click EnhanceCapCut opens the project you're working on and
 > - text animations other than fade, typewriter, slide, zoom, pop, blink and pulse ([#68](../../issues/68)), text
 >   effects other than glows, and bubbles ([#35](../../issues/35)), vertical text ([#47](../../issues/47));
 > - clip animations other than the In / Out fade, zoom, slide, rotate and shake (Combo included,
->   [#83](../../issues/83)), keyframe easing ([#46](../../issues/46));
+>   [#83](../../issues/83));
 > - AI smart edit and other AI processing ([#87](../../issues/87)), makeup looks and face/body reshape ([#78](../../issues/78));
 > - voice filters other than Booming, Live House and Old Hollywood ([#48](../../issues/48)); on Windows, all voice
 >   processing — isolate voice, reduce noise, enhance voice ([#49](../../issues/49)).

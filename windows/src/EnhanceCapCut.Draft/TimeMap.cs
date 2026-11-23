@@ -134,11 +134,17 @@ public sealed record TimeMap
     }
 }
 
-/// <summary>Linear interpolation over a segment's keyframes for one property.</summary>
-public sealed class KeyframeTrack(IReadOnlyList<long> times, IReadOnlyList<double> values)
+/// <summary>
+/// Interpolation over a segment's keyframes for one property: linear, or a cubic bezier between keyframes
+/// that aren't both "Line" (<see cref="KeyframeBezier"/>).
+/// </summary>
+public sealed class KeyframeTrack(IReadOnlyList<long> times, IReadOnlyList<double> values,
+    IReadOnlyList<KeyframeHandles>? handles = null)
 {
     public IReadOnlyList<long> Times { get; } = times;
     public IReadOnlyList<double> Values { get; } = values;
+    /// <summary>Per-keyframe bezier handles; null when every keyframe is linear.</summary>
+    public IReadOnlyList<KeyframeHandles>? Handles { get; } = handles;
 
     public double Value(long offset)
     {
@@ -148,15 +154,37 @@ public sealed class KeyframeTrack(IReadOnlyList<long> times, IReadOnlyList<doubl
         var i = 1;
         while (i < Times.Count && Times[i] < offset) i++;
         long t0 = Times[i - 1], t1 = Times[i];
+        if (IsCurved(i))
+            return KeyframeBezier.Value(offset - t0, t1 - t0, Values[i - 1], Values[i], Handles![i - 1].Right, Handles[i].Left);
         var f = t1 > t0 ? (double)(offset - t0) / (t1 - t0) : 1;
         return Values[i - 1] + (Values[i] - Values[i - 1]) * f;
     }
 
+    bool IsCurved(int i) => Handles is { } h && h.Count == Times.Count && !(h[i - 1].Linear && h[i].Linear);
+
+    /// <summary>
+    /// The keyframe times plus, inside curved spans, a time every <paramref name="step"/>: the breaks of a
+    /// piecewise-linear approximation (audio volume ramps).
+    /// </summary>
+    public IReadOnlyList<long> Breaks(long step)
+    {
+        if (Handles is null || Times.Count < 2) return Times;
+        var result = new List<long> { Times[0] };
+        for (var i = 1; i < Times.Count; i++)
+        {
+            if (IsCurved(i))
+                for (var t = Times[i - 1] + Math.Max(step, 1); t < Times[i]; t += Math.Max(step, 1)) result.Add(t);
+            result.Add(Times[i]);
+        }
+        return result;
+    }
+
     /// <summary>The same curve with every value multiplied by <paramref name="factor"/>.</summary>
-    public KeyframeTrack Scaled(double factor) => new(Times, Values.Select(v => v * factor).ToList());
+    public KeyframeTrack Scaled(double factor) =>
+        new(Times, Values.Select(v => v * factor).ToList(), Handles?.Select(h => h.Scaled(factor)).ToList());
 
     /// <summary>The curve as seen from a clip that starts <paramref name="offset"/> later (or earlier, when negative).</summary>
-    public KeyframeTrack Shifted(long offset) => new(Times.Select(t => t - offset).ToList(), Values);
+    public KeyframeTrack Shifted(long offset) => new(Times.Select(t => t - offset).ToList(), Values, Handles);
 
     /// <summary><paramref name="curve"/> sampled every <paramref name="step"/> over 0…<paramref name="length"/>, plus the length itself.</summary>
     public static KeyframeTrack Sampled(long length, long step, Func<long, double> curve)
@@ -170,7 +198,9 @@ public sealed class KeyframeTrack(IReadOnlyList<long> times, IReadOnlyList<doubl
     public static KeyframeTrack? From(KeyframeGroup group)
     {
         var frames = group.Keyframes.Where(k => k.Values.Count > 0).OrderBy(k => k.TimeOffset).ToList();
-        return frames.Count == 0 ? null
-            : new KeyframeTrack(frames.Select(k => k.TimeOffset).ToList(), frames.Select(k => k.Values[0]).ToList());
+        if (frames.Count == 0) return null;
+        var handles = frames.Select(KeyframeHandles.From).ToList();
+        return new KeyframeTrack(frames.Select(k => k.TimeOffset).ToList(), frames.Select(k => k.Values[0]).ToList(),
+            handles.All(h => h.Linear) ? null : handles);
     }
 }

@@ -55,8 +55,18 @@ All times are microseconds. A segment has `target_timerange` (timeline) and `sou
 - `clip`: `scale {x,y}`, `rotation` (degrees, clockwise on screen), `transform {x,y}` (center offset in
   half-canvas units, +y up), `flip`, `alpha`. `uniform_scale.on` ties X/Y scale.
 - `common_keyframes[]`: `property_type` (`KFTypePositionX/Y`, `KFTypeScaleX/Y`, `KFTypeRotation`,
-  `KFTypeAlpha`, `KFTypeVolume`, mask properties) with `keyframe_list[{time_offset, values[0]}]`;
-  offsets are relative to the segment start, values use the same units as `clip`.
+  `KFTypeAlpha`, `KFTypeVolume`, mask properties) with `keyframe_list[{time_offset, values[0], curveType,
+  left_control, right_control}]`; values use the same units as `clip`. Video clip offsets are on the clip's
+  **source** time axis, like mask keyframes: a clip with `source_timerange.start` 4.33 s has keyframes from
+  4 330 000 (in every keyframed clip with a non-zero source start in the author's projects; Durian1 renders
+  match CapCut's export only this way). Clips without a source range (texts) count from the segment start.
+- Keyframe easing (#46): `curveType` "Line" on both keyframes of a span = linear. Otherwise a cubic bezier in
+  (time, value): `right_control` of the first and `left_control` of the second keyframe are handles relative to
+  their keyframe, x in µs, y in the property's units (zero handles = a straight line). Every one of the ~15 000
+  keyframes in the author's drafts is "Line", with zero handles and an empty `graphID`, so this layout comes from
+  community reverse engineering (the open-source mangocut project) and is not yet checked against a CapCut
+  export; the name CapCut writes for a curved keyframe is unknown, so we treat anything but "Line" as curved.
+  Handle times are clamped into the span; `graphID` (preset curves?) is ignored.
 - `volume` is linear gain and can exceed 1. `is_tone_modify` = speed changes pitch.
 
 ## Layout
@@ -179,7 +189,9 @@ draft's `##_draftpath_placeholder_…##` prefix when the draft has one, so they 
 with `time_offset` relative to the segment start in timeline time and `values` = linear volume
 (`segment.volume` × 0.178 for −15 dB, or 0, while the voice speaks; ramps 0.25 s down, 0.4 s up). The format
 of CapCut's own volume keyframes was not observed in the author's projects: this is our assumption, to be
-checked in CapCut. Segments that already have volume keyframes are skipped. Our group ids start with
+checked in CapCut. Since CapCut's own transform and mask keyframes turned out to be on the source time axis, CapCut
+probably reads these on that axis too, which would misplace them on clips trimmed at the start: to be checked.
+Segments that already have volume keyframes are skipped. Our group ids start with
 `ECC0D0CC-` so a later run can remove them. The renderer reads volume keyframes as a multiplier of
 `segment.volume` over the clip (`AudioClip.volumeEnvelope`), including on compound clips.
 
@@ -433,7 +445,7 @@ for "Heart" / "Star", which none of the author's projects uses), `constant_mater
 
 Mask keyframes are in the segment's `common_keyframes` with `property_type` `KFTypeCommonMask` + `PositionX`,
 `PositionY`, `SizeWidth`, `SizeHeight`, `Rotation`, `Feather`, `RoundCorner`, `Expansion` (the same units as
-`config`). Their `material_id` is the mask's `constant_material_id`, not its `id`, and unlike the clip keyframes their
+`config`). Their `material_id` is the mask's `constant_material_id`, not its `id`, and like the clip keyframes their
 `time_offset` is on the clip's **source** time axis (a clip with `source_timerange.start` 51.5 s has mask keyframes
 from 51 500 000).
 
