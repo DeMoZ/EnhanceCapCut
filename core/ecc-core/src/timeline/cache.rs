@@ -143,7 +143,7 @@ impl ColorFilter {
     /// path.
     pub fn lut_files_in(package: &Path) -> Vec<PathBuf> {
         let mut candidates: Vec<(u8, String, PathBuf)> = Vec::new();
-        let base = package.to_string_lossy().trim_end_matches('/').to_string();
+        let base = package.to_string_lossy().replace('\\', "/").trim_end_matches('/').to_string();
         let mut stack = vec![package.to_path_buf()];
         while let Some(dir) = stack.pop() {
             let Ok(entries) = std::fs::read_dir(&dir) else { continue };
@@ -166,7 +166,8 @@ impl ColorFilter {
                 }
                 let name = path.file_name().map(|n| n.to_string_lossy().to_lowercase()).unwrap_or_default();
                 let rank = if name.contains("lut") { 0 } else { 1 };
-                let full = path.to_string_lossy().to_string();
+                // With forward slashes, so the order is the same on every OS.
+                let full = path.to_string_lossy().replace('\\', "/");
                 let relative = full.strip_prefix(&base).unwrap_or(&full).to_string();
                 candidates.push((rank, relative, path));
             }
@@ -218,10 +219,11 @@ impl ColorFilter {
         if materials.is_empty() {
             return None;
         }
-        let base = feature.to_string_lossy().trim_end_matches('/').to_string();
+        // Materials name their textures with forward slashes, whatever the OS.
+        let base = feature.to_string_lossy().replace('\\', "/").trim_end_matches('/').to_string();
         Self::lut_files_in(feature).into_iter().find(|url| {
             let without_extension = url.with_extension("");
-            let full = without_extension.to_string_lossy();
+            let full = without_extension.to_string_lossy().replace('\\', "/");
             let relative = full.get(base.len() + 1..).unwrap_or("");
             materials.iter().any(|m| contains_bytes(m, relative.as_bytes()))
         })
