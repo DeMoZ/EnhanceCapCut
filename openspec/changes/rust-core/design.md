@@ -13,6 +13,10 @@ See proposal.md for the motivation. What the code looks like today:
   `SRTWriter`), `DraftSubtitleWriter`, `DraftVoiceOverWriter`, `DubTimeline`. `Localization.swift` holds `L()`.
 - **C# port** (`windows/src/EnhanceCapCut.Draft`, net10.0, no platform APIs): the same files one-to-one, plus
   things that stay C# here: `ExportSettings`, `VoiceFilterGraph`, `McpServer`.
+- **Mirrored render-side code** outside the core: since #93 the voice processing stages and constants exist in
+  both languages (Swift `VoiceProcessor` / `SpectralProcessing` / `VoiceFilter` on Accelerate; C#
+  `VoiceProcessor`, `VoiceFilterProcessing`, `SpectralProcessing`, `Fft` in `EnhanceCapCut.Render`), and since #90
+  vertical text placement (`VerticalTextLayout`, measured with Core Text / DirectWrite).
 - Platform reach inside the core is small and known: file existence checks and directory listings
   (`TimelineBuilder` missing media, cutout mask folders, CapCut's effect cache for voice filters and LUTs),
   home-relative roots (projects, CapCut cache, our backup folder), `NSWorkspace` / `Process` for "is CapCut
@@ -51,6 +55,9 @@ See proposal.md for the motivation. What the code looks like today:
 - Windows arm64 or any new Windows release artifact (the crate builds for `aarch64-pc-windows-msvc`, but
   nothing publishes it until a release asks for it).
 - Performance work beyond "not slower than today".
+- The mirrored render-side code (voice DSP from #93, `VerticalTextLayout` from #90). It is duplicated too, but it
+  is tied to native audio buffers and font measurement; it is a candidate for a follow-up change once this one
+  has proved the bindings, build and golden setup.
 
 ## Decisions
 
@@ -211,7 +218,8 @@ writes outside the plugin work dir); committing prebuilt `.a` files (repo bloat,
   `media.txt` listing placeholder files to create). The harness materializes each into a temp project with
   `draft_info.json` *and*, in a second pass, `draft_content.json`. Seeded from the inline drafts in the Swift and
   C# tests, then one fixture per report category, speed curves, compound clips, masks, transitions, keyframes
-  with easing (#89), "Enhance quality" (#88), captions in en/ru/th/zh, voice-over with every original-audio mode.
+  with easing (#89), "Enhance quality" (#88), vertical typesetting (#90, now rendered, so no longer reported),
+  captions in en/ru/th/zh, voice-over with every original-audio mode.
 - **Outputs**: `info.txt`; `timeline.json` — a canonical dump (static data, plus `frame(t)` and audio samples
   at 0, every clip boundary ±1 µs, every keyframe time ±1 µs and 16 even steps; numbers printed with 6 decimals);
   writer outputs for fixed tracks, with UUIDs replaced by `<id1>`, `<id2>`… in order of appearance and a fixed

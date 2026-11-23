@@ -41,7 +41,8 @@ Stages follow design.md → Migration Plan. Each group ends in a state where bot
   `ChromaKey`, `ClockSticker`, `TextEffect`, `ColorFilter` (cache lookup through `CoreEnvironment`) and verify
   their ported test files pass
 - [ ] 3.3 Port `TimelineBuilder` and `Timeline` (layers, audio clips, filters, compound clips, cutouts, voice
-  effects, "Enhance quality" from #88, `without_subtitles`) and verify the ported builder tests pass, including
+  effects, "Enhance quality" from #88, text `typesetting` passed through for vertical text from #90,
+  `without_subtitles`) and verify the ported builder tests pass, including
   C#-only cases from `DraftTests.cs`
 - [ ] 3.4 Port the report (`note`, `reportRefs`, `report(key:item:)`, missing files) and verify one test per
   report category and that rendered features are not listed

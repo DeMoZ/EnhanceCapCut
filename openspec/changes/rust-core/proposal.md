@@ -36,8 +36,9 @@ Moving the core into one Rust crate that both apps call removes the duplication 
 
 Out of scope (stay native and consume the Rust `Timeline`): rendering (Core Image / Direct3D·Direct2D),
 decoding and encoding (AVFoundation / Media Foundation), text rasterization (Core Text / DirectWrite), speech
-recognition, translation and voices, voice DSP (`VoiceFilter`, `VoiceFilterGraph`), export settings, the MCP
-server, the UIs (SwiftUI / WinUI), Donations, and the "is CapCut running" process check.
+recognition, translation and voices, voice DSP (`VoiceProcessor`, `VoiceFilter` / `VoiceFilterGraph` /
+`VoiceFilterProcessing`, spectral processing — mirrored in both languages since #93, a candidate for a later
+change), vertical text layout, export settings, the MCP server, the UIs (SwiftUI / WinUI), Donations, and the "is CapCut running" process check.
 
 ## Capabilities
 
