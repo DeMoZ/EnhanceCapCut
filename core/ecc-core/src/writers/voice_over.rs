@@ -222,8 +222,10 @@ fn add_tracks(
         let attribute = if track.is_audible { 0 } else { 1 };
         let mut path = track.path.clone();
         if let (Some(placeholder), Some(project)) = (&placeholder, project) {
+            // Inside the project folder (followed by either separator, for Windows paths).
             let folder = project.to_string_lossy();
-            if path.starts_with(&format!("{folder}/")) {
+            let inside = path.strip_prefix(folder.as_ref()).is_some_and(|rest| rest.starts_with(['/', '\\']));
+            if inside {
                 path = format!("{placeholder}{}", &path[folder.len()..]);
             }
         }

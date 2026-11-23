@@ -1,0 +1,213 @@
+{
+ "duration": 6000000,
+ "config": {
+  "video_mute": true
+ },
+ "materials": {
+  "videos": [
+   {
+    "id": "V",
+    "type": "video",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/v.mov",
+    "has_audio": true
+   }
+  ],
+  "audios": [
+   {
+    "id": "A",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/a.m4a",
+    "type": "record"
+   },
+   {
+    "id": "GONE",
+    "path": "",
+    "name": "lost.mp3"
+   }
+  ],
+  "vocal_separations": [
+   {
+    "id": "VS-KEEP",
+    "choice": 2
+   },
+   {
+    "id": "VS-REMOVE",
+    "choice": "1"
+   },
+   {
+    "id": "VS-ODD",
+    "choice": 7
+   }
+  ],
+  "realtime_denoises": [
+   {
+    "id": "RD-ON",
+    "is_denoise": true,
+    "denoise_rate": 0.85
+   },
+   {
+    "id": "RD-OFF",
+    "is_denoise": false
+   }
+  ],
+  "vocal_beautifys": [
+   {
+    "id": "VB-ON",
+    "enable": true,
+    "ambient_sound_level": 75
+   },
+   {
+    "id": "VB-100",
+    "enable": 1,
+    "ambient_sound_level": "100"
+   }
+  ],
+  "audio_effects": [
+   {
+    "id": "FX-GOOD",
+    "name": "Booming",
+    "path": "##_draftpath_placeholder_FIXTURE_##/filters/booming",
+    "resource_id": "fixture-booming",
+    "audio_adjust_params": [
+     {
+      "name": "strength",
+      "value": "0.5"
+     }
+    ]
+   },
+   {
+    "id": "FX-BAD",
+    "name": "Robot",
+    "path": "##_draftpath_placeholder_FIXTURE_##/filters/robot",
+    "resource_id": "fixture-robot"
+   }
+  ],
+  "loudnesses": [
+   {
+    "id": "LOUD",
+    "enable": true,
+    "target_loudness": -14,
+    "loudness_param": {
+     "avg_loudness": -20
+    }
+   }
+  ],
+  "audio_fades": [
+   {
+    "id": "FADE",
+    "fade_in_duration": 300000,
+    "fade_out_duration": 500000
+   }
+  ]
+ },
+ "tracks": [
+  {
+   "type": "video",
+   "segments": [
+    {
+     "id": "MAINV",
+     "material_id": "V",
+     "target_timerange": {
+      "start": 0,
+      "duration": 2000000
+     },
+     "volume": 1.0
+    }
+   ]
+  },
+  {
+   "type": "video",
+   "segments": [
+    {
+     "id": "OVER",
+     "material_id": "V",
+     "target_timerange": {
+      "start": 0,
+      "duration": 2000000
+     },
+     "volume": 0.7,
+     "is_tone_modify": true,
+     "extra_material_refs": [
+      "FADE",
+      "LOUD"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "audio",
+   "segments": [
+    {
+     "id": "A1",
+     "material_id": "A",
+     "target_timerange": {
+      "start": 0,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "VS-KEEP",
+      "RD-ON",
+      "VB-ON",
+      "FX-GOOD"
+     ]
+    },
+    {
+     "id": "A2",
+     "material_id": "A",
+     "target_timerange": {
+      "start": 1000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "VS-REMOVE",
+      "RD-OFF",
+      "FX-BAD"
+     ]
+    },
+    {
+     "id": "A3",
+     "material_id": "A",
+     "target_timerange": {
+      "start": 2000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "VS-ODD",
+      "VB-100"
+     ],
+     "speed": 2.0
+    },
+    {
+     "id": "A4",
+     "material_id": "GONE",
+     "target_timerange": {
+      "start": 3000000,
+      "duration": 1000000
+     }
+    },
+    {
+     "id": "A5",
+     "material_id": "A",
+     "target_timerange": {
+      "start": 4000000,
+      "duration": 1000000
+     },
+     "volume": 0
+    }
+   ]
+  },
+  {
+   "type": "audio",
+   "attribute": 1,
+   "segments": [
+    {
+     "id": "MUTED",
+     "material_id": "A",
+     "target_timerange": {
+      "start": 0,
+      "duration": 1000000
+     }
+    }
+   ]
+  }
+ ]
+}

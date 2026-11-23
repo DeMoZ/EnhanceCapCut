@@ -1,0 +1,8 @@
+media/p.png
+media/v.mov
+matting/auto/2/mask/0
+matting/custom/2/mask/0
+matting/custom/C1/5/mask/0
+matting/unpicked/2/mask/0
+adjust_mask/B1/2000000
+filters/cube/look.cube = LUT_3D_SIZE 2

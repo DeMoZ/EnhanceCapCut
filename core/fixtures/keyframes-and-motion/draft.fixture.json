@@ -1,0 +1,404 @@
+{
+ "duration": 6000000,
+ "fps": 25,
+ "tracks": [
+  {
+   "type": "video",
+   "segments": [
+    {
+     "id": "A",
+     "material_id": "P",
+     "target_timerange": {
+      "start": 0,
+      "duration": 2000000
+     },
+     "extra_material_refs": [
+      "T",
+      "PUDDING",
+      "HAZY",
+      "MASK",
+      "SPEED"
+     ],
+     "common_keyframes": [
+      {
+       "property_type": "KFTypePositionX",
+       "keyframe_list": [
+        {
+         "time_offset": 0,
+         "values": [
+          0
+         ],
+         "curveType": "Cubic",
+         "right_control": {
+          "x": 400000,
+          "y": 0
+         }
+        },
+        {
+         "time_offset": 3000000,
+         "values": [
+          1
+         ],
+         "curveType": "Cubic",
+         "left_control": {
+          "x": -500000,
+          "y": 0.2
+         }
+        }
+       ]
+      },
+      {
+       "property_type": "KFTypeScaleX",
+       "keyframe_list": [
+        {
+         "time_offset": 0,
+         "values": [
+          1.0
+         ]
+        },
+        {
+         "time_offset": 2000000,
+         "values": [
+          1.5
+         ]
+        }
+       ]
+      },
+      {
+       "property_type": "KFTypeRotation",
+       "keyframe_list": [
+        {
+         "time_offset": 500000,
+         "values": [
+          0
+         ]
+        },
+        {
+         "time_offset": 1500000,
+         "values": [
+          45
+         ]
+        }
+       ]
+      },
+      {
+       "property_type": "KFTypeCommonMaskPositionX",
+       "material_id": "MC",
+       "keyframe_list": [
+        {
+         "time_offset": 0,
+         "values": [
+          -0.5
+         ]
+        },
+        {
+         "time_offset": 4000000,
+         "values": [
+          0.5
+         ]
+        }
+       ]
+      },
+      {
+       "property_type": "KFTypeCommonMaskSizeWidth",
+       "material_id": "MC",
+       "keyframe_list": [
+        {
+         "time_offset": 0,
+         "values": [
+          0.2
+         ]
+        },
+        {
+         "time_offset": 4000000,
+         "values": [
+          0.6
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "B",
+     "material_id": "P",
+     "target_timerange": {
+      "start": 2000000,
+      "duration": 2000000
+     },
+     "extra_material_refs": [
+      "ANIM-CLIP"
+     ],
+     "clip": {
+      "scale": {
+       "x": 0.8,
+       "y": 0.8
+      },
+      "transform": {
+       "x": 0.1,
+       "y": -0.1
+      }
+     }
+    },
+    {
+     "id": "C",
+     "material_id": "V",
+     "target_timerange": {
+      "start": 4000000,
+      "duration": 2000000
+     },
+     "extra_material_refs": [
+      "CURVE"
+     ],
+     "source_timerange": {
+      "start": 1000000,
+      "duration": 4000000
+     }
+    }
+   ]
+  },
+  {
+   "type": "text",
+   "segments": [
+    {
+     "id": "X",
+     "material_id": "TXT",
+     "target_timerange": {
+      "start": 500000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "ANIM-TEXT"
+     ]
+    },
+    {
+     "id": "Y",
+     "material_id": "TXT2",
+     "target_timerange": {
+      "start": 2000000,
+      "duration": 3000000
+     },
+     "extra_material_refs": [
+      "ANIM-LOOP"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "sticker",
+   "segments": [
+    {
+     "id": "CL",
+     "material_id": "CLOCK",
+     "target_timerange": {
+      "start": 1000000,
+      "duration": 3000000
+     },
+     "clip": {
+      "scale": {
+       "x": 0.25,
+       "y": 0.25
+      }
+     }
+    }
+   ]
+  },
+  {
+   "type": "filter",
+   "segments": [
+    {
+     "id": "F",
+     "material_id": "FILTER",
+     "target_timerange": {
+      "start": 3000000,
+      "duration": 1000000
+     },
+     "render_index": 20000
+    }
+   ]
+  }
+ ],
+ "materials": {
+  "videos": [
+   {
+    "id": "P",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png"
+   },
+   {
+    "id": "V",
+    "type": "video",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/v.mov",
+    "has_audio": true
+   }
+  ],
+  "speeds": [
+   {
+    "id": "SPEED",
+    "mode": 1,
+    "speed": 2,
+    "curve_speed": {
+     "name": "Flash in",
+     "speed_points": [
+      {
+       "x": 0,
+       "y": 1
+      },
+      {
+       "x": 0.19,
+       "y": 5.2
+      },
+      {
+       "x": 0.78,
+       "y": 5.2
+      },
+      {
+       "x": 0.94,
+       "y": 1
+      },
+      {
+       "x": 1,
+       "y": 1
+      }
+     ]
+    }
+   },
+   {
+    "id": "CURVE",
+    "mode": 1,
+    "curve_speed": {
+     "speed_points": [
+      {
+       "x": 0,
+       "y": 1
+      },
+      {
+       "x": 0.5,
+       "y": 3
+      },
+      {
+       "x": 1,
+       "y": 1
+      }
+     ]
+    }
+   }
+  ],
+  "transitions": [
+   {
+    "id": "T",
+    "name": "Dissolve",
+    "duration": 400000
+   }
+  ],
+  "video_effects": [
+   {
+    "id": "PUDDING",
+    "name": "Pudding Bounce",
+    "effect_id": "7534579654615649553"
+   },
+   {
+    "id": "HAZY",
+    "name": "Hazy Rotation",
+    "effect_id": "7486402432189091127",
+    "adjust_params": [
+     {
+      "name": "effects_adjust_speed",
+      "value": 0.5
+     }
+    ]
+   }
+  ],
+  "common_mask": [
+   {
+    "id": "MASK",
+    "constant_material_id": "MC",
+    "resource_type": "geometric_shape",
+    "name": "Heart",
+    "config": {
+     "width": 0.3,
+     "height": 0.3,
+     "rotation": 15,
+     "roundCorner": 0.1
+    }
+   }
+  ],
+  "texts": [
+   {
+    "id": "TXT",
+    "content": "{\"text\":\"Hello 👋🏽 world\",\"styles\":[{\"range\":[0,6],\"size\":12,\"bold\":true},{\"range\":[6,13],\"fill\":{\"alpha\":0.5,\"content\":{\"solid\":{\"color\":[0.2,0.4,0.6]}}}}]}"
+   },
+   {
+    "id": "TXT2",
+    "type": "text",
+    "font_size": 20,
+    "alignment": 0,
+    "content": "{\"text\":\"Pulse\",\"styles\":[]}"
+   }
+  ],
+  "material_animations": [
+   {
+    "id": "ANIM-CLIP",
+    "animations": [
+     {
+      "type": "in",
+      "name": "Slide Right",
+      "duration": 500000
+     },
+     {
+      "type": "out",
+      "name": "Rotate",
+      "duration": 600000
+     }
+    ]
+   },
+   {
+    "id": "ANIM-TEXT",
+    "animations": [
+     {
+      "type": "in",
+      "name": "Typewriter",
+      "duration": 400000
+     },
+     {
+      "type": "out",
+      "name": "Zoom Out",
+      "duration": 300000
+     }
+    ]
+   },
+   {
+    "id": "ANIM-LOOP",
+    "animations": [
+     {
+      "type": "loop",
+      "name": "Pulse",
+      "duration": 600000
+     },
+     {
+      "type": "in",
+      "name": "Pop",
+      "duration": 200000
+     }
+    ]
+   }
+  ],
+  "stickers": [
+   {
+    "id": "CLOCK",
+    "name": "Clock Time EN Blue White Minimalist",
+    "resource_id": "7528280675909209405"
+   }
+  ],
+  "effects": [
+   {
+    "id": "FILTER",
+    "type": "filter",
+    "name": "Warm",
+    "value": 0.6,
+    "resource_id": "fixture-warm",
+    "path": "##_draftpath_placeholder_FIXTURE_##/filters/warm"
+   }
+  ]
+ }
+}

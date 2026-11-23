@@ -1,0 +1,158 @@
+{
+ "id": "D",
+ "name": "Test",
+ "duration": 3000000,
+ "fps": 30.0,
+ "unknown_field": {
+  "x": [
+   1,
+   2
+  ]
+ },
+ "canvas_config": {
+  "width": 1080,
+  "height": 1920,
+  "ratio": "9:16",
+  "background": null
+ },
+ "config": {
+  "video_mute": false
+ },
+ "tracks": [
+  {
+   "id": "T1",
+   "type": "video",
+   "attribute": 0,
+   "flag": 0,
+   "segments": [
+    {
+     "id": "S1",
+     "material_id": "V1",
+     "target_timerange": {
+      "start": 0,
+      "duration": 3000000
+     },
+     "source_timerange": {
+      "start": 0,
+      "duration": 6000000
+     },
+     "speed": 2.0,
+     "volume": 1.5,
+     "clip": {
+      "scale": {
+       "x": 1.2,
+       "y": 1.2
+      },
+      "rotation": 90,
+      "transform": {
+       "x": 0.1,
+       "y": -0.2
+      },
+      "flip": {
+       "horizontal": true,
+       "vertical": false
+      },
+      "alpha": 0.5
+     },
+     "extra_material_refs": [
+      "SP1",
+      "C1",
+      "TR1"
+     ],
+     "render_index": 0,
+     "common_keyframes": [
+      {
+       "property_type": "KFTypePositionX",
+       "keyframe_list": [
+        {
+         "time_offset": 0,
+         "values": [
+          0.0
+         ]
+        },
+        {
+         "time_offset": 1000000,
+         "values": [
+          0.5
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "T2",
+   "type": "audio",
+   "attribute": 1,
+   "segments": []
+  },
+  {
+   "id": "T3",
+   "type": "text",
+   "attribute": 0,
+   "segments": [
+    {
+     "id": "S2",
+     "material_id": "X1",
+     "target_timerange": {
+      "start": 0,
+      "duration": 1000000
+     },
+     "clip": null
+    }
+   ]
+  }
+ ],
+ "materials": {
+  "videos": [
+   {
+    "id": "V1",
+    "type": "video",
+    "path": "/nonexistent/clip.mov",
+    "width": 1920,
+    "height": 1080,
+    "crop": {
+     "upper_left_x": 0.1,
+     "upper_left_y": 0.0,
+     "lower_right_x": 0.9,
+     "lower_right_y": 1.0
+    }
+   }
+  ],
+  "speeds": [
+   {
+    "id": "SP1",
+    "type": "speed",
+    "mode": 0,
+    "speed": 2.0,
+    "curve_speed": null
+   }
+  ],
+  "canvases": [
+   {
+    "id": "C1",
+    "type": "canvas_blur",
+    "blur": 0.5,
+    "color": ""
+   }
+  ],
+  "transitions": [
+   {
+    "id": "TR1",
+    "type": "transition",
+    "name": "Sand Spread"
+   }
+  ],
+  "texts": [
+   {
+    "id": "X1",
+    "type": "subtitle",
+    "font_size": "not a number",
+    "content": "{\"text\":\"Hello\",\"styles\":[{\"range\":[0,5],\"size\":8,\"fill\":{\"content\":{\"solid\":{\"color\":[1,0,0]}}}}]}"
+   }
+  ],
+  "audios": null
+ }
+}

@@ -132,6 +132,20 @@ case "info":
         for file in timeline.report.missingFiles { print("  \(file)") }
     }
 
+// Hidden (not in help): the canonical dumps of the golden-parity runner, see Golden.swift.
+case "dump-timeline":
+    let timelineArg = option("--timeline")
+    rejectUnknownOptions()
+    let p = project()
+    let built = try TimelineBuilder.build(project: p, timeline: timeline(timelineArg, of: p))
+    print(Golden.dumpTimeline(built, project: p.url), terminator: "")
+
+case "dump-writers":
+    let timelineArg = option("--timeline")
+    rejectUnknownOptions()
+    let p = project()
+    print(try Golden.dumpWriters(project: p, timeline: timeline(timelineArg, of: p)), terminator: "")
+
 case "render":
     // Start from the app's saved settings so CLI renders match the last export from the window.
     var settings = ExportSettings.load(from: UserDefaults(suiteName: "dev.enhancecapcut.EnhanceCapCut") ?? .standard)

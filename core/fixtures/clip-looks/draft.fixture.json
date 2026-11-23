@@ -1,0 +1,196 @@
+{
+ "tracks": [
+  {
+   "type": "video",
+   "segments": [
+    {
+     "id": "S0",
+     "material_id": "AUTO",
+     "target_timerange": {
+      "start": 0,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "M1",
+      "M2",
+      "M3",
+      "BL1",
+      "CH1",
+      "F2",
+      "RET"
+     ],
+     "hdr_settings": {
+      "mode": 0
+     }
+    },
+    {
+     "id": "S1",
+     "material_id": "CUSTOM",
+     "target_timerange": {
+      "start": 1000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "BL2",
+      "CH2"
+     ],
+     "hdr_settings": {
+      "mode": 4
+     }
+    },
+    {
+     "id": "S2",
+     "material_id": "UNPICKED",
+     "target_timerange": {
+      "start": 2000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "BL3"
+     ]
+    },
+    {
+     "id": "S3",
+     "material_id": "STABLE",
+     "target_timerange": {
+      "start": 3000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "BL4"
+     ]
+    }
+   ]
+  }
+ ],
+ "materials": {
+  "videos": [
+   {
+    "id": "AUTO",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png",
+    "matting": {
+     "flag": 3,
+     "path": "##_draftpath_placeholder_FIXTURE_##/matting/auto",
+     "reverse": true
+    }
+   },
+   {
+    "id": "CUSTOM",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png",
+    "matting": {
+     "flag": 1,
+     "path": "##_draftpath_placeholder_FIXTURE_##/matting/custom",
+     "custom_matting_id": "C1"
+    }
+   },
+   {
+    "id": "UNPICKED",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png",
+    "matting": {
+     "flag": 1,
+     "path": "##_draftpath_placeholder_FIXTURE_##/matting/unpicked",
+     "custom_matting_id": "C2"
+    }
+   },
+   {
+    "id": "STABLE",
+    "type": "video",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/v.mov",
+    "stable": {
+     "stable_level": 3
+    },
+    "has_audio": false
+   }
+  ],
+  "common_mask": [
+   {
+    "id": "M1",
+    "constant_material_id": "C1",
+    "name": "Rectangle",
+    "resource_type": "rectangle",
+    "config": {
+     "width": 0.2,
+     "height": 0.4,
+     "centerX": 0,
+     "centerY": 0.5,
+     "rotation": 30,
+     "feather": 0.1,
+     "roundCorner": 0.2,
+     "invert": true
+    }
+   },
+   {
+    "id": "M2",
+    "constant_material_id": "C9",
+    "name": "Brush",
+    "resource_type": "custom",
+    "loader_work_space": "##_draftpath_placeholder_FIXTURE_##/adjust_mask/B1",
+    "config": {}
+   },
+   {
+    "id": "M3",
+    "name": "Mirror",
+    "resource_type": "mirror",
+    "config": {
+     "height": 0.2,
+     "expansion": 0.1
+    }
+   }
+  ],
+  "effects": [
+   {
+    "id": "BL1",
+    "type": "mix_mode",
+    "name": "Screen",
+    "effect_id": "871339"
+   },
+   {
+    "id": "BL2",
+    "type": "mix_mode",
+    "resource_id": "6758325895519277582"
+   },
+   {
+    "id": "BL3",
+    "type": "mix_mode",
+    "name": "Soft light"
+   },
+   {
+    "id": "BL4",
+    "type": "mix_mode",
+    "name": "Normal"
+   },
+   {
+    "id": "F2",
+    "type": "filter",
+    "name": "Clip filter",
+    "value": 1.4,
+    "resource_id": "fixture-111",
+    "path": "##_draftpath_placeholder_FIXTURE_##/filters/cube"
+   },
+   {
+    "id": "RET",
+    "type": "figure",
+    "sub_type": "auto_beauty",
+    "name": "Sparkly Skin"
+   }
+  ],
+  "chromas": [
+   {
+    "id": "CH1",
+    "color": "#FF00FF00",
+    "intensity_value": 0.4,
+    "shadow_value": 0.2,
+    "edge_smooth_value": 0.3,
+    "spill_value": 1.5
+   },
+   {
+    "id": "CH2",
+    "color": "#0000FF",
+    "intensity_value": 0
+   }
+  ]
+ }
+}

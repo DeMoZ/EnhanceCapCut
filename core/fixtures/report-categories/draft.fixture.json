@@ -1,0 +1,290 @@
+{
+ "duration": 2000000,
+ "tracks": [
+  {
+   "type": "video",
+   "segments": [
+    {
+     "id": "V1",
+     "material_id": "MV",
+     "target_timerange": {
+      "start": 0,
+      "duration": 1000000
+     },
+     "reverse": true,
+     "extra_material_refs": [
+      "CANVAS",
+      "VS",
+      "FX-UNKNOWN",
+      "COLOR",
+      "SMART",
+      "TEXTSHAPE",
+      "EFFECT",
+      "OTHER",
+      "LOOK",
+      "LOOP"
+     ],
+     "is_loop": true,
+     "common_keyframes": [
+      {
+       "property_type": "KFTypeSaturation",
+       "keyframe_list": [
+        {
+         "time_offset": 0,
+         "values": [
+          0
+         ]
+        }
+       ]
+      },
+      {
+       "property_type": "KFTypeCommonMaskTwist",
+       "keyframe_list": [
+        {
+         "time_offset": 0,
+         "values": [
+          0
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "V2",
+     "material_id": "MO",
+     "target_timerange": {
+      "start": 1000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "ANIM"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "adjust",
+   "segments": [
+    {
+     "id": "J",
+     "material_id": "NOTHING",
+     "target_timerange": {
+      "start": 0,
+      "duration": 1
+     }
+    }
+   ]
+  },
+  {
+   "type": "effect",
+   "segments": [
+    {
+     "id": "E",
+     "material_id": "VFX",
+     "target_timerange": {
+      "start": 0,
+      "duration": 1
+     }
+    }
+   ]
+  },
+  {
+   "type": "text",
+   "segments": [
+    {
+     "id": "T",
+     "material_id": "TXT",
+     "target_timerange": {
+      "start": 0,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "WORDART"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "audio",
+   "segments": [
+    {
+     "id": "A",
+     "material_id": "AU",
+     "target_timerange": {
+      "start": 0,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "BADFX"
+     ]
+    }
+   ]
+  }
+ ],
+ "materials": {
+  "videos": [
+   {
+    "id": "MV",
+    "type": "video",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/v.mov",
+    "duration": 5000000,
+    "is_set_beauty_mode": true,
+    "stable": {
+     "stable_level": 2
+    },
+    "matting": {
+     "flag": 3,
+     "path": "##_draftpath_placeholder_FIXTURE_##/matting/gone",
+     "feather": 5,
+     "enable_matting_stroke": true
+    },
+    "video_algorithm": {
+     "algorithms": [
+      {
+       "type": "GenAiSmartEdit"
+      },
+      {
+       "type": "AigcTypeGenImage"
+      }
+     ],
+     "deflicker": {
+      "x": 1
+     }
+    }
+   },
+   {
+    "id": "MO",
+    "type": "gif",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png"
+   }
+  ],
+  "audios": [
+   {
+    "id": "AU",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/a.m4a"
+   }
+  ],
+  "canvases": [
+   {
+    "id": "CANVAS",
+    "type": "canvas_gradient"
+   }
+  ],
+  "vocal_separations": [
+   {
+    "id": "VS",
+    "choice": 9
+   }
+  ],
+  "video_effects": [
+   {
+    "id": "VFX",
+    "name": "Shake",
+    "effect_id": "fixture-1",
+    "apply_target_type": 2
+   }
+  ],
+  "audio_effects": [
+   {
+    "id": "BADFX",
+    "name": "Robot",
+    "path": "/nonexistent/effect",
+    "resource_id": "fixture-robot"
+   }
+  ],
+  "texts": [
+   {
+    "id": "TXT",
+    "text_curve": {
+     "enable": true
+    },
+    "content": "{\"text\":\"Hi\",\"styles\":[{\"range\":[0,2],\"strokes\":[{},{}],\"effectStyle\":{\"path\":\"/cache/e\"}}]}"
+   }
+  ],
+  "material_animations": [
+   {
+    "id": "ANIM",
+    "animations": [
+     {
+      "type": "group",
+      "name": "Swing",
+      "duration": 500000
+     },
+     {
+      "type": "in",
+      "name": "Combo 3",
+      "duration": 100000
+     }
+    ]
+   }
+  ],
+  "effects": [
+   {
+    "id": "FX-UNKNOWN",
+    "type": "mix_mode",
+    "name": "Vivid"
+   },
+   {
+    "id": "COLOR",
+    "type": "color_correct"
+   },
+   {
+    "id": "SMART",
+    "type": "smart_color_adjust"
+   },
+   {
+    "id": "TEXTSHAPE",
+    "type": "text_shape",
+    "name": "Bubble"
+   },
+   {
+    "id": "EFFECT",
+    "type": "something_new",
+    "name": "Sparkle"
+   },
+   {
+    "id": "LOOK",
+    "type": "face_makeup",
+    "name": "Doll"
+   },
+   {
+    "id": "WORDART",
+    "type": "text_effect",
+    "name": "Melting Heart"
+   }
+  ],
+  "hsl": [
+   {
+    "id": "H",
+    "type": "hsl",
+    "saturation": 25
+   }
+  ],
+  "manual_deformations": [
+   {
+    "id": "D",
+    "type": "manual_deformation"
+   }
+  ],
+  "placeholder_things": [
+   {
+    "id": "OTHER",
+    "type": "thing"
+   }
+  ],
+  "stickers": [
+   {
+    "id": "S",
+    "name": "Pet Meme"
+   }
+  ],
+  "transitions": [
+   {
+    "id": "LOOP",
+    "name": "Pull In",
+    "duration": 300000
+   }
+  ]
+ }
+}

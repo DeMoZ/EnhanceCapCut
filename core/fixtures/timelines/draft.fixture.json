@@ -1,0 +1,28 @@
+{
+ "id": "MAIN",
+ "duration": 1000000,
+ "tracks": [
+  {
+   "type": "video",
+   "segments": [
+    {
+     "id": "S",
+     "material_id": "P",
+     "target_timerange": {
+      "start": 0,
+      "duration": 1000000
+     }
+    }
+   ]
+  }
+ ],
+ "materials": {
+  "videos": [
+   {
+    "id": "P",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png"
+   }
+  ]
+ }
+}

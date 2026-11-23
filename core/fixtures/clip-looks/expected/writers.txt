@@ -1,0 +1,1564 @@
+== captions
+{
+ "tracks": [{
+   "type": "video",
+   "segments": [
+    {
+     "id": "S0",
+     "material_id": "AUTO",
+     "target_timerange": {
+      "start": 0,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "M1",
+      "M2",
+      "M3",
+      "BL1",
+      "CH1",
+      "F2",
+      "RET"
+     ],
+     "hdr_settings": {
+      "mode": 0
+     }
+    },
+    {
+     "id": "S1",
+     "material_id": "CUSTOM",
+     "target_timerange": {
+      "start": 1000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "BL2",
+      "CH2"
+     ],
+     "hdr_settings": {
+      "mode": 4
+     }
+    },
+    {
+     "id": "S2",
+     "material_id": "UNPICKED",
+     "target_timerange": {
+      "start": 2000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "BL3"
+     ]
+    },
+    {
+     "id": "S3",
+     "material_id": "STABLE",
+     "target_timerange": {
+      "start": 3000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "BL4"
+     ]
+    }
+   ]
+  },{"attribute":2,"flag":1,"id":"<id1>","is_default_name":false,"name":"EnhanceCapCut subtitles · ru","segments":[{"caption_info":null,"cartoon":false,"clip":{"alpha":1.0,"flip":{"horizontal":false,"vertical":false},"rotation":0.0,"scale":{"x":1.0,"y":1.0},"transform":{"x":0.0,"y":-0.65}},"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id2>"],"group_id":"","hdr_settings":null,"hdr_vivid_settings":null,"id":"<id3>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id4>","raw_segment_id":"","render_index":14000,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"segment_color_tag":"","source":"segmentsourcenormal","source_timerange":null,"speed":1.0,"state":0,"target_timerange":{"duration":1500000,"start":500000},"template_id":"","template_scene":"default","track_attribute":2,"track_render_index":1,"uniform_scale":{"on":true,"value":1.0},"visible":true,"volume":1.0},{"caption_info":null,"cartoon":false,"clip":{"alpha":1.0,"flip":{"horizontal":false,"vertical":false},"rotation":0.0,"scale":{"x":1.0,"y":1.0},"transform":{"x":0.0,"y":-0.65}},"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id5>"],"group_id":"","hdr_settings":null,"hdr_vivid_settings":null,"id":"<id6>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id7>","raw_segment_id":"","render_index":14001,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"segment_color_tag":"","source":"segmentsourcenormal","source_timerange":null,"speed":1.0,"state":0,"target_timerange":{"duration":1000000,"start":2000000},"template_id":"","template_scene":"default","track_attribute":2,"track_render_index":1,"uniform_scale":{"on":true,"value":1.0},"visible":true,"volume":1.0}],"type":"text"},{"attribute":0,"flag":1,"id":"<id8>","is_default_name":false,"name":"EnhanceCapCut subtitles · en","segments":[{"caption_info":null,"cartoon":false,"clip":{"alpha":1.0,"flip":{"horizontal":false,"vertical":false},"rotation":0.0,"scale":{"x":1.0,"y":1.0},"transform":{"x":0.0,"y":-0.65}},"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id9>"],"group_id":"","hdr_settings":null,"hdr_vivid_settings":null,"id":"<id10>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id11>","raw_segment_id":"","render_index":14002,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"segment_color_tag":"","source":"segmentsourcenormal","source_timerange":null,"speed":1.0,"state":0,"target_timerange":{"duration":1500000,"start":500000},"template_id":"","template_scene":"default","track_attribute":0,"track_render_index":2,"uniform_scale":{"on":true,"value":1.0},"visible":true,"volume":1.0}],"type":"text"},{"attribute":0,"flag":1,"id":"<id12>","is_default_name":false,"name":"EnhanceCapCut subtitles · th","segments":[{"caption_info":null,"cartoon":false,"clip":{"alpha":1.0,"flip":{"horizontal":false,"vertical":false},"rotation":0.0,"scale":{"x":1.0,"y":1.0},"transform":{"x":0.0,"y":-0.65}},"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id13>"],"group_id":"","hdr_settings":null,"hdr_vivid_settings":null,"id":"<id14>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id15>","raw_segment_id":"","render_index":14003,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"segment_color_tag":"","source":"segmentsourcenormal","source_timerange":null,"speed":1.0,"state":0,"target_timerange":{"duration":3266667,"start":1233333},"template_id":"","template_scene":"default","track_attribute":0,"track_render_index":3,"uniform_scale":{"on":true,"value":1.0},"visible":true,"volume":1.0}],"type":"text"},{"attribute":2,"flag":1,"id":"<id16>","is_default_name":false,"name":"EnhanceCapCut subtitles · zh-Hans","segments":[{"caption_info":null,"cartoon":false,"clip":{"alpha":1.0,"flip":{"horizontal":false,"vertical":false},"rotation":0.0,"scale":{"x":1.0,"y":1.0},"transform":{"x":0.0,"y":-0.65}},"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id17>"],"group_id":"","hdr_settings":null,"hdr_vivid_settings":null,"id":"<id18>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id19>","raw_segment_id":"","render_index":14004,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"segment_color_tag":"","source":"segmentsourcenormal","source_timerange":null,"speed":1.0,"state":0,"target_timerange":{"duration":1000000,"start":5000000},"template_id":"","template_scene":"default","track_attribute":2,"track_render_index":4,"uniform_scale":{"on":true,"value":1.0},"visible":true,"volume":1.0}],"type":"text"}],
+ "materials": {
+  "videos": [
+   {
+    "id": "AUTO",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png",
+    "matting": {
+     "flag": 3,
+     "path": "##_draftpath_placeholder_FIXTURE_##/matting/auto",
+     "reverse": true
+    }
+   },
+   {
+    "id": "CUSTOM",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png",
+    "matting": {
+     "flag": 1,
+     "path": "##_draftpath_placeholder_FIXTURE_##/matting/custom",
+     "custom_matting_id": "C1"
+    }
+   },
+   {
+    "id": "UNPICKED",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png",
+    "matting": {
+     "flag": 1,
+     "path": "##_draftpath_placeholder_FIXTURE_##/matting/unpicked",
+     "custom_matting_id": "C2"
+    }
+   },
+   {
+    "id": "STABLE",
+    "type": "video",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/v.mov",
+    "stable": {
+     "stable_level": 3
+    },
+    "has_audio": false
+   }
+  ],
+  "common_mask": [
+   {
+    "id": "M1",
+    "constant_material_id": "C1",
+    "name": "Rectangle",
+    "resource_type": "rectangle",
+    "config": {
+     "width": 0.2,
+     "height": 0.4,
+     "centerX": 0,
+     "centerY": 0.5,
+     "rotation": 30,
+     "feather": 0.1,
+     "roundCorner": 0.2,
+     "invert": true
+    }
+   },
+   {
+    "id": "M2",
+    "constant_material_id": "C9",
+    "name": "Brush",
+    "resource_type": "custom",
+    "loader_work_space": "##_draftpath_placeholder_FIXTURE_##/adjust_mask/B1",
+    "config": {}
+   },
+   {
+    "id": "M3",
+    "name": "Mirror",
+    "resource_type": "mirror",
+    "config": {
+     "height": 0.2,
+     "expansion": 0.1
+    }
+   }
+  ],
+  "effects": [
+   {
+    "id": "BL1",
+    "type": "mix_mode",
+    "name": "Screen",
+    "effect_id": "871339"
+   },
+   {
+    "id": "BL2",
+    "type": "mix_mode",
+    "resource_id": "6758325895519277582"
+   },
+   {
+    "id": "BL3",
+    "type": "mix_mode",
+    "name": "Soft light"
+   },
+   {
+    "id": "BL4",
+    "type": "mix_mode",
+    "name": "Normal"
+   },
+   {
+    "id": "F2",
+    "type": "filter",
+    "name": "Clip filter",
+    "value": 1.4,
+    "resource_id": "fixture-111",
+    "path": "##_draftpath_placeholder_FIXTURE_##/filters/cube"
+   },
+   {
+    "id": "RET",
+    "type": "figure",
+    "sub_type": "auto_beauty",
+    "name": "Sparkly Skin"
+   }
+  ],
+  "chromas": [
+   {
+    "id": "CH1",
+    "color": "#FF00FF00",
+    "intensity_value": 0.4,
+    "shadow_value": 0.2,
+    "edge_smooth_value": 0.3,
+    "spill_value": 1.5
+   },
+   {
+    "id": "CH2",
+    "color": "#0000FF",
+    "intensity_value": 0
+   }
+  ]
+ ,"texts":[{"add_type":1,"alignment":1,"autoAdaptCanvasEnabled":false,"background_alpha":1.0,"background_color":"","background_fill":"","background_height":0.14,"background_horizontal_offset":0.0,"background_round_radius":0.0,"background_style":0,"background_vertical_offset":0.0,"background_width":0.14,"base_content":"","bold_width":0.0,"border_alpha":1.0,"border_color":"","border_mode":0,"border_width":0.08,"caption_template_info":{"category_id":"","category_name":"","effect_id":"","is_new":false,"path":"","request_id":"","resource_id":"","resource_name":"","source_platform":0,"third_resource_id":""},"check_flag":7,"combo_info":{"text_templates":[]},"content":"{\"styles\":[{\"fill\":{\"content\":{\"render_type\":\"solid\",\"solid\":{\"color\":[1.0,1.0,1.0]}}},\"font\":{\"id\":\"\",\"path\":\"/Applications/CapCut.app/Contents/Resources/Font/SystemFont/en.ttf\"},\"range\":[0,11],\"size\":8.0}],\"text\":\"Привет, мир\"}","current_words":{"end_time":[],"start_time":[],"text":[]},"cutoff_postfix":"","enable_path_typesetting":false,"fixed_height":-1.0,"fixed_width":-1.0,"font_category_id":"","font_category_name":"","font_id":"","font_name":"","font_path":"/Applications/CapCut.app/Contents/Resources/Font/SystemFont/en.ttf","font_resource_id":"","font_size":8.0,"font_source_platform":0,"font_team_id":"","font_third_resource_id":"","font_title":"none","font_url":"","fonts":[],"force_apply_line_max_width":false,"global_alpha":1.0,"group_id":"ru-RU_1700000000500","has_shadow":false,"id":"<id4>","initial_scale":1.0,"inner_padding":-1.0,"is_batch_replace":false,"is_lyric_effect":false,"is_rich_text":false,"is_words_linear":false,"italic_degree":0,"ktv_color":"","language":"ru-RU","layer_weight":1,"letter_spacing":0.0,"line_feed":1,"line_max_width":0.82,"line_spacing":0.02,"lyric_group_id":"","lyrics_template":{"category_id":"","category_name":"","effect_id":"","panel":"","path":"","request_id":"","resource_id":"","resource_name":""},"multi_language_current":"none","name":"","offset_on_path":0.0,"oneline_cutoff":false,"operation_type":0,"original_size":[],"preset_category":"","preset_category_id":"","preset_has_set_alignment":false,"preset_id":"","preset_index":0,"preset_name":"","punc_model":"","recognize_model":"","recognize_task_id":"","recognize_text":"Привет, мир","recognize_type":0,"relevance_segment":[],"shadow_alpha":0.9,"shadow_angle":-45.0,"shadow_color":"","shadow_distance":5.0,"shadow_point":{"x":0.6363961030678928,"y":-0.6363961030678927},"shadow_smoothing":0.45,"shadow_thickness_projection_angle":0.0,"shadow_thickness_projection_distance":0.0,"shadow_thickness_projection_enable":false,"shape_clip_x":false,"shape_clip_y":false,"single_char_bg_alpha":1.0,"single_char_bg_color":"","single_char_bg_enable":false,"single_char_bg_height":0.0,"single_char_bg_horizontal_offset":0.0,"single_char_bg_round_radius":0.3,"single_char_bg_vertical_offset":0.0,"single_char_bg_width":0.0,"source_from":"","ssml_content":"","style_name":"","sub_template_id":-1,"sub_type":0,"subtitle_keywords":null,"subtitle_keywords_config":null,"subtitle_template_original_fontsize":0.0,"text_alpha":1.0,"text_color":"#FFFFFF","text_curve":null,"text_exceeds_path_process_type":0,"text_loop_on_path":false,"text_preset_resource_id":"","text_size":30,"text_to_audio_ids":[],"text_typesetting_path_index":0,"text_typesetting_paths":null,"text_typesetting_paths_file":"","translate_original_text":"","tts_auto_update":false,"type":"subtitle","typesetting":0,"underline":false,"underline_offset":0.22,"underline_width":0.05,"use_effect_default_color":true,"words":{"end_time":[750,1500],"start_time":[0,750],"text":["Привет,","мир"]}},{"add_type":1,"alignment":1,"autoAdaptCanvasEnabled":false,"background_alpha":1.0,"background_color":"","background_fill":"","background_height":0.14,"background_horizontal_offset":0.0,"background_round_radius":0.0,"background_style":0,"background_vertical_offset":0.0,"background_width":0.14,"base_content":"","bold_width":0.0,"border_alpha":1.0,"border_color":"","border_mode":0,"border_width":0.08,"caption_template_info":{"category_id":"","category_name":"","effect_id":"","is_new":false,"path":"","request_id":"","resource_id":"","resource_name":"","source_platform":0,"third_resource_id":""},"check_flag":7,"combo_info":{"text_templates":[]},"content":"{\"styles\":[{\"fill\":{\"content\":{\"render_type\":\"solid\",\"solid\":{\"color\":[1.0,1.0,1.0]}}},\"font\":{\"id\":\"\",\"path\":\"/Applications/CapCut.app/Contents/Resources/Font/SystemFont/en.ttf\"},\"range\":[0,15],\"size\":8.0}],\"text\":\"Вторая\\nстрока 😳\"}","current_words":{"end_time":[],"start_time":[],"text":[]},"cutoff_postfix":"","enable_path_typesetting":false,"fixed_height":-1.0,"fixed_width":-1.0,"font_category_id":"","font_category_name":"","font_id":"","font_name":"","font_path":"/Applications/CapCut.app/Contents/Resources/Font/SystemFont/en.ttf","font_resource_id":"","font_size":8.0,"font_source_platform":0,"font_team_id":"","font_third_resource_id":"","font_title":"none","font_url":"","fonts":[],"force_apply_line_max_width":false,"global_alpha":1.0,"group_id":"ru-RU_1700000000500","has_shadow":false,"id":"<id7>","initial_scale":1.0,"inner_padding":-1.0,"is_batch_replace":false,"is_lyric_effect":false,"is_rich_text":false,"is_words_linear":false,"italic_degree":0,"ktv_color":"","language":"ru-RU","layer_weight":1,"letter_spacing":0.0,"line_feed":1,"line_max_width":0.82,"line_spacing":0.02,"lyric_group_id":"","lyrics_template":{"category_id":"","category_name":"","effect_id":"","panel":"","path":"","request_id":"","resource_id":"","resource_name":""},"multi_language_current":"none","name":"","offset_on_path":0.0,"oneline_cutoff":false,"operation_type":0,"original_size":[],"preset_category":"","preset_category_id":"","preset_has_set_alignment":false,"preset_id":"","preset_index":0,"preset_name":"","punc_model":"","recognize_model":"","recognize_task_id":"","recognize_text":"Вторая строка 😳","recognize_type":0,"relevance_segment":[],"shadow_alpha":0.9,"shadow_angle":-45.0,"shadow_color":"","shadow_distance":5.0,"shadow_point":{"x":0.6363961030678928,"y":-0.6363961030678927},"shadow_smoothing":0.45,"shadow_thickness_projection_angle":0.0,"shadow_thickness_projection_distance":0.0,"shadow_thickness_projection_enable":false,"shape_clip_x":false,"shape_clip_y":false,"single_char_bg_alpha":1.0,"single_char_bg_color":"","single_char_bg_enable":false,"single_char_bg_height":0.0,"single_char_bg_horizontal_offset":0.0,"single_char_bg_round_radius":0.3,"single_char_bg_vertical_offset":0.0,"single_char_bg_width":0.0,"source_from":"","ssml_content":"","style_name":"","sub_template_id":-1,"sub_type":0,"subtitle_keywords":null,"subtitle_keywords_config":null,"subtitle_template_original_fontsize":0.0,"text_alpha":1.0,"text_color":"#FFFFFF","text_curve":null,"text_exceeds_path_process_type":0,"text_loop_on_path":false,"text_preset_resource_id":"","text_size":30,"text_to_audio_ids":[],"text_typesetting_path_index":0,"text_typesetting_paths":null,"text_typesetting_paths_file":"","translate_original_text":"","tts_auto_update":false,"type":"subtitle","typesetting":0,"underline":false,"underline_offset":0.22,"underline_width":0.05,"use_effect_default_color":true,"words":{"end_time":[333,667,1000],"start_time":[0,333,667],"text":["Вторая","строка","😳"]}},{"add_type":0,"alignment":1,"autoAdaptCanvasEnabled":false,"background_alpha":1.0,"background_color":"","background_fill":"","background_height":0.14,"background_horizontal_offset":0.0,"background_round_radius":0.0,"background_style":0,"background_vertical_offset":0.0,"background_width":0.14,"base_content":"","bold_width":0.0,"border_alpha":1.0,"border_color":"","border_mode":0,"border_width":0.08,"caption_template_info":{"category_id":"","category_name":"","effect_id":"","is_new":false,"path":"","request_id":"","resource_id":"","resource_name":"","source_platform":0,"third_resource_id":""},"check_flag":7,"combo_info":{"text_templates":[]},"content":"{\"styles\":[{\"fill\":{\"content\":{\"render_type\":\"solid\",\"solid\":{\"color\":[1.0,1.0,1.0]}}},\"font\":{\"id\":\"\",\"path\":\"/Applications/CapCut.app/Contents/Resources/Font/SystemFont/en.ttf\"},\"range\":[0,12],\"size\":8.0}],\"text\":\"Hello, world\"}","current_words":{"end_time":[],"start_time":[],"text":[]},"cutoff_postfix":"","enable_path_typesetting":false,"fixed_height":-1.0,"fixed_width":-1.0,"font_category_id":"","font_category_name":"","font_id":"","font_name":"","font_path":"/Applications/CapCut.app/Contents/Resources/Font/SystemFont/en.ttf","font_resource_id":"","font_size":8.0,"font_source_platform":0,"font_team_id":"","font_third_resource_id":"","font_title":"none","font_url":"","fonts":[],"force_apply_line_max_width":false,"global_alpha":1.0,"group_id":"en-US_1700000000501","has_shadow":false,"id":"<id11>","initial_scale":1.0,"inner_padding":-1.0,"is_batch_replace":false,"is_lyric_effect":false,"is_rich_text":false,"is_words_linear":false,"italic_degree":0,"ktv_color":"","language":"en-US","layer_weight":1,"letter_spacing":0.0,"line_feed":1,"line_max_width":0.82,"line_spacing":0.02,"lyric_group_id":"","lyrics_template":{"category_id":"","category_name":"","effect_id":"","panel":"","path":"","request_id":"","resource_id":"","resource_name":""},"multi_language_current":"none","name":"","offset_on_path":0.0,"oneline_cutoff":false,"operation_type":0,"original_size":[],"preset_category":"","preset_category_id":"","preset_has_set_alignment":false,"preset_id":"","preset_index":0,"preset_name":"","punc_model":"","recognize_model":"","recognize_task_id":"","recognize_text":"Hello, world","recognize_type":0,"relevance_segment":[],"shadow_alpha":0.9,"shadow_angle":-45.0,"shadow_color":"","shadow_distance":5.0,"shadow_point":{"x":0.6363961030678928,"y":-0.6363961030678927},"shadow_smoothing":0.45,"shadow_thickness_projection_angle":0.0,"shadow_thickness_projection_distance":0.0,"shadow_thickness_projection_enable":false,"shape_clip_x":false,"shape_clip_y":false,"single_char_bg_alpha":1.0,"single_char_bg_color":"","single_char_bg_enable":false,"single_char_bg_height":0.0,"single_char_bg_horizontal_offset":0.0,"single_char_bg_round_radius":0.3,"single_char_bg_vertical_offset":0.0,"single_char_bg_width":0.0,"source_from":"","ssml_content":"","style_name":"","sub_template_id":-1,"sub_type":5,"subtitle_keywords":null,"subtitle_keywords_config":null,"subtitle_template_original_fontsize":0.0,"text_alpha":1.0,"text_color":"#FFFFFF","text_curve":null,"text_exceeds_path_process_type":0,"text_loop_on_path":false,"text_preset_resource_id":"","text_size":30,"text_to_audio_ids":[],"text_typesetting_path_index":0,"text_typesetting_paths":null,"text_typesetting_paths_file":"","translate_original_text":"","tts_auto_update":false,"type":"subtitle","typesetting":0,"underline":false,"underline_offset":0.22,"underline_width":0.05,"use_effect_default_color":true,"words":{"end_time":[750,1500],"start_time":[0,750],"text":["Hello,","world"]}},{"add_type":0,"alignment":1,"autoAdaptCanvasEnabled":false,"background_alpha":1.0,"background_color":"","background_fill":"","background_height":0.14,"background_horizontal_offset":0.0,"background_round_radius":0.0,"background_style":0,"background_vertical_offset":0.0,"background_width":0.14,"base_content":"","bold_width":0.0,"border_alpha":1.0,"border_color":"","border_mode":0,"border_width":0.08,"caption_template_info":{"category_id":"","category_name":"","effect_id":"","is_new":false,"path":"","request_id":"","resource_id":"","resource_name":"","source_platform":0,"third_resource_id":""},"check_flag":7,"combo_info":{"text_templates":[]},"content":"{\"styles\":[{\"fill\":{\"content\":{\"render_type\":\"solid\",\"solid\":{\"color\":[1.0,1.0,1.0]}}},\"font\":{\"id\":\"\",\"path\":\"/Applications/CapCut.app/Contents/Resources/Font/SystemFont/en.ttf\"},\"range\":[0,16],\"size\":16.0}],\"text\":\"สวัสดีครับ ทุกคน\"}","current_words":{"end_time":[],"start_time":[],"text":[]},"cutoff_postfix":"","enable_path_typesetting":false,"fixed_height":-1.0,"fixed_width":-1.0,"font_category_id":"","font_category_name":"","font_id":"","font_name":"","font_path":"/Applications/CapCut.app/Contents/Resources/Font/SystemFont/en.ttf","font_resource_id":"","font_size":16.0,"font_source_platform":0,"font_team_id":"","font_third_resource_id":"","font_title":"none","font_url":"","fonts":[],"force_apply_line_max_width":false,"global_alpha":1.0,"group_id":"th-TH_1700000000502","has_shadow":false,"id":"<id15>","initial_scale":1.0,"inner_padding":-1.0,"is_batch_replace":false,"is_lyric_effect":false,"is_rich_text":false,"is_words_linear":false,"italic_degree":0,"ktv_color":"","language":"th-TH","layer_weight":1,"letter_spacing":0.0,"line_feed":1,"line_max_width":0.82,"line_spacing":0.02,"lyric_group_id":"","lyrics_template":{"category_id":"","category_name":"","effect_id":"","panel":"","path":"","request_id":"","resource_id":"","resource_name":""},"multi_language_current":"none","name":"","offset_on_path":0.0,"oneline_cutoff":false,"operation_type":0,"original_size":[],"preset_category":"","preset_category_id":"","preset_has_set_alignment":false,"preset_id":"","preset_index":0,"preset_name":"","punc_model":"","recognize_model":"","recognize_task_id":"","recognize_text":"สวัสดีครับ ทุกคน","recognize_type":0,"relevance_segment":[],"shadow_alpha":0.9,"shadow_angle":-45.0,"shadow_color":"","shadow_distance":5.0,"shadow_point":{"x":0.6363961030678928,"y":-0.6363961030678927},"shadow_smoothing":0.45,"shadow_thickness_projection_angle":0.0,"shadow_thickness_projection_distance":0.0,"shadow_thickness_projection_enable":false,"shape_clip_x":false,"shape_clip_y":false,"single_char_bg_alpha":1.0,"single_char_bg_color":"","single_char_bg_enable":false,"single_char_bg_height":0.0,"single_char_bg_horizontal_offset":0.0,"single_char_bg_round_radius":0.3,"single_char_bg_vertical_offset":0.0,"single_char_bg_width":0.0,"source_from":"","ssml_content":"","style_name":"","sub_template_id":-1,"sub_type":5,"subtitle_keywords":null,"subtitle_keywords_config":null,"subtitle_template_original_fontsize":0.0,"text_alpha":1.0,"text_color":"#FFFFFF","text_curve":null,"text_exceeds_path_process_type":0,"text_loop_on_path":false,"text_preset_resource_id":"","text_size":30,"text_to_audio_ids":[],"text_typesetting_path_index":0,"text_typesetting_paths":null,"text_typesetting_paths_file":"","translate_original_text":"","tts_auto_update":false,"type":"subtitle","typesetting":0,"underline":false,"underline_offset":0.22,"underline_width":0.05,"use_effect_default_color":true,"words":{"end_time":[1633,3267],"start_time":[0,1633],"text":["สวัสดีครับ","ทุกคน"]}},{"add_type":0,"alignment":1,"autoAdaptCanvasEnabled":false,"background_alpha":1.0,"background_color":"","background_fill":"","background_height":0.14,"background_horizontal_offset":0.0,"background_round_radius":0.0,"background_style":0,"background_vertical_offset":0.0,"background_width":0.14,"base_content":"","bold_width":0.0,"border_alpha":1.0,"border_color":"","border_mode":0,"border_width":0.08,"caption_template_info":{"category_id":"","category_name":"","effect_id":"","is_new":false,"path":"","request_id":"","resource_id":"","resource_name":"","source_platform":0,"third_resource_id":""},"check_flag":7,"combo_info":{"text_templates":[]},"content":"{\"styles\":[{\"fill\":{\"content\":{\"render_type\":\"solid\",\"solid\":{\"color\":[1.0,1.0,1.0]}}},\"font\":{\"id\":\"\",\"path\":\"/Applications/CapCut.app/Contents/Resources/Font/SystemFont/en.ttf\"},\"range\":[0,2],\"size\":8.0}],\"text\":\"你好\"}","current_words":{"end_time":[],"start_time":[],"text":[]},"cutoff_postfix":"","enable_path_typesetting":false,"fixed_height":-1.0,"fixed_width":-1.0,"font_category_id":"","font_category_name":"","font_id":"","font_name":"","font_path":"/Applications/CapCut.app/Contents/Resources/Font/SystemFont/en.ttf","font_resource_id":"","font_size":8.0,"font_source_platform":0,"font_team_id":"","font_third_resource_id":"","font_title":"none","font_url":"","fonts":[],"force_apply_line_max_width":false,"global_alpha":1.0,"group_id":"zh-CN_1700000000503","has_shadow":false,"id":"<id19>","initial_scale":1.0,"inner_padding":-1.0,"is_batch_replace":false,"is_lyric_effect":false,"is_rich_text":false,"is_words_linear":false,"italic_degree":0,"ktv_color":"","language":"zh-CN","layer_weight":1,"letter_spacing":0.0,"line_feed":1,"line_max_width":0.82,"line_spacing":0.02,"lyric_group_id":"","lyrics_template":{"category_id":"","category_name":"","effect_id":"","panel":"","path":"","request_id":"","resource_id":"","resource_name":""},"multi_language_current":"none","name":"","offset_on_path":0.0,"oneline_cutoff":false,"operation_type":0,"original_size":[],"preset_category":"","preset_category_id":"","preset_has_set_alignment":false,"preset_id":"","preset_index":0,"preset_name":"","punc_model":"","recognize_model":"","recognize_task_id":"","recognize_text":"你好","recognize_type":0,"relevance_segment":[],"shadow_alpha":0.9,"shadow_angle":-45.0,"shadow_color":"","shadow_distance":5.0,"shadow_point":{"x":0.6363961030678928,"y":-0.6363961030678927},"shadow_smoothing":0.45,"shadow_thickness_projection_angle":0.0,"shadow_thickness_projection_distance":0.0,"shadow_thickness_projection_enable":false,"shape_clip_x":false,"shape_clip_y":false,"single_char_bg_alpha":1.0,"single_char_bg_color":"","single_char_bg_enable":false,"single_char_bg_height":0.0,"single_char_bg_horizontal_offset":0.0,"single_char_bg_round_radius":0.3,"single_char_bg_vertical_offset":0.0,"single_char_bg_width":0.0,"source_from":"","ssml_content":"","style_name":"","sub_template_id":-1,"sub_type":5,"subtitle_keywords":null,"subtitle_keywords_config":null,"subtitle_template_original_fontsize":0.0,"text_alpha":1.0,"text_color":"#FFFFFF","text_curve":null,"text_exceeds_path_process_type":0,"text_loop_on_path":false,"text_preset_resource_id":"","text_size":30,"text_to_audio_ids":[],"text_typesetting_path_index":0,"text_typesetting_paths":null,"text_typesetting_paths_file":"","translate_original_text":"","tts_auto_update":false,"type":"subtitle","typesetting":0,"underline":false,"underline_offset":0.22,"underline_width":0.05,"use_effect_default_color":true,"words":{"end_time":[1000],"start_time":[0],"text":["你好"]}}],"material_animations":[{"animations":[],"id":"<id2>","multi_language_current":"none","type":"sticker_animation"},{"animations":[],"id":"<id5>","multi_language_current":"none","type":"sticker_animation"},{"animations":[],"id":"<id9>","multi_language_current":"none","type":"sticker_animation"},{"animations":[],"id":"<id13>","multi_language_current":"none","type":"sticker_animation"},{"animations":[],"id":"<id17>","multi_language_current":"none","type":"sticker_animation"}]}
+}
+
+== captions again
+{
+ "tracks": [{
+   "type": "video",
+   "segments": [
+    {
+     "id": "S0",
+     "material_id": "AUTO",
+     "target_timerange": {
+      "start": 0,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "M1",
+      "M2",
+      "M3",
+      "BL1",
+      "CH1",
+      "F2",
+      "RET"
+     ],
+     "hdr_settings": {
+      "mode": 0
+     }
+    },
+    {
+     "id": "S1",
+     "material_id": "CUSTOM",
+     "target_timerange": {
+      "start": 1000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "BL2",
+      "CH2"
+     ],
+     "hdr_settings": {
+      "mode": 4
+     }
+    },
+    {
+     "id": "S2",
+     "material_id": "UNPICKED",
+     "target_timerange": {
+      "start": 2000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "BL3"
+     ]
+    },
+    {
+     "id": "S3",
+     "material_id": "STABLE",
+     "target_timerange": {
+      "start": 3000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "BL4"
+     ]
+    }
+   ]
+  },{"attribute":2,"flag":1,"id":"<id1>","is_default_name":false,"name":"EnhanceCapCut subtitles · ru","segments":[{"caption_info":null,"cartoon":false,"clip":{"alpha":1.0,"flip":{"horizontal":false,"vertical":false},"rotation":0.0,"scale":{"x":1.0,"y":1.0},"transform":{"x":0.0,"y":-0.65}},"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id2>"],"group_id":"","hdr_settings":null,"hdr_vivid_settings":null,"id":"<id3>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id4>","raw_segment_id":"","render_index":14005,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"segment_color_tag":"","source":"segmentsourcenormal","source_timerange":null,"speed":1.0,"state":0,"target_timerange":{"duration":1500000,"start":500000},"template_id":"","template_scene":"default","track_attribute":2,"track_render_index":1,"uniform_scale":{"on":true,"value":1.0},"visible":true,"volume":1.0},{"caption_info":null,"cartoon":false,"clip":{"alpha":1.0,"flip":{"horizontal":false,"vertical":false},"rotation":0.0,"scale":{"x":1.0,"y":1.0},"transform":{"x":0.0,"y":-0.65}},"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id5>"],"group_id":"","hdr_settings":null,"hdr_vivid_settings":null,"id":"<id6>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id7>","raw_segment_id":"","render_index":14006,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"segment_color_tag":"","source":"segmentsourcenormal","source_timerange":null,"speed":1.0,"state":0,"target_timerange":{"duration":1000000,"start":2000000},"template_id":"","template_scene":"default","track_attribute":2,"track_render_index":1,"uniform_scale":{"on":true,"value":1.0},"visible":true,"volume":1.0}],"type":"text"},{"attribute":0,"flag":1,"id":"<id8>","is_default_name":false,"name":"EnhanceCapCut subtitles · en","segments":[{"caption_info":null,"cartoon":false,"clip":{"alpha":1.0,"flip":{"horizontal":false,"vertical":false},"rotation":0.0,"scale":{"x":1.0,"y":1.0},"transform":{"x":0.0,"y":-0.65}},"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id9>"],"group_id":"","hdr_settings":null,"hdr_vivid_settings":null,"id":"<id10>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id11>","raw_segment_id":"","render_index":14007,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"segment_color_tag":"","source":"segmentsourcenormal","source_timerange":null,"speed":1.0,"state":0,"target_timerange":{"duration":1500000,"start":500000},"template_id":"","template_scene":"default","track_attribute":0,"track_render_index":2,"uniform_scale":{"on":true,"value":1.0},"visible":true,"volume":1.0}],"type":"text"},{"attribute":0,"flag":1,"id":"<id12>","is_default_name":false,"name":"EnhanceCapCut subtitles · th","segments":[{"caption_info":null,"cartoon":false,"clip":{"alpha":1.0,"flip":{"horizontal":false,"vertical":false},"rotation":0.0,"scale":{"x":1.0,"y":1.0},"transform":{"x":0.0,"y":-0.65}},"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id13>"],"group_id":"","hdr_settings":null,"hdr_vivid_settings":null,"id":"<id14>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id15>","raw_segment_id":"","render_index":14008,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"segment_color_tag":"","source":"segmentsourcenormal","source_timerange":null,"speed":1.0,"state":0,"target_timerange":{"duration":3266667,"start":1233333},"template_id":"","template_scene":"default","track_attribute":0,"track_render_index":3,"uniform_scale":{"on":true,"value":1.0},"visible":true,"volume":1.0}],"type":"text"},{"attribute":2,"flag":1,"id":"<id16>","is_default_name":false,"name":"EnhanceCapCut subtitles · zh-Hans","segments":[{"caption_info":null,"cartoon":false,"clip":{"alpha":1.0,"flip":{"horizontal":false,"vertical":false},"rotation":0.0,"scale":{"x":1.0,"y":1.0},"transform":{"x":0.0,"y":-0.65}},"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id17>"],"group_id":"","hdr_settings":null,"hdr_vivid_settings":null,"id":"<id18>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id19>","raw_segment_id":"","render_index":14009,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"segment_color_tag":"","source":"segmentsourcenormal","source_timerange":null,"speed":1.0,"state":0,"target_timerange":{"duration":1000000,"start":5000000},"template_id":"","template_scene":"default","track_attribute":2,"track_render_index":4,"uniform_scale":{"on":true,"value":1.0},"visible":true,"volume":1.0}],"type":"text"}],
+ "materials": {
+  "videos": [
+   {
+    "id": "AUTO",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png",
+    "matting": {
+     "flag": 3,
+     "path": "##_draftpath_placeholder_FIXTURE_##/matting/auto",
+     "reverse": true
+    }
+   },
+   {
+    "id": "CUSTOM",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png",
+    "matting": {
+     "flag": 1,
+     "path": "##_draftpath_placeholder_FIXTURE_##/matting/custom",
+     "custom_matting_id": "C1"
+    }
+   },
+   {
+    "id": "UNPICKED",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png",
+    "matting": {
+     "flag": 1,
+     "path": "##_draftpath_placeholder_FIXTURE_##/matting/unpicked",
+     "custom_matting_id": "C2"
+    }
+   },
+   {
+    "id": "STABLE",
+    "type": "video",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/v.mov",
+    "stable": {
+     "stable_level": 3
+    },
+    "has_audio": false
+   }
+  ],
+  "common_mask": [
+   {
+    "id": "M1",
+    "constant_material_id": "C1",
+    "name": "Rectangle",
+    "resource_type": "rectangle",
+    "config": {
+     "width": 0.2,
+     "height": 0.4,
+     "centerX": 0,
+     "centerY": 0.5,
+     "rotation": 30,
+     "feather": 0.1,
+     "roundCorner": 0.2,
+     "invert": true
+    }
+   },
+   {
+    "id": "M2",
+    "constant_material_id": "C9",
+    "name": "Brush",
+    "resource_type": "custom",
+    "loader_work_space": "##_draftpath_placeholder_FIXTURE_##/adjust_mask/B1",
+    "config": {}
+   },
+   {
+    "id": "M3",
+    "name": "Mirror",
+    "resource_type": "mirror",
+    "config": {
+     "height": 0.2,
+     "expansion": 0.1
+    }
+   }
+  ],
+  "effects": [
+   {
+    "id": "BL1",
+    "type": "mix_mode",
+    "name": "Screen",
+    "effect_id": "871339"
+   },
+   {
+    "id": "BL2",
+    "type": "mix_mode",
+    "resource_id": "6758325895519277582"
+   },
+   {
+    "id": "BL3",
+    "type": "mix_mode",
+    "name": "Soft light"
+   },
+   {
+    "id": "BL4",
+    "type": "mix_mode",
+    "name": "Normal"
+   },
+   {
+    "id": "F2",
+    "type": "filter",
+    "name": "Clip filter",
+    "value": 1.4,
+    "resource_id": "fixture-111",
+    "path": "##_draftpath_placeholder_FIXTURE_##/filters/cube"
+   },
+   {
+    "id": "RET",
+    "type": "figure",
+    "sub_type": "auto_beauty",
+    "name": "Sparkly Skin"
+   }
+  ],
+  "chromas": [
+   {
+    "id": "CH1",
+    "color": "#FF00FF00",
+    "intensity_value": 0.4,
+    "shadow_value": 0.2,
+    "edge_smooth_value": 0.3,
+    "spill_value": 1.5
+   },
+   {
+    "id": "CH2",
+    "color": "#0000FF",
+    "intensity_value": 0
+   }
+  ]
+ ,"texts":[{"add_type":1,"alignment":1,"autoAdaptCanvasEnabled":false,"background_alpha":1.0,"background_color":"","background_fill":"","background_height":0.14,"background_horizontal_offset":0.0,"background_round_radius":0.0,"background_style":0,"background_vertical_offset":0.0,"background_width":0.14,"base_content":"","bold_width":0.0,"border_alpha":1.0,"border_color":"","border_mode":0,"border_width":0.08,"caption_template_info":{"category_id":"","category_name":"","effect_id":"","is_new":false,"path":"","request_id":"","resource_id":"","resource_name":"","source_platform":0,"third_resource_id":""},"check_flag":7,"combo_info":{"text_templates":[]},"content":"{\"styles\":[{\"fill\":{\"content\":{\"render_type\":\"solid\",\"solid\":{\"color\":[1.0,1.0,1.0]}}},\"font\":{\"id\":\"\",\"path\":\"/Applications/CapCut.app/Contents/Resources/Font/SystemFont/en.ttf\"},\"range\":[0,11],\"size\":8.0}],\"text\":\"Привет, мир\"}","current_words":{"end_time":[],"start_time":[],"text":[]},"cutoff_postfix":"","enable_path_typesetting":false,"fixed_height":-1.0,"fixed_width":-1.0,"font_category_id":"","font_category_name":"","font_id":"","font_name":"","font_path":"/Applications/CapCut.app/Contents/Resources/Font/SystemFont/en.ttf","font_resource_id":"","font_size":8.0,"font_source_platform":0,"font_team_id":"","font_third_resource_id":"","font_title":"none","font_url":"","fonts":[],"force_apply_line_max_width":false,"global_alpha":1.0,"group_id":"ru-RU_1700000000500","has_shadow":false,"id":"<id4>","initial_scale":1.0,"inner_padding":-1.0,"is_batch_replace":false,"is_lyric_effect":false,"is_rich_text":false,"is_words_linear":false,"italic_degree":0,"ktv_color":"","language":"ru-RU","layer_weight":1,"letter_spacing":0.0,"line_feed":1,"line_max_width":0.82,"line_spacing":0.02,"lyric_group_id":"","lyrics_template":{"category_id":"","category_name":"","effect_id":"","panel":"","path":"","request_id":"","resource_id":"","resource_name":""},"multi_language_current":"none","name":"","offset_on_path":0.0,"oneline_cutoff":false,"operation_type":0,"original_size":[],"preset_category":"","preset_category_id":"","preset_has_set_alignment":false,"preset_id":"","preset_index":0,"preset_name":"","punc_model":"","recognize_model":"","recognize_task_id":"","recognize_text":"Привет, мир","recognize_type":0,"relevance_segment":[],"shadow_alpha":0.9,"shadow_angle":-45.0,"shadow_color":"","shadow_distance":5.0,"shadow_point":{"x":0.6363961030678928,"y":-0.6363961030678927},"shadow_smoothing":0.45,"shadow_thickness_projection_angle":0.0,"shadow_thickness_projection_distance":0.0,"shadow_thickness_projection_enable":false,"shape_clip_x":false,"shape_clip_y":false,"single_char_bg_alpha":1.0,"single_char_bg_color":"","single_char_bg_enable":false,"single_char_bg_height":0.0,"single_char_bg_horizontal_offset":0.0,"single_char_bg_round_radius":0.3,"single_char_bg_vertical_offset":0.0,"single_char_bg_width":0.0,"source_from":"","ssml_content":"","style_name":"","sub_template_id":-1,"sub_type":0,"subtitle_keywords":null,"subtitle_keywords_config":null,"subtitle_template_original_fontsize":0.0,"text_alpha":1.0,"text_color":"#FFFFFF","text_curve":null,"text_exceeds_path_process_type":0,"text_loop_on_path":false,"text_preset_resource_id":"","text_size":30,"text_to_audio_ids":[],"text_typesetting_path_index":0,"text_typesetting_paths":null,"text_typesetting_paths_file":"","translate_original_text":"","tts_auto_update":false,"type":"subtitle","typesetting":0,"underline":false,"underline_offset":0.22,"underline_width":0.05,"use_effect_default_color":true,"words":{"end_time":[750,1500],"start_time":[0,750],"text":["Привет,","мир"]}},{"add_type":1,"alignment":1,"autoAdaptCanvasEnabled":false,"background_alpha":1.0,"background_color":"","background_fill":"","background_height":0.14,"background_horizontal_offset":0.0,"background_round_radius":0.0,"background_style":0,"background_vertical_offset":0.0,"background_width":0.14,"base_content":"","bold_width":0.0,"border_alpha":1.0,"border_color":"","border_mode":0,"border_width":0.08,"caption_template_info":{"category_id":"","category_name":"","effect_id":"","is_new":false,"path":"","request_id":"","resource_id":"","resource_name":"","source_platform":0,"third_resource_id":""},"check_flag":7,"combo_info":{"text_templates":[]},"content":"{\"styles\":[{\"fill\":{\"content\":{\"render_type\":\"solid\",\"solid\":{\"color\":[1.0,1.0,1.0]}}},\"font\":{\"id\":\"\",\"path\":\"/Applications/CapCut.app/Contents/Resources/Font/SystemFont/en.ttf\"},\"range\":[0,15],\"size\":8.0}],\"text\":\"Вторая\\nстрока 😳\"}","current_words":{"end_time":[],"start_time":[],"text":[]},"cutoff_postfix":"","enable_path_typesetting":false,"fixed_height":-1.0,"fixed_width":-1.0,"font_category_id":"","font_category_name":"","font_id":"","font_name":"","font_path":"/Applications/CapCut.app/Contents/Resources/Font/SystemFont/en.ttf","font_resource_id":"","font_size":8.0,"font_source_platform":0,"font_team_id":"","font_third_resource_id":"","font_title":"none","font_url":"","fonts":[],"force_apply_line_max_width":false,"global_alpha":1.0,"group_id":"ru-RU_1700000000500","has_shadow":false,"id":"<id7>","initial_scale":1.0,"inner_padding":-1.0,"is_batch_replace":false,"is_lyric_effect":false,"is_rich_text":false,"is_words_linear":false,"italic_degree":0,"ktv_color":"","language":"ru-RU","layer_weight":1,"letter_spacing":0.0,"line_feed":1,"line_max_width":0.82,"line_spacing":0.02,"lyric_group_id":"","lyrics_template":{"category_id":"","category_name":"","effect_id":"","panel":"","path":"","request_id":"","resource_id":"","resource_name":""},"multi_language_current":"none","name":"","offset_on_path":0.0,"oneline_cutoff":false,"operation_type":0,"original_size":[],"preset_category":"","preset_category_id":"","preset_has_set_alignment":false,"preset_id":"","preset_index":0,"preset_name":"","punc_model":"","recognize_model":"","recognize_task_id":"","recognize_text":"Вторая строка 😳","recognize_type":0,"relevance_segment":[],"shadow_alpha":0.9,"shadow_angle":-45.0,"shadow_color":"","shadow_distance":5.0,"shadow_point":{"x":0.6363961030678928,"y":-0.6363961030678927},"shadow_smoothing":0.45,"shadow_thickness_projection_angle":0.0,"shadow_thickness_projection_distance":0.0,"shadow_thickness_projection_enable":false,"shape_clip_x":false,"shape_clip_y":false,"single_char_bg_alpha":1.0,"single_char_bg_color":"","single_char_bg_enable":false,"single_char_bg_height":0.0,"single_char_bg_horizontal_offset":0.0,"single_char_bg_round_radius":0.3,"single_char_bg_vertical_offset":0.0,"single_char_bg_width":0.0,"source_from":"","ssml_content":"","style_name":"","sub_template_id":-1,"sub_type":0,"subtitle_keywords":null,"subtitle_keywords_config":null,"subtitle_template_original_fontsize":0.0,"text_alpha":1.0,"text_color":"#FFFFFF","text_curve":null,"text_exceeds_path_process_type":0,"text_loop_on_path":false,"text_preset_resource_id":"","text_size":30,"text_to_audio_ids":[],"text_typesetting_path_index":0,"text_typesetting_paths":null,"text_typesetting_paths_file":"","translate_original_text":"","tts_auto_update":false,"type":"subtitle","typesetting":0,"underline":false,"underline_offset":0.22,"underline_width":0.05,"use_effect_default_color":true,"words":{"end_time":[333,667,1000],"start_time":[0,333,667],"text":["Вторая","строка","😳"]}},{"add_type":0,"alignment":1,"autoAdaptCanvasEnabled":false,"background_alpha":1.0,"background_color":"","background_fill":"","background_height":0.14,"background_horizontal_offset":0.0,"background_round_radius":0.0,"background_style":0,"background_vertical_offset":0.0,"background_width":0.14,"base_content":"","bold_width":0.0,"border_alpha":1.0,"border_color":"","border_mode":0,"border_width":0.08,"caption_template_info":{"category_id":"","category_name":"","effect_id":"","is_new":false,"path":"","request_id":"","resource_id":"","resource_name":"","source_platform":0,"third_resource_id":""},"check_flag":7,"combo_info":{"text_templates":[]},"content":"{\"styles\":[{\"fill\":{\"content\":{\"render_type\":\"solid\",\"solid\":{\"color\":[1.0,1.0,1.0]}}},\"font\":{\"id\":\"\",\"path\":\"/Applications/CapCut.app/Contents/Resources/Font/SystemFont/en.ttf\"},\"range\":[0,12],\"size\":8.0}],\"text\":\"Hello, world\"}","current_words":{"end_time":[],"start_time":[],"text":[]},"cutoff_postfix":"","enable_path_typesetting":false,"fixed_height":-1.0,"fixed_width":-1.0,"font_category_id":"","font_category_name":"","font_id":"","font_name":"","font_path":"/Applications/CapCut.app/Contents/Resources/Font/SystemFont/en.ttf","font_resource_id":"","font_size":8.0,"font_source_platform":0,"font_team_id":"","font_third_resource_id":"","font_title":"none","font_url":"","fonts":[],"force_apply_line_max_width":false,"global_alpha":1.0,"group_id":"en-US_1700000000501","has_shadow":false,"id":"<id11>","initial_scale":1.0,"inner_padding":-1.0,"is_batch_replace":false,"is_lyric_effect":false,"is_rich_text":false,"is_words_linear":false,"italic_degree":0,"ktv_color":"","language":"en-US","layer_weight":1,"letter_spacing":0.0,"line_feed":1,"line_max_width":0.82,"line_spacing":0.02,"lyric_group_id":"","lyrics_template":{"category_id":"","category_name":"","effect_id":"","panel":"","path":"","request_id":"","resource_id":"","resource_name":""},"multi_language_current":"none","name":"","offset_on_path":0.0,"oneline_cutoff":false,"operation_type":0,"original_size":[],"preset_category":"","preset_category_id":"","preset_has_set_alignment":false,"preset_id":"","preset_index":0,"preset_name":"","punc_model":"","recognize_model":"","recognize_task_id":"","recognize_text":"Hello, world","recognize_type":0,"relevance_segment":[],"shadow_alpha":0.9,"shadow_angle":-45.0,"shadow_color":"","shadow_distance":5.0,"shadow_point":{"x":0.6363961030678928,"y":-0.6363961030678927},"shadow_smoothing":0.45,"shadow_thickness_projection_angle":0.0,"shadow_thickness_projection_distance":0.0,"shadow_thickness_projection_enable":false,"shape_clip_x":false,"shape_clip_y":false,"single_char_bg_alpha":1.0,"single_char_bg_color":"","single_char_bg_enable":false,"single_char_bg_height":0.0,"single_char_bg_horizontal_offset":0.0,"single_char_bg_round_radius":0.3,"single_char_bg_vertical_offset":0.0,"single_char_bg_width":0.0,"source_from":"","ssml_content":"","style_name":"","sub_template_id":-1,"sub_type":5,"subtitle_keywords":null,"subtitle_keywords_config":null,"subtitle_template_original_fontsize":0.0,"text_alpha":1.0,"text_color":"#FFFFFF","text_curve":null,"text_exceeds_path_process_type":0,"text_loop_on_path":false,"text_preset_resource_id":"","text_size":30,"text_to_audio_ids":[],"text_typesetting_path_index":0,"text_typesetting_paths":null,"text_typesetting_paths_file":"","translate_original_text":"","tts_auto_update":false,"type":"subtitle","typesetting":0,"underline":false,"underline_offset":0.22,"underline_width":0.05,"use_effect_default_color":true,"words":{"end_time":[750,1500],"start_time":[0,750],"text":["Hello,","world"]}},{"add_type":0,"alignment":1,"autoAdaptCanvasEnabled":false,"background_alpha":1.0,"background_color":"","background_fill":"","background_height":0.14,"background_horizontal_offset":0.0,"background_round_radius":0.0,"background_style":0,"background_vertical_offset":0.0,"background_width":0.14,"base_content":"","bold_width":0.0,"border_alpha":1.0,"border_color":"","border_mode":0,"border_width":0.08,"caption_template_info":{"category_id":"","category_name":"","effect_id":"","is_new":false,"path":"","request_id":"","resource_id":"","resource_name":"","source_platform":0,"third_resource_id":""},"check_flag":7,"combo_info":{"text_templates":[]},"content":"{\"styles\":[{\"fill\":{\"content\":{\"render_type\":\"solid\",\"solid\":{\"color\":[1.0,1.0,1.0]}}},\"font\":{\"id\":\"\",\"path\":\"/Applications/CapCut.app/Contents/Resources/Font/SystemFont/en.ttf\"},\"range\":[0,16],\"size\":16.0}],\"text\":\"สวัสดีครับ ทุกคน\"}","current_words":{"end_time":[],"start_time":[],"text":[]},"cutoff_postfix":"","enable_path_typesetting":false,"fixed_height":-1.0,"fixed_width":-1.0,"font_category_id":"","font_category_name":"","font_id":"","font_name":"","font_path":"/Applications/CapCut.app/Contents/Resources/Font/SystemFont/en.ttf","font_resource_id":"","font_size":16.0,"font_source_platform":0,"font_team_id":"","font_third_resource_id":"","font_title":"none","font_url":"","fonts":[],"force_apply_line_max_width":false,"global_alpha":1.0,"group_id":"th-TH_1700000000502","has_shadow":false,"id":"<id15>","initial_scale":1.0,"inner_padding":-1.0,"is_batch_replace":false,"is_lyric_effect":false,"is_rich_text":false,"is_words_linear":false,"italic_degree":0,"ktv_color":"","language":"th-TH","layer_weight":1,"letter_spacing":0.0,"line_feed":1,"line_max_width":0.82,"line_spacing":0.02,"lyric_group_id":"","lyrics_template":{"category_id":"","category_name":"","effect_id":"","panel":"","path":"","request_id":"","resource_id":"","resource_name":""},"multi_language_current":"none","name":"","offset_on_path":0.0,"oneline_cutoff":false,"operation_type":0,"original_size":[],"preset_category":"","preset_category_id":"","preset_has_set_alignment":false,"preset_id":"","preset_index":0,"preset_name":"","punc_model":"","recognize_model":"","recognize_task_id":"","recognize_text":"สวัสดีครับ ทุกคน","recognize_type":0,"relevance_segment":[],"shadow_alpha":0.9,"shadow_angle":-45.0,"shadow_color":"","shadow_distance":5.0,"shadow_point":{"x":0.6363961030678928,"y":-0.6363961030678927},"shadow_smoothing":0.45,"shadow_thickness_projection_angle":0.0,"shadow_thickness_projection_distance":0.0,"shadow_thickness_projection_enable":false,"shape_clip_x":false,"shape_clip_y":false,"single_char_bg_alpha":1.0,"single_char_bg_color":"","single_char_bg_enable":false,"single_char_bg_height":0.0,"single_char_bg_horizontal_offset":0.0,"single_char_bg_round_radius":0.3,"single_char_bg_vertical_offset":0.0,"single_char_bg_width":0.0,"source_from":"","ssml_content":"","style_name":"","sub_template_id":-1,"sub_type":5,"subtitle_keywords":null,"subtitle_keywords_config":null,"subtitle_template_original_fontsize":0.0,"text_alpha":1.0,"text_color":"#FFFFFF","text_curve":null,"text_exceeds_path_process_type":0,"text_loop_on_path":false,"text_preset_resource_id":"","text_size":30,"text_to_audio_ids":[],"text_typesetting_path_index":0,"text_typesetting_paths":null,"text_typesetting_paths_file":"","translate_original_text":"","tts_auto_update":false,"type":"subtitle","typesetting":0,"underline":false,"underline_offset":0.22,"underline_width":0.05,"use_effect_default_color":true,"words":{"end_time":[1633,3267],"start_time":[0,1633],"text":["สวัสดีครับ","ทุกคน"]}},{"add_type":0,"alignment":1,"autoAdaptCanvasEnabled":false,"background_alpha":1.0,"background_color":"","background_fill":"","background_height":0.14,"background_horizontal_offset":0.0,"background_round_radius":0.0,"background_style":0,"background_vertical_offset":0.0,"background_width":0.14,"base_content":"","bold_width":0.0,"border_alpha":1.0,"border_color":"","border_mode":0,"border_width":0.08,"caption_template_info":{"category_id":"","category_name":"","effect_id":"","is_new":false,"path":"","request_id":"","resource_id":"","resource_name":"","source_platform":0,"third_resource_id":""},"check_flag":7,"combo_info":{"text_templates":[]},"content":"{\"styles\":[{\"fill\":{\"content\":{\"render_type\":\"solid\",\"solid\":{\"color\":[1.0,1.0,1.0]}}},\"font\":{\"id\":\"\",\"path\":\"/Applications/CapCut.app/Contents/Resources/Font/SystemFont/en.ttf\"},\"range\":[0,2],\"size\":8.0}],\"text\":\"你好\"}","current_words":{"end_time":[],"start_time":[],"text":[]},"cutoff_postfix":"","enable_path_typesetting":false,"fixed_height":-1.0,"fixed_width":-1.0,"font_category_id":"","font_category_name":"","font_id":"","font_name":"","font_path":"/Applications/CapCut.app/Contents/Resources/Font/SystemFont/en.ttf","font_resource_id":"","font_size":8.0,"font_source_platform":0,"font_team_id":"","font_third_resource_id":"","font_title":"none","font_url":"","fonts":[],"force_apply_line_max_width":false,"global_alpha":1.0,"group_id":"zh-CN_1700000000503","has_shadow":false,"id":"<id19>","initial_scale":1.0,"inner_padding":-1.0,"is_batch_replace":false,"is_lyric_effect":false,"is_rich_text":false,"is_words_linear":false,"italic_degree":0,"ktv_color":"","language":"zh-CN","layer_weight":1,"letter_spacing":0.0,"line_feed":1,"line_max_width":0.82,"line_spacing":0.02,"lyric_group_id":"","lyrics_template":{"category_id":"","category_name":"","effect_id":"","panel":"","path":"","request_id":"","resource_id":"","resource_name":""},"multi_language_current":"none","name":"","offset_on_path":0.0,"oneline_cutoff":false,"operation_type":0,"original_size":[],"preset_category":"","preset_category_id":"","preset_has_set_alignment":false,"preset_id":"","preset_index":0,"preset_name":"","punc_model":"","recognize_model":"","recognize_task_id":"","recognize_text":"你好","recognize_type":0,"relevance_segment":[],"shadow_alpha":0.9,"shadow_angle":-45.0,"shadow_color":"","shadow_distance":5.0,"shadow_point":{"x":0.6363961030678928,"y":-0.6363961030678927},"shadow_smoothing":0.45,"shadow_thickness_projection_angle":0.0,"shadow_thickness_projection_distance":0.0,"shadow_thickness_projection_enable":false,"shape_clip_x":false,"shape_clip_y":false,"single_char_bg_alpha":1.0,"single_char_bg_color":"","single_char_bg_enable":false,"single_char_bg_height":0.0,"single_char_bg_horizontal_offset":0.0,"single_char_bg_round_radius":0.3,"single_char_bg_vertical_offset":0.0,"single_char_bg_width":0.0,"source_from":"","ssml_content":"","style_name":"","sub_template_id":-1,"sub_type":5,"subtitle_keywords":null,"subtitle_keywords_config":null,"subtitle_template_original_fontsize":0.0,"text_alpha":1.0,"text_color":"#FFFFFF","text_curve":null,"text_exceeds_path_process_type":0,"text_loop_on_path":false,"text_preset_resource_id":"","text_size":30,"text_to_audio_ids":[],"text_typesetting_path_index":0,"text_typesetting_paths":null,"text_typesetting_paths_file":"","translate_original_text":"","tts_auto_update":false,"type":"subtitle","typesetting":0,"underline":false,"underline_offset":0.22,"underline_width":0.05,"use_effect_default_color":true,"words":{"end_time":[1000],"start_time":[0],"text":["你好"]}}],"material_animations":[{"animations":[],"id":"<id2>","multi_language_current":"none","type":"sticker_animation"},{"animations":[],"id":"<id5>","multi_language_current":"none","type":"sticker_animation"},{"animations":[],"id":"<id9>","multi_language_current":"none","type":"sticker_animation"},{"animations":[],"id":"<id13>","multi_language_current":"none","type":"sticker_animation"},{"animations":[],"id":"<id17>","multi_language_current":"none","type":"sticker_animation"}]}
+}
+
+== voice-over keep
+{
+ "tracks": [{
+   "type": "video",
+   "segments": [
+    {
+     "id": "S0",
+     "material_id": "AUTO",
+     "target_timerange": {
+      "start": 0,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "M1",
+      "M2",
+      "M3",
+      "BL1",
+      "CH1",
+      "F2",
+      "RET"
+     ],
+     "hdr_settings": {
+      "mode": 0
+     }
+    },
+    {
+     "id": "S1",
+     "material_id": "CUSTOM",
+     "target_timerange": {
+      "start": 1000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "BL2",
+      "CH2"
+     ],
+     "hdr_settings": {
+      "mode": 4
+     }
+    },
+    {
+     "id": "S2",
+     "material_id": "UNPICKED",
+     "target_timerange": {
+      "start": 2000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "BL3"
+     ]
+    },
+    {
+     "id": "S3",
+     "material_id": "STABLE",
+     "target_timerange": {
+      "start": 3000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "BL4"
+     ]
+    }
+   ]
+  },{"attribute":0,"flag":0,"id":"<id1>","is_default_name":false,"name":"EnhanceCapCut voice-over · en","segments":[{"caption_info":null,"cartoon":false,"clip":null,"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id2>","<id3>","<id4>","<id5>","<id6>"],"group_id":"","hdr_settings":null,"id":"<id7>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id8>","raw_segment_id":"","render_index":0,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"source":"segmentsourcenormal","source_timerange":{"duration":1500000,"start":1000000},"speed":1.0,"state":0,"target_timerange":{"duration":1500000,"start":1000000},"template_id":"","template_scene":"default","track_attribute":0,"track_render_index":1,"uniform_scale":null,"visible":true,"volume":1.0},{"caption_info":null,"cartoon":false,"clip":null,"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id9>","<id10>","<id11>","<id12>","<id13>"],"group_id":"","hdr_settings":null,"id":"<id14>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id15>","raw_segment_id":"","render_index":0,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"source":"segmentsourcenormal","source_timerange":{"duration":1000000,"start":3000000},"speed":1.0,"state":0,"target_timerange":{"duration":1000000,"start":3000000},"template_id":"","template_scene":"default","track_attribute":0,"track_render_index":1,"uniform_scale":null,"visible":true,"volume":1.0},{"caption_info":null,"cartoon":false,"clip":null,"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id16>","<id17>","<id18>","<id19>","<id20>"],"group_id":"","hdr_settings":null,"id":"<id21>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id22>","raw_segment_id":"","render_index":0,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"source":"segmentsourcenormal","source_timerange":{"duration":2250000,"start":7000000},"speed":1.0,"state":0,"target_timerange":{"duration":2250000,"start":7000000},"template_id":"","template_scene":"default","track_attribute":0,"track_render_index":1,"uniform_scale":null,"visible":true,"volume":1.0}],"type":"audio"},{"attribute":1,"flag":0,"id":"<id23>","is_default_name":false,"name":"EnhanceCapCut voice-over · th","segments":[{"caption_info":null,"cartoon":false,"clip":null,"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id24>","<id25>","<id26>","<id27>","<id28>"],"group_id":"","hdr_settings":null,"id":"<id29>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id30>","raw_segment_id":"","render_index":0,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"source":"segmentsourcenormal","source_timerange":{"duration":1000000,"start":1000000},"speed":1.0,"state":0,"target_timerange":{"duration":1000000,"start":1000000},"template_id":"","template_scene":"default","track_attribute":1,"track_render_index":2,"uniform_scale":null,"visible":true,"volume":1.0}],"type":"audio"},{"attribute":0,"flag":0,"id":"<id31>","is_default_name":false,"name":"EnhanceCapCut voice-over · background","segments":[{"caption_info":null,"cartoon":false,"clip":null,"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id32>","<id33>","<id34>","<id35>","<id36>"],"group_id":"","hdr_settings":null,"id":"<id37>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id38>","raw_segment_id":"","render_index":0,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"source":"segmentsourcenormal","source_timerange":{"duration":3650000,"start":750000},"speed":1.0,"state":0,"target_timerange":{"duration":3650000,"start":750000},"template_id":"","template_scene":"default","track_attribute":0,"track_render_index":3,"uniform_scale":null,"visible":true,"volume":1.0}],"type":"audio"}],
+ "materials": {
+  "videos": [
+   {
+    "id": "AUTO",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png",
+    "matting": {
+     "flag": 3,
+     "path": "##_draftpath_placeholder_FIXTURE_##/matting/auto",
+     "reverse": true
+    }
+   },
+   {
+    "id": "CUSTOM",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png",
+    "matting": {
+     "flag": 1,
+     "path": "##_draftpath_placeholder_FIXTURE_##/matting/custom",
+     "custom_matting_id": "C1"
+    }
+   },
+   {
+    "id": "UNPICKED",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png",
+    "matting": {
+     "flag": 1,
+     "path": "##_draftpath_placeholder_FIXTURE_##/matting/unpicked",
+     "custom_matting_id": "C2"
+    }
+   },
+   {
+    "id": "STABLE",
+    "type": "video",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/v.mov",
+    "stable": {
+     "stable_level": 3
+    },
+    "has_audio": false
+   }
+  ],
+  "common_mask": [
+   {
+    "id": "M1",
+    "constant_material_id": "C1",
+    "name": "Rectangle",
+    "resource_type": "rectangle",
+    "config": {
+     "width": 0.2,
+     "height": 0.4,
+     "centerX": 0,
+     "centerY": 0.5,
+     "rotation": 30,
+     "feather": 0.1,
+     "roundCorner": 0.2,
+     "invert": true
+    }
+   },
+   {
+    "id": "M2",
+    "constant_material_id": "C9",
+    "name": "Brush",
+    "resource_type": "custom",
+    "loader_work_space": "##_draftpath_placeholder_FIXTURE_##/adjust_mask/B1",
+    "config": {}
+   },
+   {
+    "id": "M3",
+    "name": "Mirror",
+    "resource_type": "mirror",
+    "config": {
+     "height": 0.2,
+     "expansion": 0.1
+    }
+   }
+  ],
+  "effects": [
+   {
+    "id": "BL1",
+    "type": "mix_mode",
+    "name": "Screen",
+    "effect_id": "871339"
+   },
+   {
+    "id": "BL2",
+    "type": "mix_mode",
+    "resource_id": "6758325895519277582"
+   },
+   {
+    "id": "BL3",
+    "type": "mix_mode",
+    "name": "Soft light"
+   },
+   {
+    "id": "BL4",
+    "type": "mix_mode",
+    "name": "Normal"
+   },
+   {
+    "id": "F2",
+    "type": "filter",
+    "name": "Clip filter",
+    "value": 1.4,
+    "resource_id": "fixture-111",
+    "path": "##_draftpath_placeholder_FIXTURE_##/filters/cube"
+   },
+   {
+    "id": "RET",
+    "type": "figure",
+    "sub_type": "auto_beauty",
+    "name": "Sparkly Skin"
+   }
+  ],
+  "chromas": [
+   {
+    "id": "CH1",
+    "color": "#FF00FF00",
+    "intensity_value": 0.4,
+    "shadow_value": 0.2,
+    "edge_smooth_value": 0.3,
+    "spill_value": 1.5
+   },
+   {
+    "id": "CH2",
+    "color": "#0000FF",
+    "intensity_value": 0
+   }
+  ]
+ ,"audios":[{"ai_music_enter_from":"","ai_music_generate_scene":0,"ai_music_type":0,"aigc_history_id":"","aigc_item_id":"","app_id":0,"category_id":"","category_name":"","check_flag":1,"cloned_model_type":"","copyright_limit_type":"none","duration":10000000,"effect_id":"","formula_id":"","id":"<id8>","intensifies_path":"","is_ai_clone_tone":false,"is_ai_clone_tone_post":false,"is_text_edit_overdub":false,"is_ugc":false,"local_material_id":"","lyric_type":0,"mock_tone_speaker":"","moyin_emotion":"","music_id":"","music_source":"","name":"Voice-over en 1","path":"##_draftpath_placeholder_FIXTURE_##/EnhanceCapCut/voiceover 1/en.wav","pgc_id":"","pgc_name":"","query":"","request_id":"","resource_id":"","search_id":"","similiar_music_info":{"original_song_id":"","original_song_name":""},"sound_separate_type":"","source_from":"","source_platform":0,"team_id":"","text_id":"","third_resource_id":"","tone_category_id":"","tone_category_name":"","tone_effect_id":"","tone_effect_name":"","tone_emotion_name_key":"","tone_emotion_role":"","tone_emotion_scale":0.0,"tone_emotion_selection":"","tone_emotion_style":"","tone_platform":"","tone_second_category_id":"","tone_second_category_name":"","tone_speaker":"","tone_type":"","tts_benefit_info":{"benefit_amount":-1,"benefit_log_extra":"","benefit_log_id":"","benefit_type":"none"},"tts_generate_scene":"","tts_task_id":"","type":"record","unique_id":"","video_id":"","wave_points":[]},{"ai_music_enter_from":"","ai_music_generate_scene":0,"ai_music_type":0,"aigc_history_id":"","aigc_item_id":"","app_id":0,"category_id":"","category_name":"","check_flag":1,"cloned_model_type":"","copyright_limit_type":"none","duration":10000000,"effect_id":"","formula_id":"","id":"<id15>","intensifies_path":"","is_ai_clone_tone":false,"is_ai_clone_tone_post":false,"is_text_edit_overdub":false,"is_ugc":false,"local_material_id":"","lyric_type":0,"mock_tone_speaker":"","moyin_emotion":"","music_id":"","music_source":"","name":"Voice-over en 2","path":"##_draftpath_placeholder_FIXTURE_##/EnhanceCapCut/voiceover 1/en.wav","pgc_id":"","pgc_name":"","query":"","request_id":"","resource_id":"","search_id":"","similiar_music_info":{"original_song_id":"","original_song_name":""},"sound_separate_type":"","source_from":"","source_platform":0,"team_id":"","text_id":"","third_resource_id":"","tone_category_id":"","tone_category_name":"","tone_effect_id":"","tone_effect_name":"","tone_emotion_name_key":"","tone_emotion_role":"","tone_emotion_scale":0.0,"tone_emotion_selection":"","tone_emotion_style":"","tone_platform":"","tone_second_category_id":"","tone_second_category_name":"","tone_speaker":"","tone_type":"","tts_benefit_info":{"benefit_amount":-1,"benefit_log_extra":"","benefit_log_id":"","benefit_type":"none"},"tts_generate_scene":"","tts_task_id":"","type":"record","unique_id":"","video_id":"","wave_points":[]},{"ai_music_enter_from":"","ai_music_generate_scene":0,"ai_music_type":0,"aigc_history_id":"","aigc_item_id":"","app_id":0,"category_id":"","category_name":"","check_flag":1,"cloned_model_type":"","copyright_limit_type":"none","duration":10000000,"effect_id":"","formula_id":"","id":"<id22>","intensifies_path":"","is_ai_clone_tone":false,"is_ai_clone_tone_post":false,"is_text_edit_overdub":false,"is_ugc":false,"local_material_id":"","lyric_type":0,"mock_tone_speaker":"","moyin_emotion":"","music_id":"","music_source":"","name":"Voice-over en 3","path":"##_draftpath_placeholder_FIXTURE_##/EnhanceCapCut/voiceover 1/en.wav","pgc_id":"","pgc_name":"","query":"","request_id":"","resource_id":"","search_id":"","similiar_music_info":{"original_song_id":"","original_song_name":""},"sound_separate_type":"","source_from":"","source_platform":0,"team_id":"","text_id":"","third_resource_id":"","tone_category_id":"","tone_category_name":"","tone_effect_id":"","tone_effect_name":"","tone_emotion_name_key":"","tone_emotion_role":"","tone_emotion_scale":0.0,"tone_emotion_selection":"","tone_emotion_style":"","tone_platform":"","tone_second_category_id":"","tone_second_category_name":"","tone_speaker":"","tone_type":"","tts_benefit_info":{"benefit_amount":-1,"benefit_log_extra":"","benefit_log_id":"","benefit_type":"none"},"tts_generate_scene":"","tts_task_id":"","type":"record","unique_id":"","video_id":"","wave_points":[]},{"ai_music_enter_from":"","ai_music_generate_scene":0,"ai_music_type":0,"aigc_history_id":"","aigc_item_id":"","app_id":0,"category_id":"","category_name":"","check_flag":1,"cloned_model_type":"","copyright_limit_type":"none","duration":10000000,"effect_id":"","formula_id":"","id":"<id30>","intensifies_path":"","is_ai_clone_tone":false,"is_ai_clone_tone_post":false,"is_text_edit_overdub":false,"is_ugc":false,"local_material_id":"","lyric_type":0,"mock_tone_speaker":"","moyin_emotion":"","music_id":"","music_source":"","name":"Voice-over th 1","path":"/elsewhere/th.wav","pgc_id":"","pgc_name":"","query":"","request_id":"","resource_id":"","search_id":"","similiar_music_info":{"original_song_id":"","original_song_name":""},"sound_separate_type":"","source_from":"","source_platform":0,"team_id":"","text_id":"","third_resource_id":"","tone_category_id":"","tone_category_name":"","tone_effect_id":"","tone_effect_name":"","tone_emotion_name_key":"","tone_emotion_role":"","tone_emotion_scale":0.0,"tone_emotion_selection":"","tone_emotion_style":"","tone_platform":"","tone_second_category_id":"","tone_second_category_name":"","tone_speaker":"","tone_type":"","tts_benefit_info":{"benefit_amount":-1,"benefit_log_extra":"","benefit_log_id":"","benefit_type":"none"},"tts_generate_scene":"","tts_task_id":"","type":"record","unique_id":"","video_id":"","wave_points":[]},{"ai_music_enter_from":"","ai_music_generate_scene":0,"ai_music_type":0,"aigc_history_id":"","aigc_item_id":"","app_id":0,"category_id":"","category_name":"","check_flag":1,"cloned_model_type":"","copyright_limit_type":"none","duration":10000000,"effect_id":"","formula_id":"","id":"<id38>","intensifies_path":"","is_ai_clone_tone":false,"is_ai_clone_tone_post":false,"is_text_edit_overdub":false,"is_ugc":false,"local_material_id":"","lyric_type":0,"mock_tone_speaker":"","moyin_emotion":"","music_id":"","music_source":"","name":"Background 1","path":"##_draftpath_placeholder_FIXTURE_##/bg.wav","pgc_id":"","pgc_name":"","query":"","request_id":"","resource_id":"","search_id":"","similiar_music_info":{"original_song_id":"","original_song_name":""},"sound_separate_type":"","source_from":"","source_platform":0,"team_id":"","text_id":"","third_resource_id":"","tone_category_id":"","tone_category_name":"","tone_effect_id":"","tone_effect_name":"","tone_emotion_name_key":"","tone_emotion_role":"","tone_emotion_scale":0.0,"tone_emotion_selection":"","tone_emotion_style":"","tone_platform":"","tone_second_category_id":"","tone_second_category_name":"","tone_speaker":"","tone_type":"","tts_benefit_info":{"benefit_amount":-1,"benefit_log_extra":"","benefit_log_id":"","benefit_type":"none"},"tts_generate_scene":"","tts_task_id":"","type":"record","unique_id":"","video_id":"","wave_points":[]}],"beats":[{"ai_beats":{"beat_speed_infos":[],"beats_path":"","beats_url":"","melody_path":"","melody_percents":[0.0],"melody_url":""},"enable_ai_beats":false,"gear":404,"gear_count":0,"id":"<id4>","mode":404,"type":"beats","user_beats":[],"user_delete_ai_beats":null},{"ai_beats":{"beat_speed_infos":[],"beats_path":"","beats_url":"","melody_path":"","melody_percents":[0.0],"melody_url":""},"enable_ai_beats":false,"gear":404,"gear_count":0,"id":"<id11>","mode":404,"type":"beats","user_beats":[],"user_delete_ai_beats":null},{"ai_beats":{"beat_speed_infos":[],"beats_path":"","beats_url":"","melody_path":"","melody_percents":[0.0],"melody_url":""},"enable_ai_beats":false,"gear":404,"gear_count":0,"id":"<id18>","mode":404,"type":"beats","user_beats":[],"user_delete_ai_beats":null},{"ai_beats":{"beat_speed_infos":[],"beats_path":"","beats_url":"","melody_path":"","melody_percents":[0.0],"melody_url":""},"enable_ai_beats":false,"gear":404,"gear_count":0,"id":"<id26>","mode":404,"type":"beats","user_beats":[],"user_delete_ai_beats":null},{"ai_beats":{"beat_speed_infos":[],"beats_path":"","beats_url":"","melody_path":"","melody_percents":[0.0],"melody_url":""},"enable_ai_beats":false,"gear":404,"gear_count":0,"id":"<id34>","mode":404,"type":"beats","user_beats":[],"user_delete_ai_beats":null}],"placeholder_infos":[{"error_path":"","error_text":"","id":"<id3>","meta_type":"none","res_path":"","res_text":"","type":"placeholder_info"},{"error_path":"","error_text":"","id":"<id10>","meta_type":"none","res_path":"","res_text":"","type":"placeholder_info"},{"error_path":"","error_text":"","id":"<id17>","meta_type":"none","res_path":"","res_text":"","type":"placeholder_info"},{"error_path":"","error_text":"","id":"<id25>","meta_type":"none","res_path":"","res_text":"","type":"placeholder_info"},{"error_path":"","error_text":"","id":"<id33>","meta_type":"none","res_path":"","res_text":"","type":"placeholder_info"}],"sound_channel_mappings":[{"audio_channel_mapping":0,"id":"<id5>","is_config_open":false,"type":""},{"audio_channel_mapping":0,"id":"<id12>","is_config_open":false,"type":""},{"audio_channel_mapping":0,"id":"<id19>","is_config_open":false,"type":""},{"audio_channel_mapping":0,"id":"<id27>","is_config_open":false,"type":""},{"audio_channel_mapping":0,"id":"<id35>","is_config_open":false,"type":""}],"speeds":[{"curve_speed":null,"id":"<id2>","mode":0,"speed":1.0,"type":"speed"},{"curve_speed":null,"id":"<id9>","mode":0,"speed":1.0,"type":"speed"},{"curve_speed":null,"id":"<id16>","mode":0,"speed":1.0,"type":"speed"},{"curve_speed":null,"id":"<id24>","mode":0,"speed":1.0,"type":"speed"},{"curve_speed":null,"id":"<id32>","mode":0,"speed":1.0,"type":"speed"}],"vocal_separations":[{"choice":0,"enter_from":"","final_algorithm":"","id":"<id6>","production_path":"","removed_sounds":[],"time_range":null,"type":"vocal_separation"},{"choice":0,"enter_from":"","final_algorithm":"","id":"<id13>","production_path":"","removed_sounds":[],"time_range":null,"type":"vocal_separation"},{"choice":0,"enter_from":"","final_algorithm":"","id":"<id20>","production_path":"","removed_sounds":[],"time_range":null,"type":"vocal_separation"},{"choice":0,"enter_from":"","final_algorithm":"","id":"<id28>","production_path":"","removed_sounds":[],"time_range":null,"type":"vocal_separation"},{"choice":0,"enter_from":"","final_algorithm":"","id":"<id36>","production_path":"","removed_sounds":[],"time_range":null,"type":"vocal_separation"}]}
+}
+
+== voice-over lower
+{
+ "tracks": [{
+   "type": "video",
+   "segments": [
+    {
+     "id": "S0",
+     "material_id": "AUTO",
+     "target_timerange": {
+      "start": 0,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "M1",
+      "M2",
+      "M3",
+      "BL1",
+      "CH1",
+      "F2",
+      "RET"
+     ],
+     "hdr_settings": {
+      "mode": 0
+     }
+    ,"common_keyframes":[{"id":"<id1>","keyframe_list":[{"curveType":"Line","graphID":"","id":"<id2>","left_control":{"x":0.0,"y":0.0},"right_control":{"x":0.0,"y":0.0},"string_value":"","time_offset":750000,"values":[1.0]},{"curveType":"Line","graphID":"","id":"<id3>","left_control":{"x":0.0,"y":0.0},"right_control":{"x":0.0,"y":0.0},"string_value":"","time_offset":1000000,"values":[1.0]}],"material_id":"","property_type":"KFTypeVolume"}]},
+    {
+     "id": "S1",
+     "material_id": "CUSTOM",
+     "target_timerange": {
+      "start": 1000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "BL2",
+      "CH2"
+     ],
+     "hdr_settings": {
+      "mode": 4
+     }
+    ,"common_keyframes":[{"id":"<id4>","keyframe_list":[{"curveType":"Line","graphID":"","id":"<id5>","left_control":{"x":0.0,"y":0.0},"right_control":{"x":0.0,"y":0.0},"string_value":"","time_offset":0,"values":[0.178]},{"curveType":"Line","graphID":"","id":"<id6>","left_control":{"x":0.0,"y":0.0},"right_control":{"x":0.0,"y":0.0},"string_value":"","time_offset":1000000,"values":[1.0]}],"material_id":"","property_type":"KFTypeVolume"}]},
+    {
+     "id": "S2",
+     "material_id": "UNPICKED",
+     "target_timerange": {
+      "start": 2000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "BL3"
+     ]
+    ,"common_keyframes":[{"id":"<id7>","keyframe_list":[{"curveType":"Line","graphID":"","id":"<id8>","left_control":{"x":0.0,"y":0.0},"right_control":{"x":0.0,"y":0.0},"string_value":"","time_offset":0,"values":[0.178]},{"curveType":"Line","graphID":"","id":"<id9>","left_control":{"x":0.0,"y":0.0},"right_control":{"x":0.0,"y":0.0},"string_value":"","time_offset":1000000,"values":[1.0]}],"material_id":"","property_type":"KFTypeVolume"}]},
+    {
+     "id": "S3",
+     "material_id": "STABLE",
+     "target_timerange": {
+      "start": 3000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "BL4"
+     ]
+    ,"common_keyframes":[{"id":"<id10>","keyframe_list":[{"curveType":"Line","graphID":"","id":"<id11>","left_control":{"x":0.0,"y":0.0},"right_control":{"x":0.0,"y":0.0},"string_value":"","time_offset":0,"values":[0.178]},{"curveType":"Line","graphID":"","id":"<id12>","left_control":{"x":0.0,"y":0.0},"right_control":{"x":0.0,"y":0.0},"string_value":"","time_offset":1000000,"values":[1.0]}],"material_id":"","property_type":"KFTypeVolume"}]}
+   ]
+  },{"attribute":0,"flag":0,"id":"<id13>","is_default_name":false,"name":"EnhanceCapCut voice-over · en","segments":[{"caption_info":null,"cartoon":false,"clip":null,"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id14>","<id15>","<id16>","<id17>","<id18>"],"group_id":"","hdr_settings":null,"id":"<id19>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id20>","raw_segment_id":"","render_index":0,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"source":"segmentsourcenormal","source_timerange":{"duration":1500000,"start":1000000},"speed":1.0,"state":0,"target_timerange":{"duration":1500000,"start":1000000},"template_id":"","template_scene":"default","track_attribute":0,"track_render_index":1,"uniform_scale":null,"visible":true,"volume":1.0},{"caption_info":null,"cartoon":false,"clip":null,"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id21>","<id22>","<id23>","<id24>","<id25>"],"group_id":"","hdr_settings":null,"id":"<id26>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id27>","raw_segment_id":"","render_index":0,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"source":"segmentsourcenormal","source_timerange":{"duration":1000000,"start":3000000},"speed":1.0,"state":0,"target_timerange":{"duration":1000000,"start":3000000},"template_id":"","template_scene":"default","track_attribute":0,"track_render_index":1,"uniform_scale":null,"visible":true,"volume":1.0},{"caption_info":null,"cartoon":false,"clip":null,"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id28>","<id29>","<id30>","<id31>","<id32>"],"group_id":"","hdr_settings":null,"id":"<id33>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id34>","raw_segment_id":"","render_index":0,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"source":"segmentsourcenormal","source_timerange":{"duration":2250000,"start":7000000},"speed":1.0,"state":0,"target_timerange":{"duration":2250000,"start":7000000},"template_id":"","template_scene":"default","track_attribute":0,"track_render_index":1,"uniform_scale":null,"visible":true,"volume":1.0}],"type":"audio"},{"attribute":1,"flag":0,"id":"<id35>","is_default_name":false,"name":"EnhanceCapCut voice-over · th","segments":[{"caption_info":null,"cartoon":false,"clip":null,"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id36>","<id37>","<id38>","<id39>","<id40>"],"group_id":"","hdr_settings":null,"id":"<id41>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id42>","raw_segment_id":"","render_index":0,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"source":"segmentsourcenormal","source_timerange":{"duration":1000000,"start":1000000},"speed":1.0,"state":0,"target_timerange":{"duration":1000000,"start":1000000},"template_id":"","template_scene":"default","track_attribute":1,"track_render_index":2,"uniform_scale":null,"visible":true,"volume":1.0}],"type":"audio"},{"attribute":0,"flag":0,"id":"<id43>","is_default_name":false,"name":"EnhanceCapCut voice-over · background","segments":[{"caption_info":null,"cartoon":false,"clip":null,"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id44>","<id45>","<id46>","<id47>","<id48>"],"group_id":"","hdr_settings":null,"id":"<id49>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id50>","raw_segment_id":"","render_index":0,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"source":"segmentsourcenormal","source_timerange":{"duration":3650000,"start":750000},"speed":1.0,"state":0,"target_timerange":{"duration":3650000,"start":750000},"template_id":"","template_scene":"default","track_attribute":0,"track_render_index":3,"uniform_scale":null,"visible":true,"volume":1.0}],"type":"audio"}],
+ "materials": {
+  "videos": [
+   {
+    "id": "AUTO",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png",
+    "matting": {
+     "flag": 3,
+     "path": "##_draftpath_placeholder_FIXTURE_##/matting/auto",
+     "reverse": true
+    }
+   },
+   {
+    "id": "CUSTOM",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png",
+    "matting": {
+     "flag": 1,
+     "path": "##_draftpath_placeholder_FIXTURE_##/matting/custom",
+     "custom_matting_id": "C1"
+    }
+   },
+   {
+    "id": "UNPICKED",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png",
+    "matting": {
+     "flag": 1,
+     "path": "##_draftpath_placeholder_FIXTURE_##/matting/unpicked",
+     "custom_matting_id": "C2"
+    }
+   },
+   {
+    "id": "STABLE",
+    "type": "video",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/v.mov",
+    "stable": {
+     "stable_level": 3
+    },
+    "has_audio": false
+   }
+  ],
+  "common_mask": [
+   {
+    "id": "M1",
+    "constant_material_id": "C1",
+    "name": "Rectangle",
+    "resource_type": "rectangle",
+    "config": {
+     "width": 0.2,
+     "height": 0.4,
+     "centerX": 0,
+     "centerY": 0.5,
+     "rotation": 30,
+     "feather": 0.1,
+     "roundCorner": 0.2,
+     "invert": true
+    }
+   },
+   {
+    "id": "M2",
+    "constant_material_id": "C9",
+    "name": "Brush",
+    "resource_type": "custom",
+    "loader_work_space": "##_draftpath_placeholder_FIXTURE_##/adjust_mask/B1",
+    "config": {}
+   },
+   {
+    "id": "M3",
+    "name": "Mirror",
+    "resource_type": "mirror",
+    "config": {
+     "height": 0.2,
+     "expansion": 0.1
+    }
+   }
+  ],
+  "effects": [
+   {
+    "id": "BL1",
+    "type": "mix_mode",
+    "name": "Screen",
+    "effect_id": "871339"
+   },
+   {
+    "id": "BL2",
+    "type": "mix_mode",
+    "resource_id": "6758325895519277582"
+   },
+   {
+    "id": "BL3",
+    "type": "mix_mode",
+    "name": "Soft light"
+   },
+   {
+    "id": "BL4",
+    "type": "mix_mode",
+    "name": "Normal"
+   },
+   {
+    "id": "F2",
+    "type": "filter",
+    "name": "Clip filter",
+    "value": 1.4,
+    "resource_id": "fixture-111",
+    "path": "##_draftpath_placeholder_FIXTURE_##/filters/cube"
+   },
+   {
+    "id": "RET",
+    "type": "figure",
+    "sub_type": "auto_beauty",
+    "name": "Sparkly Skin"
+   }
+  ],
+  "chromas": [
+   {
+    "id": "CH1",
+    "color": "#FF00FF00",
+    "intensity_value": 0.4,
+    "shadow_value": 0.2,
+    "edge_smooth_value": 0.3,
+    "spill_value": 1.5
+   },
+   {
+    "id": "CH2",
+    "color": "#0000FF",
+    "intensity_value": 0
+   }
+  ]
+ ,"audios":[{"ai_music_enter_from":"","ai_music_generate_scene":0,"ai_music_type":0,"aigc_history_id":"","aigc_item_id":"","app_id":0,"category_id":"","category_name":"","check_flag":1,"cloned_model_type":"","copyright_limit_type":"none","duration":10000000,"effect_id":"","formula_id":"","id":"<id20>","intensifies_path":"","is_ai_clone_tone":false,"is_ai_clone_tone_post":false,"is_text_edit_overdub":false,"is_ugc":false,"local_material_id":"","lyric_type":0,"mock_tone_speaker":"","moyin_emotion":"","music_id":"","music_source":"","name":"Voice-over en 1","path":"##_draftpath_placeholder_FIXTURE_##/EnhanceCapCut/voiceover 1/en.wav","pgc_id":"","pgc_name":"","query":"","request_id":"","resource_id":"","search_id":"","similiar_music_info":{"original_song_id":"","original_song_name":""},"sound_separate_type":"","source_from":"","source_platform":0,"team_id":"","text_id":"","third_resource_id":"","tone_category_id":"","tone_category_name":"","tone_effect_id":"","tone_effect_name":"","tone_emotion_name_key":"","tone_emotion_role":"","tone_emotion_scale":0.0,"tone_emotion_selection":"","tone_emotion_style":"","tone_platform":"","tone_second_category_id":"","tone_second_category_name":"","tone_speaker":"","tone_type":"","tts_benefit_info":{"benefit_amount":-1,"benefit_log_extra":"","benefit_log_id":"","benefit_type":"none"},"tts_generate_scene":"","tts_task_id":"","type":"record","unique_id":"","video_id":"","wave_points":[]},{"ai_music_enter_from":"","ai_music_generate_scene":0,"ai_music_type":0,"aigc_history_id":"","aigc_item_id":"","app_id":0,"category_id":"","category_name":"","check_flag":1,"cloned_model_type":"","copyright_limit_type":"none","duration":10000000,"effect_id":"","formula_id":"","id":"<id27>","intensifies_path":"","is_ai_clone_tone":false,"is_ai_clone_tone_post":false,"is_text_edit_overdub":false,"is_ugc":false,"local_material_id":"","lyric_type":0,"mock_tone_speaker":"","moyin_emotion":"","music_id":"","music_source":"","name":"Voice-over en 2","path":"##_draftpath_placeholder_FIXTURE_##/EnhanceCapCut/voiceover 1/en.wav","pgc_id":"","pgc_name":"","query":"","request_id":"","resource_id":"","search_id":"","similiar_music_info":{"original_song_id":"","original_song_name":""},"sound_separate_type":"","source_from":"","source_platform":0,"team_id":"","text_id":"","third_resource_id":"","tone_category_id":"","tone_category_name":"","tone_effect_id":"","tone_effect_name":"","tone_emotion_name_key":"","tone_emotion_role":"","tone_emotion_scale":0.0,"tone_emotion_selection":"","tone_emotion_style":"","tone_platform":"","tone_second_category_id":"","tone_second_category_name":"","tone_speaker":"","tone_type":"","tts_benefit_info":{"benefit_amount":-1,"benefit_log_extra":"","benefit_log_id":"","benefit_type":"none"},"tts_generate_scene":"","tts_task_id":"","type":"record","unique_id":"","video_id":"","wave_points":[]},{"ai_music_enter_from":"","ai_music_generate_scene":0,"ai_music_type":0,"aigc_history_id":"","aigc_item_id":"","app_id":0,"category_id":"","category_name":"","check_flag":1,"cloned_model_type":"","copyright_limit_type":"none","duration":10000000,"effect_id":"","formula_id":"","id":"<id34>","intensifies_path":"","is_ai_clone_tone":false,"is_ai_clone_tone_post":false,"is_text_edit_overdub":false,"is_ugc":false,"local_material_id":"","lyric_type":0,"mock_tone_speaker":"","moyin_emotion":"","music_id":"","music_source":"","name":"Voice-over en 3","path":"##_draftpath_placeholder_FIXTURE_##/EnhanceCapCut/voiceover 1/en.wav","pgc_id":"","pgc_name":"","query":"","request_id":"","resource_id":"","search_id":"","similiar_music_info":{"original_song_id":"","original_song_name":""},"sound_separate_type":"","source_from":"","source_platform":0,"team_id":"","text_id":"","third_resource_id":"","tone_category_id":"","tone_category_name":"","tone_effect_id":"","tone_effect_name":"","tone_emotion_name_key":"","tone_emotion_role":"","tone_emotion_scale":0.0,"tone_emotion_selection":"","tone_emotion_style":"","tone_platform":"","tone_second_category_id":"","tone_second_category_name":"","tone_speaker":"","tone_type":"","tts_benefit_info":{"benefit_amount":-1,"benefit_log_extra":"","benefit_log_id":"","benefit_type":"none"},"tts_generate_scene":"","tts_task_id":"","type":"record","unique_id":"","video_id":"","wave_points":[]},{"ai_music_enter_from":"","ai_music_generate_scene":0,"ai_music_type":0,"aigc_history_id":"","aigc_item_id":"","app_id":0,"category_id":"","category_name":"","check_flag":1,"cloned_model_type":"","copyright_limit_type":"none","duration":10000000,"effect_id":"","formula_id":"","id":"<id42>","intensifies_path":"","is_ai_clone_tone":false,"is_ai_clone_tone_post":false,"is_text_edit_overdub":false,"is_ugc":false,"local_material_id":"","lyric_type":0,"mock_tone_speaker":"","moyin_emotion":"","music_id":"","music_source":"","name":"Voice-over th 1","path":"/elsewhere/th.wav","pgc_id":"","pgc_name":"","query":"","request_id":"","resource_id":"","search_id":"","similiar_music_info":{"original_song_id":"","original_song_name":""},"sound_separate_type":"","source_from":"","source_platform":0,"team_id":"","text_id":"","third_resource_id":"","tone_category_id":"","tone_category_name":"","tone_effect_id":"","tone_effect_name":"","tone_emotion_name_key":"","tone_emotion_role":"","tone_emotion_scale":0.0,"tone_emotion_selection":"","tone_emotion_style":"","tone_platform":"","tone_second_category_id":"","tone_second_category_name":"","tone_speaker":"","tone_type":"","tts_benefit_info":{"benefit_amount":-1,"benefit_log_extra":"","benefit_log_id":"","benefit_type":"none"},"tts_generate_scene":"","tts_task_id":"","type":"record","unique_id":"","video_id":"","wave_points":[]},{"ai_music_enter_from":"","ai_music_generate_scene":0,"ai_music_type":0,"aigc_history_id":"","aigc_item_id":"","app_id":0,"category_id":"","category_name":"","check_flag":1,"cloned_model_type":"","copyright_limit_type":"none","duration":10000000,"effect_id":"","formula_id":"","id":"<id50>","intensifies_path":"","is_ai_clone_tone":false,"is_ai_clone_tone_post":false,"is_text_edit_overdub":false,"is_ugc":false,"local_material_id":"","lyric_type":0,"mock_tone_speaker":"","moyin_emotion":"","music_id":"","music_source":"","name":"Background 1","path":"##_draftpath_placeholder_FIXTURE_##/bg.wav","pgc_id":"","pgc_name":"","query":"","request_id":"","resource_id":"","search_id":"","similiar_music_info":{"original_song_id":"","original_song_name":""},"sound_separate_type":"","source_from":"","source_platform":0,"team_id":"","text_id":"","third_resource_id":"","tone_category_id":"","tone_category_name":"","tone_effect_id":"","tone_effect_name":"","tone_emotion_name_key":"","tone_emotion_role":"","tone_emotion_scale":0.0,"tone_emotion_selection":"","tone_emotion_style":"","tone_platform":"","tone_second_category_id":"","tone_second_category_name":"","tone_speaker":"","tone_type":"","tts_benefit_info":{"benefit_amount":-1,"benefit_log_extra":"","benefit_log_id":"","benefit_type":"none"},"tts_generate_scene":"","tts_task_id":"","type":"record","unique_id":"","video_id":"","wave_points":[]}],"beats":[{"ai_beats":{"beat_speed_infos":[],"beats_path":"","beats_url":"","melody_path":"","melody_percents":[0.0],"melody_url":""},"enable_ai_beats":false,"gear":404,"gear_count":0,"id":"<id16>","mode":404,"type":"beats","user_beats":[],"user_delete_ai_beats":null},{"ai_beats":{"beat_speed_infos":[],"beats_path":"","beats_url":"","melody_path":"","melody_percents":[0.0],"melody_url":""},"enable_ai_beats":false,"gear":404,"gear_count":0,"id":"<id23>","mode":404,"type":"beats","user_beats":[],"user_delete_ai_beats":null},{"ai_beats":{"beat_speed_infos":[],"beats_path":"","beats_url":"","melody_path":"","melody_percents":[0.0],"melody_url":""},"enable_ai_beats":false,"gear":404,"gear_count":0,"id":"<id30>","mode":404,"type":"beats","user_beats":[],"user_delete_ai_beats":null},{"ai_beats":{"beat_speed_infos":[],"beats_path":"","beats_url":"","melody_path":"","melody_percents":[0.0],"melody_url":""},"enable_ai_beats":false,"gear":404,"gear_count":0,"id":"<id38>","mode":404,"type":"beats","user_beats":[],"user_delete_ai_beats":null},{"ai_beats":{"beat_speed_infos":[],"beats_path":"","beats_url":"","melody_path":"","melody_percents":[0.0],"melody_url":""},"enable_ai_beats":false,"gear":404,"gear_count":0,"id":"<id46>","mode":404,"type":"beats","user_beats":[],"user_delete_ai_beats":null}],"placeholder_infos":[{"error_path":"","error_text":"","id":"<id15>","meta_type":"none","res_path":"","res_text":"","type":"placeholder_info"},{"error_path":"","error_text":"","id":"<id22>","meta_type":"none","res_path":"","res_text":"","type":"placeholder_info"},{"error_path":"","error_text":"","id":"<id29>","meta_type":"none","res_path":"","res_text":"","type":"placeholder_info"},{"error_path":"","error_text":"","id":"<id37>","meta_type":"none","res_path":"","res_text":"","type":"placeholder_info"},{"error_path":"","error_text":"","id":"<id45>","meta_type":"none","res_path":"","res_text":"","type":"placeholder_info"}],"sound_channel_mappings":[{"audio_channel_mapping":0,"id":"<id17>","is_config_open":false,"type":""},{"audio_channel_mapping":0,"id":"<id24>","is_config_open":false,"type":""},{"audio_channel_mapping":0,"id":"<id31>","is_config_open":false,"type":""},{"audio_channel_mapping":0,"id":"<id39>","is_config_open":false,"type":""},{"audio_channel_mapping":0,"id":"<id47>","is_config_open":false,"type":""}],"speeds":[{"curve_speed":null,"id":"<id14>","mode":0,"speed":1.0,"type":"speed"},{"curve_speed":null,"id":"<id21>","mode":0,"speed":1.0,"type":"speed"},{"curve_speed":null,"id":"<id28>","mode":0,"speed":1.0,"type":"speed"},{"curve_speed":null,"id":"<id36>","mode":0,"speed":1.0,"type":"speed"},{"curve_speed":null,"id":"<id44>","mode":0,"speed":1.0,"type":"speed"}],"vocal_separations":[{"choice":0,"enter_from":"","final_algorithm":"","id":"<id18>","production_path":"","removed_sounds":[],"time_range":null,"type":"vocal_separation"},{"choice":0,"enter_from":"","final_algorithm":"","id":"<id25>","production_path":"","removed_sounds":[],"time_range":null,"type":"vocal_separation"},{"choice":0,"enter_from":"","final_algorithm":"","id":"<id32>","production_path":"","removed_sounds":[],"time_range":null,"type":"vocal_separation"},{"choice":0,"enter_from":"","final_algorithm":"","id":"<id40>","production_path":"","removed_sounds":[],"time_range":null,"type":"vocal_separation"},{"choice":0,"enter_from":"","final_algorithm":"","id":"<id48>","production_path":"","removed_sounds":[],"time_range":null,"type":"vocal_separation"}]}
+}
+
+== voice-over muteall
+{
+ "tracks": [{
+   "type": "video",
+   "segments": [
+    {
+     "id": "S0",
+     "material_id": "AUTO",
+     "target_timerange": {
+      "start": 0,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "M1",
+      "M2",
+      "M3",
+      "BL1",
+      "CH1",
+      "F2",
+      "RET"
+     ],
+     "hdr_settings": {
+      "mode": 0
+     }
+    ,"common_keyframes":[{"id":"<id1>","keyframe_list":[{"curveType":"Line","graphID":"","id":"<id2>","left_control":{"x":0.0,"y":0.0},"right_control":{"x":0.0,"y":0.0},"string_value":"","time_offset":750000,"values":[1.0]},{"curveType":"Line","graphID":"","id":"<id3>","left_control":{"x":0.0,"y":0.0},"right_control":{"x":0.0,"y":0.0},"string_value":"","time_offset":1000000,"values":[1.0]}],"material_id":"","property_type":"KFTypeVolume"}]},
+    {
+     "id": "S1",
+     "material_id": "CUSTOM",
+     "target_timerange": {
+      "start": 1000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "BL2",
+      "CH2"
+     ],
+     "hdr_settings": {
+      "mode": 4
+     }
+    ,"common_keyframes":[{"id":"<id4>","keyframe_list":[{"curveType":"Line","graphID":"","id":"<id5>","left_control":{"x":0.0,"y":0.0},"right_control":{"x":0.0,"y":0.0},"string_value":"","time_offset":0,"values":[0.0]},{"curveType":"Line","graphID":"","id":"<id6>","left_control":{"x":0.0,"y":0.0},"right_control":{"x":0.0,"y":0.0},"string_value":"","time_offset":1000000,"values":[1.0]}],"material_id":"","property_type":"KFTypeVolume"}]},
+    {
+     "id": "S2",
+     "material_id": "UNPICKED",
+     "target_timerange": {
+      "start": 2000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "BL3"
+     ]
+    ,"common_keyframes":[{"id":"<id7>","keyframe_list":[{"curveType":"Line","graphID":"","id":"<id8>","left_control":{"x":0.0,"y":0.0},"right_control":{"x":0.0,"y":0.0},"string_value":"","time_offset":0,"values":[0.0]},{"curveType":"Line","graphID":"","id":"<id9>","left_control":{"x":0.0,"y":0.0},"right_control":{"x":0.0,"y":0.0},"string_value":"","time_offset":1000000,"values":[1.0]}],"material_id":"","property_type":"KFTypeVolume"}]},
+    {
+     "id": "S3",
+     "material_id": "STABLE",
+     "target_timerange": {
+      "start": 3000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "BL4"
+     ]
+    ,"common_keyframes":[{"id":"<id10>","keyframe_list":[{"curveType":"Line","graphID":"","id":"<id11>","left_control":{"x":0.0,"y":0.0},"right_control":{"x":0.0,"y":0.0},"string_value":"","time_offset":0,"values":[0.0]},{"curveType":"Line","graphID":"","id":"<id12>","left_control":{"x":0.0,"y":0.0},"right_control":{"x":0.0,"y":0.0},"string_value":"","time_offset":1000000,"values":[1.0]}],"material_id":"","property_type":"KFTypeVolume"}]}
+   ]
+  },{"attribute":0,"flag":0,"id":"<id13>","is_default_name":false,"name":"EnhanceCapCut voice-over · en","segments":[{"caption_info":null,"cartoon":false,"clip":null,"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id14>","<id15>","<id16>","<id17>","<id18>"],"group_id":"","hdr_settings":null,"id":"<id19>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id20>","raw_segment_id":"","render_index":0,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"source":"segmentsourcenormal","source_timerange":{"duration":1500000,"start":1000000},"speed":1.0,"state":0,"target_timerange":{"duration":1500000,"start":1000000},"template_id":"","template_scene":"default","track_attribute":0,"track_render_index":1,"uniform_scale":null,"visible":true,"volume":1.0},{"caption_info":null,"cartoon":false,"clip":null,"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id21>","<id22>","<id23>","<id24>","<id25>"],"group_id":"","hdr_settings":null,"id":"<id26>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id27>","raw_segment_id":"","render_index":0,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"source":"segmentsourcenormal","source_timerange":{"duration":1000000,"start":3000000},"speed":1.0,"state":0,"target_timerange":{"duration":1000000,"start":3000000},"template_id":"","template_scene":"default","track_attribute":0,"track_render_index":1,"uniform_scale":null,"visible":true,"volume":1.0},{"caption_info":null,"cartoon":false,"clip":null,"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id28>","<id29>","<id30>","<id31>","<id32>"],"group_id":"","hdr_settings":null,"id":"<id33>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id34>","raw_segment_id":"","render_index":0,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"source":"segmentsourcenormal","source_timerange":{"duration":2250000,"start":7000000},"speed":1.0,"state":0,"target_timerange":{"duration":2250000,"start":7000000},"template_id":"","template_scene":"default","track_attribute":0,"track_render_index":1,"uniform_scale":null,"visible":true,"volume":1.0}],"type":"audio"},{"attribute":1,"flag":0,"id":"<id35>","is_default_name":false,"name":"EnhanceCapCut voice-over · th","segments":[{"caption_info":null,"cartoon":false,"clip":null,"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id36>","<id37>","<id38>","<id39>","<id40>"],"group_id":"","hdr_settings":null,"id":"<id41>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id42>","raw_segment_id":"","render_index":0,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"source":"segmentsourcenormal","source_timerange":{"duration":1000000,"start":1000000},"speed":1.0,"state":0,"target_timerange":{"duration":1000000,"start":1000000},"template_id":"","template_scene":"default","track_attribute":1,"track_render_index":2,"uniform_scale":null,"visible":true,"volume":1.0}],"type":"audio"},{"attribute":0,"flag":0,"id":"<id43>","is_default_name":false,"name":"EnhanceCapCut voice-over · background","segments":[{"caption_info":null,"cartoon":false,"clip":null,"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id44>","<id45>","<id46>","<id47>","<id48>"],"group_id":"","hdr_settings":null,"id":"<id49>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id50>","raw_segment_id":"","render_index":0,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"source":"segmentsourcenormal","source_timerange":{"duration":3650000,"start":750000},"speed":1.0,"state":0,"target_timerange":{"duration":3650000,"start":750000},"template_id":"","template_scene":"default","track_attribute":0,"track_render_index":3,"uniform_scale":null,"visible":true,"volume":1.0}],"type":"audio"}],
+ "materials": {
+  "videos": [
+   {
+    "id": "AUTO",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png",
+    "matting": {
+     "flag": 3,
+     "path": "##_draftpath_placeholder_FIXTURE_##/matting/auto",
+     "reverse": true
+    }
+   },
+   {
+    "id": "CUSTOM",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png",
+    "matting": {
+     "flag": 1,
+     "path": "##_draftpath_placeholder_FIXTURE_##/matting/custom",
+     "custom_matting_id": "C1"
+    }
+   },
+   {
+    "id": "UNPICKED",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png",
+    "matting": {
+     "flag": 1,
+     "path": "##_draftpath_placeholder_FIXTURE_##/matting/unpicked",
+     "custom_matting_id": "C2"
+    }
+   },
+   {
+    "id": "STABLE",
+    "type": "video",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/v.mov",
+    "stable": {
+     "stable_level": 3
+    },
+    "has_audio": false
+   }
+  ],
+  "common_mask": [
+   {
+    "id": "M1",
+    "constant_material_id": "C1",
+    "name": "Rectangle",
+    "resource_type": "rectangle",
+    "config": {
+     "width": 0.2,
+     "height": 0.4,
+     "centerX": 0,
+     "centerY": 0.5,
+     "rotation": 30,
+     "feather": 0.1,
+     "roundCorner": 0.2,
+     "invert": true
+    }
+   },
+   {
+    "id": "M2",
+    "constant_material_id": "C9",
+    "name": "Brush",
+    "resource_type": "custom",
+    "loader_work_space": "##_draftpath_placeholder_FIXTURE_##/adjust_mask/B1",
+    "config": {}
+   },
+   {
+    "id": "M3",
+    "name": "Mirror",
+    "resource_type": "mirror",
+    "config": {
+     "height": 0.2,
+     "expansion": 0.1
+    }
+   }
+  ],
+  "effects": [
+   {
+    "id": "BL1",
+    "type": "mix_mode",
+    "name": "Screen",
+    "effect_id": "871339"
+   },
+   {
+    "id": "BL2",
+    "type": "mix_mode",
+    "resource_id": "6758325895519277582"
+   },
+   {
+    "id": "BL3",
+    "type": "mix_mode",
+    "name": "Soft light"
+   },
+   {
+    "id": "BL4",
+    "type": "mix_mode",
+    "name": "Normal"
+   },
+   {
+    "id": "F2",
+    "type": "filter",
+    "name": "Clip filter",
+    "value": 1.4,
+    "resource_id": "fixture-111",
+    "path": "##_draftpath_placeholder_FIXTURE_##/filters/cube"
+   },
+   {
+    "id": "RET",
+    "type": "figure",
+    "sub_type": "auto_beauty",
+    "name": "Sparkly Skin"
+   }
+  ],
+  "chromas": [
+   {
+    "id": "CH1",
+    "color": "#FF00FF00",
+    "intensity_value": 0.4,
+    "shadow_value": 0.2,
+    "edge_smooth_value": 0.3,
+    "spill_value": 1.5
+   },
+   {
+    "id": "CH2",
+    "color": "#0000FF",
+    "intensity_value": 0
+   }
+  ]
+ ,"audios":[{"ai_music_enter_from":"","ai_music_generate_scene":0,"ai_music_type":0,"aigc_history_id":"","aigc_item_id":"","app_id":0,"category_id":"","category_name":"","check_flag":1,"cloned_model_type":"","copyright_limit_type":"none","duration":10000000,"effect_id":"","formula_id":"","id":"<id20>","intensifies_path":"","is_ai_clone_tone":false,"is_ai_clone_tone_post":false,"is_text_edit_overdub":false,"is_ugc":false,"local_material_id":"","lyric_type":0,"mock_tone_speaker":"","moyin_emotion":"","music_id":"","music_source":"","name":"Voice-over en 1","path":"##_draftpath_placeholder_FIXTURE_##/EnhanceCapCut/voiceover 1/en.wav","pgc_id":"","pgc_name":"","query":"","request_id":"","resource_id":"","search_id":"","similiar_music_info":{"original_song_id":"","original_song_name":""},"sound_separate_type":"","source_from":"","source_platform":0,"team_id":"","text_id":"","third_resource_id":"","tone_category_id":"","tone_category_name":"","tone_effect_id":"","tone_effect_name":"","tone_emotion_name_key":"","tone_emotion_role":"","tone_emotion_scale":0.0,"tone_emotion_selection":"","tone_emotion_style":"","tone_platform":"","tone_second_category_id":"","tone_second_category_name":"","tone_speaker":"","tone_type":"","tts_benefit_info":{"benefit_amount":-1,"benefit_log_extra":"","benefit_log_id":"","benefit_type":"none"},"tts_generate_scene":"","tts_task_id":"","type":"record","unique_id":"","video_id":"","wave_points":[]},{"ai_music_enter_from":"","ai_music_generate_scene":0,"ai_music_type":0,"aigc_history_id":"","aigc_item_id":"","app_id":0,"category_id":"","category_name":"","check_flag":1,"cloned_model_type":"","copyright_limit_type":"none","duration":10000000,"effect_id":"","formula_id":"","id":"<id27>","intensifies_path":"","is_ai_clone_tone":false,"is_ai_clone_tone_post":false,"is_text_edit_overdub":false,"is_ugc":false,"local_material_id":"","lyric_type":0,"mock_tone_speaker":"","moyin_emotion":"","music_id":"","music_source":"","name":"Voice-over en 2","path":"##_draftpath_placeholder_FIXTURE_##/EnhanceCapCut/voiceover 1/en.wav","pgc_id":"","pgc_name":"","query":"","request_id":"","resource_id":"","search_id":"","similiar_music_info":{"original_song_id":"","original_song_name":""},"sound_separate_type":"","source_from":"","source_platform":0,"team_id":"","text_id":"","third_resource_id":"","tone_category_id":"","tone_category_name":"","tone_effect_id":"","tone_effect_name":"","tone_emotion_name_key":"","tone_emotion_role":"","tone_emotion_scale":0.0,"tone_emotion_selection":"","tone_emotion_style":"","tone_platform":"","tone_second_category_id":"","tone_second_category_name":"","tone_speaker":"","tone_type":"","tts_benefit_info":{"benefit_amount":-1,"benefit_log_extra":"","benefit_log_id":"","benefit_type":"none"},"tts_generate_scene":"","tts_task_id":"","type":"record","unique_id":"","video_id":"","wave_points":[]},{"ai_music_enter_from":"","ai_music_generate_scene":0,"ai_music_type":0,"aigc_history_id":"","aigc_item_id":"","app_id":0,"category_id":"","category_name":"","check_flag":1,"cloned_model_type":"","copyright_limit_type":"none","duration":10000000,"effect_id":"","formula_id":"","id":"<id34>","intensifies_path":"","is_ai_clone_tone":false,"is_ai_clone_tone_post":false,"is_text_edit_overdub":false,"is_ugc":false,"local_material_id":"","lyric_type":0,"mock_tone_speaker":"","moyin_emotion":"","music_id":"","music_source":"","name":"Voice-over en 3","path":"##_draftpath_placeholder_FIXTURE_##/EnhanceCapCut/voiceover 1/en.wav","pgc_id":"","pgc_name":"","query":"","request_id":"","resource_id":"","search_id":"","similiar_music_info":{"original_song_id":"","original_song_name":""},"sound_separate_type":"","source_from":"","source_platform":0,"team_id":"","text_id":"","third_resource_id":"","tone_category_id":"","tone_category_name":"","tone_effect_id":"","tone_effect_name":"","tone_emotion_name_key":"","tone_emotion_role":"","tone_emotion_scale":0.0,"tone_emotion_selection":"","tone_emotion_style":"","tone_platform":"","tone_second_category_id":"","tone_second_category_name":"","tone_speaker":"","tone_type":"","tts_benefit_info":{"benefit_amount":-1,"benefit_log_extra":"","benefit_log_id":"","benefit_type":"none"},"tts_generate_scene":"","tts_task_id":"","type":"record","unique_id":"","video_id":"","wave_points":[]},{"ai_music_enter_from":"","ai_music_generate_scene":0,"ai_music_type":0,"aigc_history_id":"","aigc_item_id":"","app_id":0,"category_id":"","category_name":"","check_flag":1,"cloned_model_type":"","copyright_limit_type":"none","duration":10000000,"effect_id":"","formula_id":"","id":"<id42>","intensifies_path":"","is_ai_clone_tone":false,"is_ai_clone_tone_post":false,"is_text_edit_overdub":false,"is_ugc":false,"local_material_id":"","lyric_type":0,"mock_tone_speaker":"","moyin_emotion":"","music_id":"","music_source":"","name":"Voice-over th 1","path":"/elsewhere/th.wav","pgc_id":"","pgc_name":"","query":"","request_id":"","resource_id":"","search_id":"","similiar_music_info":{"original_song_id":"","original_song_name":""},"sound_separate_type":"","source_from":"","source_platform":0,"team_id":"","text_id":"","third_resource_id":"","tone_category_id":"","tone_category_name":"","tone_effect_id":"","tone_effect_name":"","tone_emotion_name_key":"","tone_emotion_role":"","tone_emotion_scale":0.0,"tone_emotion_selection":"","tone_emotion_style":"","tone_platform":"","tone_second_category_id":"","tone_second_category_name":"","tone_speaker":"","tone_type":"","tts_benefit_info":{"benefit_amount":-1,"benefit_log_extra":"","benefit_log_id":"","benefit_type":"none"},"tts_generate_scene":"","tts_task_id":"","type":"record","unique_id":"","video_id":"","wave_points":[]},{"ai_music_enter_from":"","ai_music_generate_scene":0,"ai_music_type":0,"aigc_history_id":"","aigc_item_id":"","app_id":0,"category_id":"","category_name":"","check_flag":1,"cloned_model_type":"","copyright_limit_type":"none","duration":10000000,"effect_id":"","formula_id":"","id":"<id50>","intensifies_path":"","is_ai_clone_tone":false,"is_ai_clone_tone_post":false,"is_text_edit_overdub":false,"is_ugc":false,"local_material_id":"","lyric_type":0,"mock_tone_speaker":"","moyin_emotion":"","music_id":"","music_source":"","name":"Background 1","path":"##_draftpath_placeholder_FIXTURE_##/bg.wav","pgc_id":"","pgc_name":"","query":"","request_id":"","resource_id":"","search_id":"","similiar_music_info":{"original_song_id":"","original_song_name":""},"sound_separate_type":"","source_from":"","source_platform":0,"team_id":"","text_id":"","third_resource_id":"","tone_category_id":"","tone_category_name":"","tone_effect_id":"","tone_effect_name":"","tone_emotion_name_key":"","tone_emotion_role":"","tone_emotion_scale":0.0,"tone_emotion_selection":"","tone_emotion_style":"","tone_platform":"","tone_second_category_id":"","tone_second_category_name":"","tone_speaker":"","tone_type":"","tts_benefit_info":{"benefit_amount":-1,"benefit_log_extra":"","benefit_log_id":"","benefit_type":"none"},"tts_generate_scene":"","tts_task_id":"","type":"record","unique_id":"","video_id":"","wave_points":[]}],"beats":[{"ai_beats":{"beat_speed_infos":[],"beats_path":"","beats_url":"","melody_path":"","melody_percents":[0.0],"melody_url":""},"enable_ai_beats":false,"gear":404,"gear_count":0,"id":"<id16>","mode":404,"type":"beats","user_beats":[],"user_delete_ai_beats":null},{"ai_beats":{"beat_speed_infos":[],"beats_path":"","beats_url":"","melody_path":"","melody_percents":[0.0],"melody_url":""},"enable_ai_beats":false,"gear":404,"gear_count":0,"id":"<id23>","mode":404,"type":"beats","user_beats":[],"user_delete_ai_beats":null},{"ai_beats":{"beat_speed_infos":[],"beats_path":"","beats_url":"","melody_path":"","melody_percents":[0.0],"melody_url":""},"enable_ai_beats":false,"gear":404,"gear_count":0,"id":"<id30>","mode":404,"type":"beats","user_beats":[],"user_delete_ai_beats":null},{"ai_beats":{"beat_speed_infos":[],"beats_path":"","beats_url":"","melody_path":"","melody_percents":[0.0],"melody_url":""},"enable_ai_beats":false,"gear":404,"gear_count":0,"id":"<id38>","mode":404,"type":"beats","user_beats":[],"user_delete_ai_beats":null},{"ai_beats":{"beat_speed_infos":[],"beats_path":"","beats_url":"","melody_path":"","melody_percents":[0.0],"melody_url":""},"enable_ai_beats":false,"gear":404,"gear_count":0,"id":"<id46>","mode":404,"type":"beats","user_beats":[],"user_delete_ai_beats":null}],"placeholder_infos":[{"error_path":"","error_text":"","id":"<id15>","meta_type":"none","res_path":"","res_text":"","type":"placeholder_info"},{"error_path":"","error_text":"","id":"<id22>","meta_type":"none","res_path":"","res_text":"","type":"placeholder_info"},{"error_path":"","error_text":"","id":"<id29>","meta_type":"none","res_path":"","res_text":"","type":"placeholder_info"},{"error_path":"","error_text":"","id":"<id37>","meta_type":"none","res_path":"","res_text":"","type":"placeholder_info"},{"error_path":"","error_text":"","id":"<id45>","meta_type":"none","res_path":"","res_text":"","type":"placeholder_info"}],"sound_channel_mappings":[{"audio_channel_mapping":0,"id":"<id17>","is_config_open":false,"type":""},{"audio_channel_mapping":0,"id":"<id24>","is_config_open":false,"type":""},{"audio_channel_mapping":0,"id":"<id31>","is_config_open":false,"type":""},{"audio_channel_mapping":0,"id":"<id39>","is_config_open":false,"type":""},{"audio_channel_mapping":0,"id":"<id47>","is_config_open":false,"type":""}],"speeds":[{"curve_speed":null,"id":"<id14>","mode":0,"speed":1.0,"type":"speed"},{"curve_speed":null,"id":"<id21>","mode":0,"speed":1.0,"type":"speed"},{"curve_speed":null,"id":"<id28>","mode":0,"speed":1.0,"type":"speed"},{"curve_speed":null,"id":"<id36>","mode":0,"speed":1.0,"type":"speed"},{"curve_speed":null,"id":"<id44>","mode":0,"speed":1.0,"type":"speed"}],"vocal_separations":[{"choice":0,"enter_from":"","final_algorithm":"","id":"<id18>","production_path":"","removed_sounds":[],"time_range":null,"type":"vocal_separation"},{"choice":0,"enter_from":"","final_algorithm":"","id":"<id25>","production_path":"","removed_sounds":[],"time_range":null,"type":"vocal_separation"},{"choice":0,"enter_from":"","final_algorithm":"","id":"<id32>","production_path":"","removed_sounds":[],"time_range":null,"type":"vocal_separation"},{"choice":0,"enter_from":"","final_algorithm":"","id":"<id40>","production_path":"","removed_sounds":[],"time_range":null,"type":"vocal_separation"},{"choice":0,"enter_from":"","final_algorithm":"","id":"<id48>","production_path":"","removed_sounds":[],"time_range":null,"type":"vocal_separation"}]}
+}
+
+== voice-over replacevoice
+{
+ "tracks": [{
+   "type": "video",
+   "segments": [
+    {
+     "id": "S0",
+     "material_id": "AUTO",
+     "target_timerange": {
+      "start": 0,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "M1",
+      "M2",
+      "M3",
+      "BL1",
+      "CH1",
+      "F2",
+      "RET"
+     ],
+     "hdr_settings": {
+      "mode": 0
+     }
+    ,"common_keyframes":[{"id":"<id1>","keyframe_list":[{"curveType":"Line","graphID":"","id":"<id2>","left_control":{"x":0.0,"y":0.0},"right_control":{"x":0.0,"y":0.0},"string_value":"","time_offset":750000,"values":[1.0]},{"curveType":"Line","graphID":"","id":"<id3>","left_control":{"x":0.0,"y":0.0},"right_control":{"x":0.0,"y":0.0},"string_value":"","time_offset":1000000,"values":[1.0]}],"material_id":"","property_type":"KFTypeVolume"}]},
+    {
+     "id": "S1",
+     "material_id": "CUSTOM",
+     "target_timerange": {
+      "start": 1000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "BL2",
+      "CH2"
+     ],
+     "hdr_settings": {
+      "mode": 4
+     }
+    ,"common_keyframes":[{"id":"<id4>","keyframe_list":[{"curveType":"Line","graphID":"","id":"<id5>","left_control":{"x":0.0,"y":0.0},"right_control":{"x":0.0,"y":0.0},"string_value":"","time_offset":0,"values":[0.0]},{"curveType":"Line","graphID":"","id":"<id6>","left_control":{"x":0.0,"y":0.0},"right_control":{"x":0.0,"y":0.0},"string_value":"","time_offset":1000000,"values":[1.0]}],"material_id":"","property_type":"KFTypeVolume"}]},
+    {
+     "id": "S2",
+     "material_id": "UNPICKED",
+     "target_timerange": {
+      "start": 2000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "BL3"
+     ]
+    ,"common_keyframes":[{"id":"<id7>","keyframe_list":[{"curveType":"Line","graphID":"","id":"<id8>","left_control":{"x":0.0,"y":0.0},"right_control":{"x":0.0,"y":0.0},"string_value":"","time_offset":0,"values":[0.0]},{"curveType":"Line","graphID":"","id":"<id9>","left_control":{"x":0.0,"y":0.0},"right_control":{"x":0.0,"y":0.0},"string_value":"","time_offset":1000000,"values":[1.0]}],"material_id":"","property_type":"KFTypeVolume"}]},
+    {
+     "id": "S3",
+     "material_id": "STABLE",
+     "target_timerange": {
+      "start": 3000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "BL4"
+     ]
+    ,"common_keyframes":[{"id":"<id10>","keyframe_list":[{"curveType":"Line","graphID":"","id":"<id11>","left_control":{"x":0.0,"y":0.0},"right_control":{"x":0.0,"y":0.0},"string_value":"","time_offset":0,"values":[0.0]},{"curveType":"Line","graphID":"","id":"<id12>","left_control":{"x":0.0,"y":0.0},"right_control":{"x":0.0,"y":0.0},"string_value":"","time_offset":1000000,"values":[1.0]}],"material_id":"","property_type":"KFTypeVolume"}]}
+   ]
+  },{"attribute":0,"flag":0,"id":"<id13>","is_default_name":false,"name":"EnhanceCapCut voice-over · en","segments":[{"caption_info":null,"cartoon":false,"clip":null,"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id14>","<id15>","<id16>","<id17>","<id18>"],"group_id":"","hdr_settings":null,"id":"<id19>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id20>","raw_segment_id":"","render_index":0,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"source":"segmentsourcenormal","source_timerange":{"duration":1500000,"start":1000000},"speed":1.0,"state":0,"target_timerange":{"duration":1500000,"start":1000000},"template_id":"","template_scene":"default","track_attribute":0,"track_render_index":1,"uniform_scale":null,"visible":true,"volume":1.0},{"caption_info":null,"cartoon":false,"clip":null,"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id21>","<id22>","<id23>","<id24>","<id25>"],"group_id":"","hdr_settings":null,"id":"<id26>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id27>","raw_segment_id":"","render_index":0,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"source":"segmentsourcenormal","source_timerange":{"duration":1000000,"start":3000000},"speed":1.0,"state":0,"target_timerange":{"duration":1000000,"start":3000000},"template_id":"","template_scene":"default","track_attribute":0,"track_render_index":1,"uniform_scale":null,"visible":true,"volume":1.0},{"caption_info":null,"cartoon":false,"clip":null,"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id28>","<id29>","<id30>","<id31>","<id32>"],"group_id":"","hdr_settings":null,"id":"<id33>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id34>","raw_segment_id":"","render_index":0,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"source":"segmentsourcenormal","source_timerange":{"duration":2250000,"start":7000000},"speed":1.0,"state":0,"target_timerange":{"duration":2250000,"start":7000000},"template_id":"","template_scene":"default","track_attribute":0,"track_render_index":1,"uniform_scale":null,"visible":true,"volume":1.0}],"type":"audio"},{"attribute":1,"flag":0,"id":"<id35>","is_default_name":false,"name":"EnhanceCapCut voice-over · th","segments":[{"caption_info":null,"cartoon":false,"clip":null,"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id36>","<id37>","<id38>","<id39>","<id40>"],"group_id":"","hdr_settings":null,"id":"<id41>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id42>","raw_segment_id":"","render_index":0,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"source":"segmentsourcenormal","source_timerange":{"duration":1000000,"start":1000000},"speed":1.0,"state":0,"target_timerange":{"duration":1000000,"start":1000000},"template_id":"","template_scene":"default","track_attribute":1,"track_render_index":2,"uniform_scale":null,"visible":true,"volume":1.0}],"type":"audio"},{"attribute":0,"flag":0,"id":"<id43>","is_default_name":false,"name":"EnhanceCapCut voice-over · background","segments":[{"caption_info":null,"cartoon":false,"clip":null,"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id44>","<id45>","<id46>","<id47>","<id48>"],"group_id":"","hdr_settings":null,"id":"<id49>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id50>","raw_segment_id":"","render_index":0,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"source":"segmentsourcenormal","source_timerange":{"duration":3650000,"start":750000},"speed":1.0,"state":0,"target_timerange":{"duration":3650000,"start":750000},"template_id":"","template_scene":"default","track_attribute":0,"track_render_index":3,"uniform_scale":null,"visible":true,"volume":1.0}],"type":"audio"}],
+ "materials": {
+  "videos": [
+   {
+    "id": "AUTO",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png",
+    "matting": {
+     "flag": 3,
+     "path": "##_draftpath_placeholder_FIXTURE_##/matting/auto",
+     "reverse": true
+    }
+   },
+   {
+    "id": "CUSTOM",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png",
+    "matting": {
+     "flag": 1,
+     "path": "##_draftpath_placeholder_FIXTURE_##/matting/custom",
+     "custom_matting_id": "C1"
+    }
+   },
+   {
+    "id": "UNPICKED",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png",
+    "matting": {
+     "flag": 1,
+     "path": "##_draftpath_placeholder_FIXTURE_##/matting/unpicked",
+     "custom_matting_id": "C2"
+    }
+   },
+   {
+    "id": "STABLE",
+    "type": "video",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/v.mov",
+    "stable": {
+     "stable_level": 3
+    },
+    "has_audio": false
+   }
+  ],
+  "common_mask": [
+   {
+    "id": "M1",
+    "constant_material_id": "C1",
+    "name": "Rectangle",
+    "resource_type": "rectangle",
+    "config": {
+     "width": 0.2,
+     "height": 0.4,
+     "centerX": 0,
+     "centerY": 0.5,
+     "rotation": 30,
+     "feather": 0.1,
+     "roundCorner": 0.2,
+     "invert": true
+    }
+   },
+   {
+    "id": "M2",
+    "constant_material_id": "C9",
+    "name": "Brush",
+    "resource_type": "custom",
+    "loader_work_space": "##_draftpath_placeholder_FIXTURE_##/adjust_mask/B1",
+    "config": {}
+   },
+   {
+    "id": "M3",
+    "name": "Mirror",
+    "resource_type": "mirror",
+    "config": {
+     "height": 0.2,
+     "expansion": 0.1
+    }
+   }
+  ],
+  "effects": [
+   {
+    "id": "BL1",
+    "type": "mix_mode",
+    "name": "Screen",
+    "effect_id": "871339"
+   },
+   {
+    "id": "BL2",
+    "type": "mix_mode",
+    "resource_id": "6758325895519277582"
+   },
+   {
+    "id": "BL3",
+    "type": "mix_mode",
+    "name": "Soft light"
+   },
+   {
+    "id": "BL4",
+    "type": "mix_mode",
+    "name": "Normal"
+   },
+   {
+    "id": "F2",
+    "type": "filter",
+    "name": "Clip filter",
+    "value": 1.4,
+    "resource_id": "fixture-111",
+    "path": "##_draftpath_placeholder_FIXTURE_##/filters/cube"
+   },
+   {
+    "id": "RET",
+    "type": "figure",
+    "sub_type": "auto_beauty",
+    "name": "Sparkly Skin"
+   }
+  ],
+  "chromas": [
+   {
+    "id": "CH1",
+    "color": "#FF00FF00",
+    "intensity_value": 0.4,
+    "shadow_value": 0.2,
+    "edge_smooth_value": 0.3,
+    "spill_value": 1.5
+   },
+   {
+    "id": "CH2",
+    "color": "#0000FF",
+    "intensity_value": 0
+   }
+  ]
+ ,"audios":[{"ai_music_enter_from":"","ai_music_generate_scene":0,"ai_music_type":0,"aigc_history_id":"","aigc_item_id":"","app_id":0,"category_id":"","category_name":"","check_flag":1,"cloned_model_type":"","copyright_limit_type":"none","duration":10000000,"effect_id":"","formula_id":"","id":"<id20>","intensifies_path":"","is_ai_clone_tone":false,"is_ai_clone_tone_post":false,"is_text_edit_overdub":false,"is_ugc":false,"local_material_id":"","lyric_type":0,"mock_tone_speaker":"","moyin_emotion":"","music_id":"","music_source":"","name":"Voice-over en 1","path":"##_draftpath_placeholder_FIXTURE_##/EnhanceCapCut/voiceover 1/en.wav","pgc_id":"","pgc_name":"","query":"","request_id":"","resource_id":"","search_id":"","similiar_music_info":{"original_song_id":"","original_song_name":""},"sound_separate_type":"","source_from":"","source_platform":0,"team_id":"","text_id":"","third_resource_id":"","tone_category_id":"","tone_category_name":"","tone_effect_id":"","tone_effect_name":"","tone_emotion_name_key":"","tone_emotion_role":"","tone_emotion_scale":0.0,"tone_emotion_selection":"","tone_emotion_style":"","tone_platform":"","tone_second_category_id":"","tone_second_category_name":"","tone_speaker":"","tone_type":"","tts_benefit_info":{"benefit_amount":-1,"benefit_log_extra":"","benefit_log_id":"","benefit_type":"none"},"tts_generate_scene":"","tts_task_id":"","type":"record","unique_id":"","video_id":"","wave_points":[]},{"ai_music_enter_from":"","ai_music_generate_scene":0,"ai_music_type":0,"aigc_history_id":"","aigc_item_id":"","app_id":0,"category_id":"","category_name":"","check_flag":1,"cloned_model_type":"","copyright_limit_type":"none","duration":10000000,"effect_id":"","formula_id":"","id":"<id27>","intensifies_path":"","is_ai_clone_tone":false,"is_ai_clone_tone_post":false,"is_text_edit_overdub":false,"is_ugc":false,"local_material_id":"","lyric_type":0,"mock_tone_speaker":"","moyin_emotion":"","music_id":"","music_source":"","name":"Voice-over en 2","path":"##_draftpath_placeholder_FIXTURE_##/EnhanceCapCut/voiceover 1/en.wav","pgc_id":"","pgc_name":"","query":"","request_id":"","resource_id":"","search_id":"","similiar_music_info":{"original_song_id":"","original_song_name":""},"sound_separate_type":"","source_from":"","source_platform":0,"team_id":"","text_id":"","third_resource_id":"","tone_category_id":"","tone_category_name":"","tone_effect_id":"","tone_effect_name":"","tone_emotion_name_key":"","tone_emotion_role":"","tone_emotion_scale":0.0,"tone_emotion_selection":"","tone_emotion_style":"","tone_platform":"","tone_second_category_id":"","tone_second_category_name":"","tone_speaker":"","tone_type":"","tts_benefit_info":{"benefit_amount":-1,"benefit_log_extra":"","benefit_log_id":"","benefit_type":"none"},"tts_generate_scene":"","tts_task_id":"","type":"record","unique_id":"","video_id":"","wave_points":[]},{"ai_music_enter_from":"","ai_music_generate_scene":0,"ai_music_type":0,"aigc_history_id":"","aigc_item_id":"","app_id":0,"category_id":"","category_name":"","check_flag":1,"cloned_model_type":"","copyright_limit_type":"none","duration":10000000,"effect_id":"","formula_id":"","id":"<id34>","intensifies_path":"","is_ai_clone_tone":false,"is_ai_clone_tone_post":false,"is_text_edit_overdub":false,"is_ugc":false,"local_material_id":"","lyric_type":0,"mock_tone_speaker":"","moyin_emotion":"","music_id":"","music_source":"","name":"Voice-over en 3","path":"##_draftpath_placeholder_FIXTURE_##/EnhanceCapCut/voiceover 1/en.wav","pgc_id":"","pgc_name":"","query":"","request_id":"","resource_id":"","search_id":"","similiar_music_info":{"original_song_id":"","original_song_name":""},"sound_separate_type":"","source_from":"","source_platform":0,"team_id":"","text_id":"","third_resource_id":"","tone_category_id":"","tone_category_name":"","tone_effect_id":"","tone_effect_name":"","tone_emotion_name_key":"","tone_emotion_role":"","tone_emotion_scale":0.0,"tone_emotion_selection":"","tone_emotion_style":"","tone_platform":"","tone_second_category_id":"","tone_second_category_name":"","tone_speaker":"","tone_type":"","tts_benefit_info":{"benefit_amount":-1,"benefit_log_extra":"","benefit_log_id":"","benefit_type":"none"},"tts_generate_scene":"","tts_task_id":"","type":"record","unique_id":"","video_id":"","wave_points":[]},{"ai_music_enter_from":"","ai_music_generate_scene":0,"ai_music_type":0,"aigc_history_id":"","aigc_item_id":"","app_id":0,"category_id":"","category_name":"","check_flag":1,"cloned_model_type":"","copyright_limit_type":"none","duration":10000000,"effect_id":"","formula_id":"","id":"<id42>","intensifies_path":"","is_ai_clone_tone":false,"is_ai_clone_tone_post":false,"is_text_edit_overdub":false,"is_ugc":false,"local_material_id":"","lyric_type":0,"mock_tone_speaker":"","moyin_emotion":"","music_id":"","music_source":"","name":"Voice-over th 1","path":"/elsewhere/th.wav","pgc_id":"","pgc_name":"","query":"","request_id":"","resource_id":"","search_id":"","similiar_music_info":{"original_song_id":"","original_song_name":""},"sound_separate_type":"","source_from":"","source_platform":0,"team_id":"","text_id":"","third_resource_id":"","tone_category_id":"","tone_category_name":"","tone_effect_id":"","tone_effect_name":"","tone_emotion_name_key":"","tone_emotion_role":"","tone_emotion_scale":0.0,"tone_emotion_selection":"","tone_emotion_style":"","tone_platform":"","tone_second_category_id":"","tone_second_category_name":"","tone_speaker":"","tone_type":"","tts_benefit_info":{"benefit_amount":-1,"benefit_log_extra":"","benefit_log_id":"","benefit_type":"none"},"tts_generate_scene":"","tts_task_id":"","type":"record","unique_id":"","video_id":"","wave_points":[]},{"ai_music_enter_from":"","ai_music_generate_scene":0,"ai_music_type":0,"aigc_history_id":"","aigc_item_id":"","app_id":0,"category_id":"","category_name":"","check_flag":1,"cloned_model_type":"","copyright_limit_type":"none","duration":10000000,"effect_id":"","formula_id":"","id":"<id50>","intensifies_path":"","is_ai_clone_tone":false,"is_ai_clone_tone_post":false,"is_text_edit_overdub":false,"is_ugc":false,"local_material_id":"","lyric_type":0,"mock_tone_speaker":"","moyin_emotion":"","music_id":"","music_source":"","name":"Background 1","path":"##_draftpath_placeholder_FIXTURE_##/bg.wav","pgc_id":"","pgc_name":"","query":"","request_id":"","resource_id":"","search_id":"","similiar_music_info":{"original_song_id":"","original_song_name":""},"sound_separate_type":"","source_from":"","source_platform":0,"team_id":"","text_id":"","third_resource_id":"","tone_category_id":"","tone_category_name":"","tone_effect_id":"","tone_effect_name":"","tone_emotion_name_key":"","tone_emotion_role":"","tone_emotion_scale":0.0,"tone_emotion_selection":"","tone_emotion_style":"","tone_platform":"","tone_second_category_id":"","tone_second_category_name":"","tone_speaker":"","tone_type":"","tts_benefit_info":{"benefit_amount":-1,"benefit_log_extra":"","benefit_log_id":"","benefit_type":"none"},"tts_generate_scene":"","tts_task_id":"","type":"record","unique_id":"","video_id":"","wave_points":[]}],"beats":[{"ai_beats":{"beat_speed_infos":[],"beats_path":"","beats_url":"","melody_path":"","melody_percents":[0.0],"melody_url":""},"enable_ai_beats":false,"gear":404,"gear_count":0,"id":"<id16>","mode":404,"type":"beats","user_beats":[],"user_delete_ai_beats":null},{"ai_beats":{"beat_speed_infos":[],"beats_path":"","beats_url":"","melody_path":"","melody_percents":[0.0],"melody_url":""},"enable_ai_beats":false,"gear":404,"gear_count":0,"id":"<id23>","mode":404,"type":"beats","user_beats":[],"user_delete_ai_beats":null},{"ai_beats":{"beat_speed_infos":[],"beats_path":"","beats_url":"","melody_path":"","melody_percents":[0.0],"melody_url":""},"enable_ai_beats":false,"gear":404,"gear_count":0,"id":"<id30>","mode":404,"type":"beats","user_beats":[],"user_delete_ai_beats":null},{"ai_beats":{"beat_speed_infos":[],"beats_path":"","beats_url":"","melody_path":"","melody_percents":[0.0],"melody_url":""},"enable_ai_beats":false,"gear":404,"gear_count":0,"id":"<id38>","mode":404,"type":"beats","user_beats":[],"user_delete_ai_beats":null},{"ai_beats":{"beat_speed_infos":[],"beats_path":"","beats_url":"","melody_path":"","melody_percents":[0.0],"melody_url":""},"enable_ai_beats":false,"gear":404,"gear_count":0,"id":"<id46>","mode":404,"type":"beats","user_beats":[],"user_delete_ai_beats":null}],"placeholder_infos":[{"error_path":"","error_text":"","id":"<id15>","meta_type":"none","res_path":"","res_text":"","type":"placeholder_info"},{"error_path":"","error_text":"","id":"<id22>","meta_type":"none","res_path":"","res_text":"","type":"placeholder_info"},{"error_path":"","error_text":"","id":"<id29>","meta_type":"none","res_path":"","res_text":"","type":"placeholder_info"},{"error_path":"","error_text":"","id":"<id37>","meta_type":"none","res_path":"","res_text":"","type":"placeholder_info"},{"error_path":"","error_text":"","id":"<id45>","meta_type":"none","res_path":"","res_text":"","type":"placeholder_info"}],"sound_channel_mappings":[{"audio_channel_mapping":0,"id":"<id17>","is_config_open":false,"type":""},{"audio_channel_mapping":0,"id":"<id24>","is_config_open":false,"type":""},{"audio_channel_mapping":0,"id":"<id31>","is_config_open":false,"type":""},{"audio_channel_mapping":0,"id":"<id39>","is_config_open":false,"type":""},{"audio_channel_mapping":0,"id":"<id47>","is_config_open":false,"type":""}],"speeds":[{"curve_speed":null,"id":"<id14>","mode":0,"speed":1.0,"type":"speed"},{"curve_speed":null,"id":"<id21>","mode":0,"speed":1.0,"type":"speed"},{"curve_speed":null,"id":"<id28>","mode":0,"speed":1.0,"type":"speed"},{"curve_speed":null,"id":"<id36>","mode":0,"speed":1.0,"type":"speed"},{"curve_speed":null,"id":"<id44>","mode":0,"speed":1.0,"type":"speed"}],"vocal_separations":[{"choice":0,"enter_from":"","final_algorithm":"","id":"<id18>","production_path":"","removed_sounds":[],"time_range":null,"type":"vocal_separation"},{"choice":0,"enter_from":"","final_algorithm":"","id":"<id25>","production_path":"","removed_sounds":[],"time_range":null,"type":"vocal_separation"},{"choice":0,"enter_from":"","final_algorithm":"","id":"<id32>","production_path":"","removed_sounds":[],"time_range":null,"type":"vocal_separation"},{"choice":0,"enter_from":"","final_algorithm":"","id":"<id40>","production_path":"","removed_sounds":[],"time_range":null,"type":"vocal_separation"},{"choice":0,"enter_from":"","final_algorithm":"","id":"<id48>","production_path":"","removed_sounds":[],"time_range":null,"type":"vocal_separation"}]}
+}
+
+== voice-over removevocal
+{
+ "tracks": [{
+   "type": "video",
+   "segments": [
+    {
+     "id": "S0",
+     "material_id": "AUTO",
+     "target_timerange": {
+      "start": 0,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "M1",
+      "M2",
+      "M3",
+      "BL1",
+      "CH1",
+      "F2",
+      "RET"
+     ],
+     "hdr_settings": {
+      "mode": 0
+     }
+    },
+    {
+     "id": "S1",
+     "material_id": "CUSTOM",
+     "target_timerange": {
+      "start": 1000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "BL2",
+      "CH2"
+     ],
+     "hdr_settings": {
+      "mode": 4
+     }
+    ,"common_keyframes":[{"id":"<id1>","keyframe_list":[{"curveType":"Line","graphID":"","id":"<id2>","left_control":{"x":0.0,"y":0.0},"right_control":{"x":0.0,"y":0.0},"string_value":"","time_offset":0,"values":[0.0]},{"curveType":"Line","graphID":"","id":"<id3>","left_control":{"x":0.0,"y":0.0},"right_control":{"x":0.0,"y":0.0},"string_value":"","time_offset":1000000,"values":[1.0]}],"material_id":"","property_type":"KFTypeVolume"}]},
+    {
+     "id": "S2",
+     "material_id": "UNPICKED",
+     "target_timerange": {
+      "start": 2000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "BL3"
+     ]
+    ,"common_keyframes":[{"id":"<id4>","keyframe_list":[{"curveType":"Line","graphID":"","id":"<id5>","left_control":{"x":0.0,"y":0.0},"right_control":{"x":0.0,"y":0.0},"string_value":"","time_offset":0,"values":[0.0]},{"curveType":"Line","graphID":"","id":"<id6>","left_control":{"x":0.0,"y":0.0},"right_control":{"x":0.0,"y":0.0},"string_value":"","time_offset":1000000,"values":[1.0]}],"material_id":"","property_type":"KFTypeVolume"}]},
+    {
+     "id": "S3",
+     "material_id": "STABLE",
+     "target_timerange": {
+      "start": 3000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": ["BL4","<id7>"]
+    }
+   ]
+  },{"attribute":0,"flag":0,"id":"<id8>","is_default_name":false,"name":"EnhanceCapCut voice-over · en","segments":[{"caption_info":null,"cartoon":false,"clip":null,"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id9>","<id10>","<id11>","<id12>","<id13>"],"group_id":"","hdr_settings":null,"id":"<id14>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id15>","raw_segment_id":"","render_index":0,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"source":"segmentsourcenormal","source_timerange":{"duration":1500000,"start":1000000},"speed":1.0,"state":0,"target_timerange":{"duration":1500000,"start":1000000},"template_id":"","template_scene":"default","track_attribute":0,"track_render_index":1,"uniform_scale":null,"visible":true,"volume":1.0},{"caption_info":null,"cartoon":false,"clip":null,"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id16>","<id17>","<id18>","<id19>","<id20>"],"group_id":"","hdr_settings":null,"id":"<id21>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id22>","raw_segment_id":"","render_index":0,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"source":"segmentsourcenormal","source_timerange":{"duration":1000000,"start":3000000},"speed":1.0,"state":0,"target_timerange":{"duration":1000000,"start":3000000},"template_id":"","template_scene":"default","track_attribute":0,"track_render_index":1,"uniform_scale":null,"visible":true,"volume":1.0},{"caption_info":null,"cartoon":false,"clip":null,"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id23>","<id24>","<id25>","<id26>","<id27>"],"group_id":"","hdr_settings":null,"id":"<id28>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id29>","raw_segment_id":"","render_index":0,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"source":"segmentsourcenormal","source_timerange":{"duration":2250000,"start":7000000},"speed":1.0,"state":0,"target_timerange":{"duration":2250000,"start":7000000},"template_id":"","template_scene":"default","track_attribute":0,"track_render_index":1,"uniform_scale":null,"visible":true,"volume":1.0}],"type":"audio"},{"attribute":1,"flag":0,"id":"<id30>","is_default_name":false,"name":"EnhanceCapCut voice-over · th","segments":[{"caption_info":null,"cartoon":false,"clip":null,"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id31>","<id32>","<id33>","<id34>","<id35>"],"group_id":"","hdr_settings":null,"id":"<id36>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id37>","raw_segment_id":"","render_index":0,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"source":"segmentsourcenormal","source_timerange":{"duration":1000000,"start":1000000},"speed":1.0,"state":0,"target_timerange":{"duration":1000000,"start":1000000},"template_id":"","template_scene":"default","track_attribute":1,"track_render_index":2,"uniform_scale":null,"visible":true,"volume":1.0}],"type":"audio"},{"attribute":0,"flag":0,"id":"<id38>","is_default_name":false,"name":"EnhanceCapCut voice-over · background","segments":[{"caption_info":null,"cartoon":false,"clip":null,"color_correct_alg_result":"","common_keyframes":[],"desc":"","digital_human_template_group_id":"","enable_adjust":false,"enable_adjust_mask":false,"enable_color_adjust_pro":false,"enable_color_correct_adjust":false,"enable_color_curves":true,"enable_color_match_adjust":false,"enable_color_wheels":true,"enable_hsl":false,"enable_hsl_curves":true,"enable_lut":false,"enable_mask_shadow":false,"enable_mask_stroke":false,"enable_smart_color_adjust":false,"enable_video_mask":true,"extra_material_refs":["<id39>","<id40>","<id41>","<id42>","<id43>"],"group_id":"","hdr_settings":null,"id":"<id44>","intensifies_audio":false,"is_loop":false,"is_placeholder":false,"is_tone_modify":false,"keyframe_refs":[],"last_nonzero_volume":1.0,"lyric_keyframes":null,"material_id":"<id45>","raw_segment_id":"","render_index":0,"render_timerange":{"duration":0,"start":0},"responsive_layout":{"enable":false,"horizontal_pos_layout":0,"size_layout":0,"target_follow":"","vertical_pos_layout":0},"reverse":false,"source":"segmentsourcenormal","source_timerange":{"duration":3650000,"start":750000},"speed":1.0,"state":0,"target_timerange":{"duration":3650000,"start":750000},"template_id":"","template_scene":"default","track_attribute":0,"track_render_index":3,"uniform_scale":null,"visible":true,"volume":1.0}],"type":"audio"}],
+ "materials": {
+  "videos": [
+   {
+    "id": "AUTO",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png",
+    "matting": {
+     "flag": 3,
+     "path": "##_draftpath_placeholder_FIXTURE_##/matting/auto",
+     "reverse": true
+    }
+   },
+   {
+    "id": "CUSTOM",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png",
+    "matting": {
+     "flag": 1,
+     "path": "##_draftpath_placeholder_FIXTURE_##/matting/custom",
+     "custom_matting_id": "C1"
+    }
+   },
+   {
+    "id": "UNPICKED",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png",
+    "matting": {
+     "flag": 1,
+     "path": "##_draftpath_placeholder_FIXTURE_##/matting/unpicked",
+     "custom_matting_id": "C2"
+    }
+   },
+   {
+    "id": "STABLE",
+    "type": "video",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/v.mov",
+    "stable": {
+     "stable_level": 3
+    },
+    "has_audio": false
+   }
+  ],
+  "common_mask": [
+   {
+    "id": "M1",
+    "constant_material_id": "C1",
+    "name": "Rectangle",
+    "resource_type": "rectangle",
+    "config": {
+     "width": 0.2,
+     "height": 0.4,
+     "centerX": 0,
+     "centerY": 0.5,
+     "rotation": 30,
+     "feather": 0.1,
+     "roundCorner": 0.2,
+     "invert": true
+    }
+   },
+   {
+    "id": "M2",
+    "constant_material_id": "C9",
+    "name": "Brush",
+    "resource_type": "custom",
+    "loader_work_space": "##_draftpath_placeholder_FIXTURE_##/adjust_mask/B1",
+    "config": {}
+   },
+   {
+    "id": "M3",
+    "name": "Mirror",
+    "resource_type": "mirror",
+    "config": {
+     "height": 0.2,
+     "expansion": 0.1
+    }
+   }
+  ],
+  "effects": [
+   {
+    "id": "BL1",
+    "type": "mix_mode",
+    "name": "Screen",
+    "effect_id": "871339"
+   },
+   {
+    "id": "BL2",
+    "type": "mix_mode",
+    "resource_id": "6758325895519277582"
+   },
+   {
+    "id": "BL3",
+    "type": "mix_mode",
+    "name": "Soft light"
+   },
+   {
+    "id": "BL4",
+    "type": "mix_mode",
+    "name": "Normal"
+   },
+   {
+    "id": "F2",
+    "type": "filter",
+    "name": "Clip filter",
+    "value": 1.4,
+    "resource_id": "fixture-111",
+    "path": "##_draftpath_placeholder_FIXTURE_##/filters/cube"
+   },
+   {
+    "id": "RET",
+    "type": "figure",
+    "sub_type": "auto_beauty",
+    "name": "Sparkly Skin"
+   }
+  ],
+  "chromas": [
+   {
+    "id": "CH1",
+    "color": "#FF00FF00",
+    "intensity_value": 0.4,
+    "shadow_value": 0.2,
+    "edge_smooth_value": 0.3,
+    "spill_value": 1.5
+   },
+   {
+    "id": "CH2",
+    "color": "#0000FF",
+    "intensity_value": 0
+   }
+  ]
+ ,"audios":[{"ai_music_enter_from":"","ai_music_generate_scene":0,"ai_music_type":0,"aigc_history_id":"","aigc_item_id":"","app_id":0,"category_id":"","category_name":"","check_flag":1,"cloned_model_type":"","copyright_limit_type":"none","duration":10000000,"effect_id":"","formula_id":"","id":"<id15>","intensifies_path":"","is_ai_clone_tone":false,"is_ai_clone_tone_post":false,"is_text_edit_overdub":false,"is_ugc":false,"local_material_id":"","lyric_type":0,"mock_tone_speaker":"","moyin_emotion":"","music_id":"","music_source":"","name":"Voice-over en 1","path":"##_draftpath_placeholder_FIXTURE_##/EnhanceCapCut/voiceover 1/en.wav","pgc_id":"","pgc_name":"","query":"","request_id":"","resource_id":"","search_id":"","similiar_music_info":{"original_song_id":"","original_song_name":""},"sound_separate_type":"","source_from":"","source_platform":0,"team_id":"","text_id":"","third_resource_id":"","tone_category_id":"","tone_category_name":"","tone_effect_id":"","tone_effect_name":"","tone_emotion_name_key":"","tone_emotion_role":"","tone_emotion_scale":0.0,"tone_emotion_selection":"","tone_emotion_style":"","tone_platform":"","tone_second_category_id":"","tone_second_category_name":"","tone_speaker":"","tone_type":"","tts_benefit_info":{"benefit_amount":-1,"benefit_log_extra":"","benefit_log_id":"","benefit_type":"none"},"tts_generate_scene":"","tts_task_id":"","type":"record","unique_id":"","video_id":"","wave_points":[]},{"ai_music_enter_from":"","ai_music_generate_scene":0,"ai_music_type":0,"aigc_history_id":"","aigc_item_id":"","app_id":0,"category_id":"","category_name":"","check_flag":1,"cloned_model_type":"","copyright_limit_type":"none","duration":10000000,"effect_id":"","formula_id":"","id":"<id22>","intensifies_path":"","is_ai_clone_tone":false,"is_ai_clone_tone_post":false,"is_text_edit_overdub":false,"is_ugc":false,"local_material_id":"","lyric_type":0,"mock_tone_speaker":"","moyin_emotion":"","music_id":"","music_source":"","name":"Voice-over en 2","path":"##_draftpath_placeholder_FIXTURE_##/EnhanceCapCut/voiceover 1/en.wav","pgc_id":"","pgc_name":"","query":"","request_id":"","resource_id":"","search_id":"","similiar_music_info":{"original_song_id":"","original_song_name":""},"sound_separate_type":"","source_from":"","source_platform":0,"team_id":"","text_id":"","third_resource_id":"","tone_category_id":"","tone_category_name":"","tone_effect_id":"","tone_effect_name":"","tone_emotion_name_key":"","tone_emotion_role":"","tone_emotion_scale":0.0,"tone_emotion_selection":"","tone_emotion_style":"","tone_platform":"","tone_second_category_id":"","tone_second_category_name":"","tone_speaker":"","tone_type":"","tts_benefit_info":{"benefit_amount":-1,"benefit_log_extra":"","benefit_log_id":"","benefit_type":"none"},"tts_generate_scene":"","tts_task_id":"","type":"record","unique_id":"","video_id":"","wave_points":[]},{"ai_music_enter_from":"","ai_music_generate_scene":0,"ai_music_type":0,"aigc_history_id":"","aigc_item_id":"","app_id":0,"category_id":"","category_name":"","check_flag":1,"cloned_model_type":"","copyright_limit_type":"none","duration":10000000,"effect_id":"","formula_id":"","id":"<id29>","intensifies_path":"","is_ai_clone_tone":false,"is_ai_clone_tone_post":false,"is_text_edit_overdub":false,"is_ugc":false,"local_material_id":"","lyric_type":0,"mock_tone_speaker":"","moyin_emotion":"","music_id":"","music_source":"","name":"Voice-over en 3","path":"##_draftpath_placeholder_FIXTURE_##/EnhanceCapCut/voiceover 1/en.wav","pgc_id":"","pgc_name":"","query":"","request_id":"","resource_id":"","search_id":"","similiar_music_info":{"original_song_id":"","original_song_name":""},"sound_separate_type":"","source_from":"","source_platform":0,"team_id":"","text_id":"","third_resource_id":"","tone_category_id":"","tone_category_name":"","tone_effect_id":"","tone_effect_name":"","tone_emotion_name_key":"","tone_emotion_role":"","tone_emotion_scale":0.0,"tone_emotion_selection":"","tone_emotion_style":"","tone_platform":"","tone_second_category_id":"","tone_second_category_name":"","tone_speaker":"","tone_type":"","tts_benefit_info":{"benefit_amount":-1,"benefit_log_extra":"","benefit_log_id":"","benefit_type":"none"},"tts_generate_scene":"","tts_task_id":"","type":"record","unique_id":"","video_id":"","wave_points":[]},{"ai_music_enter_from":"","ai_music_generate_scene":0,"ai_music_type":0,"aigc_history_id":"","aigc_item_id":"","app_id":0,"category_id":"","category_name":"","check_flag":1,"cloned_model_type":"","copyright_limit_type":"none","duration":10000000,"effect_id":"","formula_id":"","id":"<id37>","intensifies_path":"","is_ai_clone_tone":false,"is_ai_clone_tone_post":false,"is_text_edit_overdub":false,"is_ugc":false,"local_material_id":"","lyric_type":0,"mock_tone_speaker":"","moyin_emotion":"","music_id":"","music_source":"","name":"Voice-over th 1","path":"/elsewhere/th.wav","pgc_id":"","pgc_name":"","query":"","request_id":"","resource_id":"","search_id":"","similiar_music_info":{"original_song_id":"","original_song_name":""},"sound_separate_type":"","source_from":"","source_platform":0,"team_id":"","text_id":"","third_resource_id":"","tone_category_id":"","tone_category_name":"","tone_effect_id":"","tone_effect_name":"","tone_emotion_name_key":"","tone_emotion_role":"","tone_emotion_scale":0.0,"tone_emotion_selection":"","tone_emotion_style":"","tone_platform":"","tone_second_category_id":"","tone_second_category_name":"","tone_speaker":"","tone_type":"","tts_benefit_info":{"benefit_amount":-1,"benefit_log_extra":"","benefit_log_id":"","benefit_type":"none"},"tts_generate_scene":"","tts_task_id":"","type":"record","unique_id":"","video_id":"","wave_points":[]},{"ai_music_enter_from":"","ai_music_generate_scene":0,"ai_music_type":0,"aigc_history_id":"","aigc_item_id":"","app_id":0,"category_id":"","category_name":"","check_flag":1,"cloned_model_type":"","copyright_limit_type":"none","duration":10000000,"effect_id":"","formula_id":"","id":"<id45>","intensifies_path":"","is_ai_clone_tone":false,"is_ai_clone_tone_post":false,"is_text_edit_overdub":false,"is_ugc":false,"local_material_id":"","lyric_type":0,"mock_tone_speaker":"","moyin_emotion":"","music_id":"","music_source":"","name":"Background 1","path":"##_draftpath_placeholder_FIXTURE_##/bg.wav","pgc_id":"","pgc_name":"","query":"","request_id":"","resource_id":"","search_id":"","similiar_music_info":{"original_song_id":"","original_song_name":""},"sound_separate_type":"","source_from":"","source_platform":0,"team_id":"","text_id":"","third_resource_id":"","tone_category_id":"","tone_category_name":"","tone_effect_id":"","tone_effect_name":"","tone_emotion_name_key":"","tone_emotion_role":"","tone_emotion_scale":0.0,"tone_emotion_selection":"","tone_emotion_style":"","tone_platform":"","tone_second_category_id":"","tone_second_category_name":"","tone_speaker":"","tone_type":"","tts_benefit_info":{"benefit_amount":-1,"benefit_log_extra":"","benefit_log_id":"","benefit_type":"none"},"tts_generate_scene":"","tts_task_id":"","type":"record","unique_id":"","video_id":"","wave_points":[]}],"beats":[{"ai_beats":{"beat_speed_infos":[],"beats_path":"","beats_url":"","melody_path":"","melody_percents":[0.0],"melody_url":""},"enable_ai_beats":false,"gear":404,"gear_count":0,"id":"<id11>","mode":404,"type":"beats","user_beats":[],"user_delete_ai_beats":null},{"ai_beats":{"beat_speed_infos":[],"beats_path":"","beats_url":"","melody_path":"","melody_percents":[0.0],"melody_url":""},"enable_ai_beats":false,"gear":404,"gear_count":0,"id":"<id18>","mode":404,"type":"beats","user_beats":[],"user_delete_ai_beats":null},{"ai_beats":{"beat_speed_infos":[],"beats_path":"","beats_url":"","melody_path":"","melody_percents":[0.0],"melody_url":""},"enable_ai_beats":false,"gear":404,"gear_count":0,"id":"<id25>","mode":404,"type":"beats","user_beats":[],"user_delete_ai_beats":null},{"ai_beats":{"beat_speed_infos":[],"beats_path":"","beats_url":"","melody_path":"","melody_percents":[0.0],"melody_url":""},"enable_ai_beats":false,"gear":404,"gear_count":0,"id":"<id33>","mode":404,"type":"beats","user_beats":[],"user_delete_ai_beats":null},{"ai_beats":{"beat_speed_infos":[],"beats_path":"","beats_url":"","melody_path":"","melody_percents":[0.0],"melody_url":""},"enable_ai_beats":false,"gear":404,"gear_count":0,"id":"<id41>","mode":404,"type":"beats","user_beats":[],"user_delete_ai_beats":null}],"placeholder_infos":[{"error_path":"","error_text":"","id":"<id10>","meta_type":"none","res_path":"","res_text":"","type":"placeholder_info"},{"error_path":"","error_text":"","id":"<id17>","meta_type":"none","res_path":"","res_text":"","type":"placeholder_info"},{"error_path":"","error_text":"","id":"<id24>","meta_type":"none","res_path":"","res_text":"","type":"placeholder_info"},{"error_path":"","error_text":"","id":"<id32>","meta_type":"none","res_path":"","res_text":"","type":"placeholder_info"},{"error_path":"","error_text":"","id":"<id40>","meta_type":"none","res_path":"","res_text":"","type":"placeholder_info"}],"sound_channel_mappings":[{"audio_channel_mapping":0,"id":"<id12>","is_config_open":false,"type":""},{"audio_channel_mapping":0,"id":"<id19>","is_config_open":false,"type":""},{"audio_channel_mapping":0,"id":"<id26>","is_config_open":false,"type":""},{"audio_channel_mapping":0,"id":"<id34>","is_config_open":false,"type":""},{"audio_channel_mapping":0,"id":"<id42>","is_config_open":false,"type":""}],"speeds":[{"curve_speed":null,"id":"<id9>","mode":0,"speed":1.0,"type":"speed"},{"curve_speed":null,"id":"<id16>","mode":0,"speed":1.0,"type":"speed"},{"curve_speed":null,"id":"<id23>","mode":0,"speed":1.0,"type":"speed"},{"curve_speed":null,"id":"<id31>","mode":0,"speed":1.0,"type":"speed"},{"curve_speed":null,"id":"<id39>","mode":0,"speed":1.0,"type":"speed"}],"vocal_separations":[{"choice":0,"enter_from":"","final_algorithm":"","id":"<id13>","production_path":"","removed_sounds":[],"time_range":null,"type":"vocal_separation"},{"choice":0,"enter_from":"","final_algorithm":"","id":"<id20>","production_path":"","removed_sounds":[],"time_range":null,"type":"vocal_separation"},{"choice":0,"enter_from":"","final_algorithm":"","id":"<id27>","production_path":"","removed_sounds":[],"time_range":null,"type":"vocal_separation"},{"choice":0,"enter_from":"","final_algorithm":"","id":"<id35>","production_path":"","removed_sounds":[],"time_range":null,"type":"vocal_separation"},{"choice":0,"enter_from":"","final_algorithm":"","id":"<id43>","production_path":"","removed_sounds":[],"time_range":null,"type":"vocal_separation"},{"choice":1,"enter_from":"","final_algorithm":"vocal_separate","id":"<id7>","production_path":"","removed_sounds":[],"time_range":null,"type":"vocal_separation"}]}
+}
+
+== without voice-over
+{
+ "tracks": [{
+   "type": "video",
+   "segments": [
+    {
+     "id": "S0",
+     "material_id": "AUTO",
+     "target_timerange": {
+      "start": 0,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "M1",
+      "M2",
+      "M3",
+      "BL1",
+      "CH1",
+      "F2",
+      "RET"
+     ],
+     "hdr_settings": {
+      "mode": 0
+     }
+    },
+    {
+     "id": "S1",
+     "material_id": "CUSTOM",
+     "target_timerange": {
+      "start": 1000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "BL2",
+      "CH2"
+     ],
+     "hdr_settings": {
+      "mode": 4
+     }
+    ,"common_keyframes":[]},
+    {
+     "id": "S2",
+     "material_id": "UNPICKED",
+     "target_timerange": {
+      "start": 2000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "BL3"
+     ]
+    ,"common_keyframes":[]},
+    {
+     "id": "S3",
+     "material_id": "STABLE",
+     "target_timerange": {
+      "start": 3000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": ["BL4","<id1>"]
+    }
+   ]
+  }],
+ "materials": {
+  "videos": [
+   {
+    "id": "AUTO",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png",
+    "matting": {
+     "flag": 3,
+     "path": "##_draftpath_placeholder_FIXTURE_##/matting/auto",
+     "reverse": true
+    }
+   },
+   {
+    "id": "CUSTOM",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png",
+    "matting": {
+     "flag": 1,
+     "path": "##_draftpath_placeholder_FIXTURE_##/matting/custom",
+     "custom_matting_id": "C1"
+    }
+   },
+   {
+    "id": "UNPICKED",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png",
+    "matting": {
+     "flag": 1,
+     "path": "##_draftpath_placeholder_FIXTURE_##/matting/unpicked",
+     "custom_matting_id": "C2"
+    }
+   },
+   {
+    "id": "STABLE",
+    "type": "video",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/v.mov",
+    "stable": {
+     "stable_level": 3
+    },
+    "has_audio": false
+   }
+  ],
+  "common_mask": [
+   {
+    "id": "M1",
+    "constant_material_id": "C1",
+    "name": "Rectangle",
+    "resource_type": "rectangle",
+    "config": {
+     "width": 0.2,
+     "height": 0.4,
+     "centerX": 0,
+     "centerY": 0.5,
+     "rotation": 30,
+     "feather": 0.1,
+     "roundCorner": 0.2,
+     "invert": true
+    }
+   },
+   {
+    "id": "M2",
+    "constant_material_id": "C9",
+    "name": "Brush",
+    "resource_type": "custom",
+    "loader_work_space": "##_draftpath_placeholder_FIXTURE_##/adjust_mask/B1",
+    "config": {}
+   },
+   {
+    "id": "M3",
+    "name": "Mirror",
+    "resource_type": "mirror",
+    "config": {
+     "height": 0.2,
+     "expansion": 0.1
+    }
+   }
+  ],
+  "effects": [
+   {
+    "id": "BL1",
+    "type": "mix_mode",
+    "name": "Screen",
+    "effect_id": "871339"
+   },
+   {
+    "id": "BL2",
+    "type": "mix_mode",
+    "resource_id": "6758325895519277582"
+   },
+   {
+    "id": "BL3",
+    "type": "mix_mode",
+    "name": "Soft light"
+   },
+   {
+    "id": "BL4",
+    "type": "mix_mode",
+    "name": "Normal"
+   },
+   {
+    "id": "F2",
+    "type": "filter",
+    "name": "Clip filter",
+    "value": 1.4,
+    "resource_id": "fixture-111",
+    "path": "##_draftpath_placeholder_FIXTURE_##/filters/cube"
+   },
+   {
+    "id": "RET",
+    "type": "figure",
+    "sub_type": "auto_beauty",
+    "name": "Sparkly Skin"
+   }
+  ],
+  "chromas": [
+   {
+    "id": "CH1",
+    "color": "#FF00FF00",
+    "intensity_value": 0.4,
+    "shadow_value": 0.2,
+    "edge_smooth_value": 0.3,
+    "spill_value": 1.5
+   },
+   {
+    "id": "CH2",
+    "color": "#0000FF",
+    "intensity_value": 0
+   }
+  ]
+ ,"audios":[],"beats":[],"placeholder_infos":[],"sound_channel_mappings":[],"speeds":[],"vocal_separations":[{"choice":0,"enter_from":"","final_algorithm":"vocal_separate","id":"<id1>","production_path":"","removed_sounds":[],"time_range":null,"type":"vocal_separation"}]}
+}
+

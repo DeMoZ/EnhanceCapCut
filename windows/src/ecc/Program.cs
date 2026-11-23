@@ -163,6 +163,25 @@ switch (command)
         break;
     }
 
+    // Hidden (not in help): the canonical dumps of the golden-parity runner, see Golden.cs.
+    case "dump-timeline":
+    {
+        var timelineArg = Option("--timeline");
+        RejectUnknownOptions();
+        var p = Project();
+        Console.Write(Golden.DumpTimeline(TimelineBuilder.Build(p, TimelineOf(timelineArg, p)), p.Folder));
+        break;
+    }
+
+    case "dump-writers":
+    {
+        var timelineArg = Option("--timeline");
+        RejectUnknownOptions();
+        var p = Project();
+        Console.Write(Golden.DumpWriters(p, TimelineOf(timelineArg, p)));
+        break;
+    }
+
     case "render":
 #if WINDOWS
         Render();

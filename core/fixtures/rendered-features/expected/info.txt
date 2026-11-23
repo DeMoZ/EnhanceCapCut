@@ -1,0 +1,6 @@
+Project: rendered-features  canvas 1920x1080  30.0 fps  duration 2.00s
+Visual layers: 3, audio clips: 1
+  [0/t0] 0.00s+1.00s x1.00 photo p.png
+  [0/t0] 1.00s+1.00s x1.00 video reversed.mov
+  [0/t1] 0.00s+0.00s x1.00 sticker Clock
+  audio 1.00s+1.00s vol 1.00 reversed.mov

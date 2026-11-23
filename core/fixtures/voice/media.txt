@@ -1,0 +1,4 @@
+media/v.mov
+media/a.m4a
+filters/booming/mdsp_preset.json = PRESET Gain
+filters/robot/mdsp_preset.json = PRESET PitchShifter

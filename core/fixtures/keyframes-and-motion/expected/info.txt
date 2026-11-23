@@ -1,0 +1,11 @@
+Project: keyframes-and-motion  canvas 1920x1080  25.0 fps  duration 6.00s
+Visual layers: 6, audio clips: 1
+  [0/t0] 0.00s+2.00s curve photo p.png
+  [0/t0] 2.00s+2.00s x1.00 photo p.png
+  [0/t0] 4.00s+2.00s curve video v.mov
+  [0/t1] 0.50s+1.00s x1.00 text "Hello 👋🏽 world"
+  [0/t1] 2.00s+3.00s x1.00 text "Pulse"
+  [0/t2] 1.00s+3.00s x1.00 sticker Clock Time EN Blue White Minimalist
+  audio 4.00s+2.00s vol 1.00 v.mov
+Not supported yet:
+  Transition: Dissolve (shown as a cross-fade) ×1

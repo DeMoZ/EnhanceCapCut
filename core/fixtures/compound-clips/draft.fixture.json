@@ -1,0 +1,382 @@
+{
+ "duration": 9000000,
+ "materials": {
+  "videos": [
+   {
+    "id": "V",
+    "type": "video",
+    "has_audio": true
+   },
+   {
+    "id": "VS",
+    "type": "video",
+    "has_audio": true,
+    "has_sound_separated": true
+   }
+  ],
+  "audios": [
+   {
+    "id": "VA",
+    "type": "video_original_sound"
+   }
+  ],
+  "drafts": [
+   {
+    "id": "C1",
+    "name": "Compound 1",
+    "draft": {
+     "duration": 4000000,
+     "materials": {
+      "audios": [
+       {
+        "id": "NA",
+        "path": "##_draftpath_placeholder_FIXTURE_##/media/voice.m4a"
+       }
+      ],
+      "audio_fades": [
+       {
+        "id": "NF",
+        "fade_in_duration": 400000,
+        "fade_out_duration": 200000
+       }
+      ],
+      "videos": [
+       {
+        "id": "NP",
+        "type": "photo",
+        "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png"
+       }
+      ]
+     },
+     "tracks": [
+      {
+       "type": "video",
+       "segments": [
+        {
+         "id": "NV",
+         "material_id": "NP",
+         "target_timerange": {
+          "start": 0,
+          "duration": 4000000
+         }
+        }
+       ]
+      },
+      {
+       "type": "audio",
+       "segments": [
+        {
+         "id": "NS",
+         "material_id": "NA",
+         "target_timerange": {
+          "start": 1000000,
+          "duration": 2000000
+         },
+         "extra_material_refs": [
+          "NF"
+         ],
+         "volume": 0.5,
+         "common_keyframes": [
+          {
+           "property_type": "KFTypeVolume",
+           "keyframe_list": [
+            {
+             "time_offset": 0,
+             "values": [
+              0.5
+             ]
+            },
+            {
+             "time_offset": 2000000,
+             "values": [
+              0.25
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   },
+   {
+    "id": "C2",
+    "draft": {
+     "duration": 4000000,
+     "materials": {
+      "audios": [
+       {
+        "id": "NA",
+        "path": "##_draftpath_placeholder_FIXTURE_##/media/voice.m4a"
+       }
+      ],
+      "audio_fades": [
+       {
+        "id": "NF",
+        "fade_in_duration": 400000,
+        "fade_out_duration": 200000
+       }
+      ],
+      "videos": [
+       {
+        "id": "NP",
+        "type": "photo",
+        "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png"
+       }
+      ]
+     },
+     "tracks": [
+      {
+       "type": "video",
+       "segments": [
+        {
+         "id": "NV",
+         "material_id": "NP",
+         "target_timerange": {
+          "start": 0,
+          "duration": 4000000
+         }
+        }
+       ]
+      },
+      {
+       "type": "audio",
+       "segments": [
+        {
+         "id": "NS",
+         "material_id": "NA",
+         "target_timerange": {
+          "start": 1000000,
+          "duration": 2000000
+         },
+         "extra_material_refs": [
+          "NF"
+         ],
+         "volume": 0.5,
+         "common_keyframes": [
+          {
+           "property_type": "KFTypeVolume",
+           "keyframe_list": [
+            {
+             "time_offset": 0,
+             "values": [
+              0.5
+             ]
+            },
+            {
+             "time_offset": 2000000,
+             "values": [
+              0.25
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   },
+   {
+    "id": "C3",
+    "draft": {
+     "duration": 4000000,
+     "materials": {
+      "audios": [
+       {
+        "id": "NA",
+        "path": "##_draftpath_placeholder_FIXTURE_##/media/voice.m4a"
+       }
+      ],
+      "audio_fades": [
+       {
+        "id": "NF",
+        "fade_in_duration": 400000,
+        "fade_out_duration": 200000
+       }
+      ],
+      "videos": [
+       {
+        "id": "NP",
+        "type": "photo",
+        "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png"
+       }
+      ]
+     },
+     "tracks": [
+      {
+       "type": "video",
+       "segments": [
+        {
+         "id": "NV",
+         "material_id": "NP",
+         "target_timerange": {
+          "start": 0,
+          "duration": 4000000
+         }
+        }
+       ]
+      },
+      {
+       "type": "audio",
+       "segments": [
+        {
+         "id": "NS",
+         "material_id": "NA",
+         "target_timerange": {
+          "start": 1000000,
+          "duration": 2000000
+         },
+         "extra_material_refs": [
+          "NF"
+         ],
+         "volume": 0.5,
+         "common_keyframes": [
+          {
+           "property_type": "KFTypeVolume",
+           "keyframe_list": [
+            {
+             "time_offset": 0,
+             "values": [
+              0.5
+             ]
+            },
+            {
+             "time_offset": 2000000,
+             "values": [
+              0.25
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   }
+  ],
+  "vocal_separations": [
+   {
+    "id": "KEEP",
+    "choice": 2
+   }
+  ],
+  "realtime_denoises": [
+   {
+    "id": "DN",
+    "is_denoise": true,
+    "denoise_rate": 0.7
+   }
+  ],
+  "speeds": [
+   {
+    "id": "SP",
+    "mode": 1,
+    "curve_speed": {
+     "speed_points": [
+      {
+       "x": 0,
+       "y": 0.5
+      },
+      {
+       "x": 1,
+       "y": 3
+      }
+     ]
+    }
+   }
+  ]
+ },
+ "tracks": [
+  {
+   "type": "video",
+   "segments": [
+    {
+     "id": "CV",
+     "material_id": "V",
+     "target_timerange": {
+      "start": 0,
+      "duration": 2000000
+     },
+     "extra_material_refs": [
+      "C1",
+      "KEEP",
+      "DN"
+     ],
+     "volume": 0.8,
+     "source_timerange": {
+      "start": 0,
+      "duration": 4000000
+     }
+    },
+    {
+     "id": "CW",
+     "material_id": "V",
+     "target_timerange": {
+      "start": 2000000,
+      "duration": 3000000
+     },
+     "extra_material_refs": [
+      "C3",
+      "SP"
+     ],
+     "source_timerange": {
+      "start": 500000,
+      "duration": 3000000
+     }
+    },
+    {
+     "id": "CS",
+     "material_id": "VS",
+     "target_timerange": {
+      "start": 5000000,
+      "duration": 2000000
+     },
+     "extra_material_refs": [
+      "C2"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "audio",
+   "segments": [
+    {
+     "id": "CA",
+     "material_id": "VA",
+     "target_timerange": {
+      "start": 5000000,
+      "duration": 2000000
+     },
+     "extra_material_refs": [
+      "C2"
+     ],
+     "common_keyframes": [
+      {
+       "property_type": "KFTypeVolume",
+       "keyframe_list": [
+        {
+         "time_offset": 0,
+         "values": [
+          1
+         ]
+        },
+        {
+         "time_offset": 1000000,
+         "values": [
+          0.5
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
