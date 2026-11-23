@@ -1,0 +1,40 @@
+# Checks the Rust core (core/, openspec/changes/rust-core): formatting, lints and tests on Linux, and the tests on
+# Windows too, where the per-OS defaults (`cfg(windows)`) are compiled. The toolchain comes from rust-toolchain.toml.
+name: Core
+
+on:
+  push:
+    branches: [main]
+    paths: ['core/**', 'Localization/**', 'rust-toolchain.toml', '.github/workflows/core.yml']
+  pull_request:
+    paths: ['core/**', 'Localization/**', 'rust-toolchain.toml', '.github/workflows/core.yml']
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: core
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: Swatinem/rust-cache@v2.9.3
+        with:
+          workspaces: core
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test
+
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: core
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: Swatinem/rust-cache@v2.9.3
+        with:
+          workspaces: core
+      - run: cargo test

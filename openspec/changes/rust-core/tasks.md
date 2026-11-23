@@ -20,17 +20,17 @@ Stages follow design.md → Migration Plan. Each group ends in a state where bot
 
 ## 2. Stage 1 — workspace and lenient draft model
 
-- [ ] 2.1 Add `rust-toolchain.toml`, `core/Cargo.toml` (workspace, release profile from design decision 2),
+- [x] 2.1 Add `rust-toolchain.toml`, `core/Cargo.toml` (workspace, release profile from design decision 2),
   crates `ecc-core` and `ecc-golden`, `/core/target/` in `.gitignore`, and verify `cargo build` and
   `cargo clippy -D warnings` pass
-- [ ] 2.2 Port `Lenient.swift` as the `Lenient` accessor trait (`opt`, `num`, `int64`, `str`, `bool`, `list`)
+- [x] 2.2 Port `Lenient.swift` as the `Lenient` accessor trait (`opt`, `num`, `int64`, `str`, `bool`, `list`)
   and verify unit tests for numeric strings, 0/1 booleans, `null`, wrong types and lossy lists
-- [ ] 2.3 Port the draft models (`DraftModel`, `MaskMaterial`, `AnimationMaterial`, `TextContent` with UTF-16
+- [x] 2.3 Port the draft models (`DraftModel`, `MaskMaterial`, `AnimationMaterial`, `TextContent` with UTF-16
   style ranges) and verify the ported `testParsesLeniently` and `testStyleRangesCountCodePoints` cases pass
-- [ ] 2.4 Port `Project.swift` (`CapCutProject`, `ProjectTimeline`, `DraftFile`, `ProjectLocator`,
+- [x] 2.4 Port `Project.swift` (`CapCutProject`, `ProjectTimeline`, `DraftFile`, `ProjectLocator`,
   `DraftLoader`) with `CoreEnvironment` roots and per-OS defaults, and verify tests for `draft_info.json` vs
   `draft_content.json`, several timelines, and selection by name and 1-based number
-- [ ] 2.5 Port `JSONScanner`, `JSONEdits` and `JSONText` with a Swift-`Double.description`-compatible float
+- [x] 2.5 Port `JSONScanner`, `JSONEdits` and `JSONText` with a Swift-`Double.description`-compatible float
   formatter, and verify byte-exact tests including `1.0`, `0.1`, `1e-05`, large integers and escaped strings
 
 ## 3. Stage 1 — timeline, report and evaluation
@@ -48,7 +48,7 @@ Stages follow design.md → Migration Plan. Each group ends in a state where bot
   report category and that rendered features are not listed
 - [ ] 3.5 Add `Timeline::frame(t) -> FrameState` and vectorized `TimeMap` / `KeyframeTrack` sampling, and verify
   tests that `frame(t)` equals per-layer evaluation for every layer at clip boundaries and keyframe times
-- [ ] 3.6 Add the `tr!` macro over the embedded `Localization/ru.json` and `set_core_language`, and verify a
+- [x] 3.6 Add the `tr!` macro over the embedded `Localization/ru.json` and `set_core_language`, and verify a
   `cargo test` that every `tr!` key has a Russian entry and that the default language is English
 - [ ] 3.7 Port `ecc info` formatting as `format_info` and verify its output on the seeded fixtures equals the
   Swift CLI's byte for byte
