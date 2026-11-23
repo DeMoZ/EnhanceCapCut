@@ -372,7 +372,9 @@ fn cutout_uses_capcuts_mask_frames() {
     let videos: Vec<String> = mattings
         .iter()
         .enumerate()
-        .map(|(i, m)| format!(r#"{{"id": "V{i}", "type": "photo", "path": "{}", "matting": {m}}}"#, crate::testing::slash(&photo)))
+        .map(|(i, m)| {
+            format!(r#"{{"id": "V{i}", "type": "photo", "path": "{}", "matting": {m}}}"#, crate::testing::slash(&photo))
+        })
         .collect();
     let segments: Vec<String> = (0..mattings.len())
         .map(|i| {
