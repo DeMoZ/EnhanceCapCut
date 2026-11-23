@@ -1,0 +1,104 @@
+{"timeline":"","canvas":[1920,1080],"fps":30.000000,"duration":2000000}
+{"unsupported":["AI processing","GenAiSmartEdit",1]}
+{"unsupported":["AI processing","deflicker",1]}
+{"unsupported":["Adjust","segment",1]}
+{"unsupported":["Animation","Combo 3",1]}
+{"unsupported":["Animation","Swing",1]}
+{"unsupported":["Audio","vocal separation mode 9",1]}
+{"unsupported":["Audio effect","Robot",1]}
+{"unsupported":["Beauty / makeup","Doll",1]}
+{"unsupported":["Beauty / makeup","retouch",1]}
+{"unsupported":["Blend mode","Vivid",1]}
+{"unsupported":["Canvas","canvas_gradient",1]}
+{"unsupported":["Color adjustment","color correct",1]}
+{"unsupported":["Color adjustment","smart color adjust",1]}
+{"unsupported":["Effect","Sparkle",1]}
+{"unsupported":["Keyframes","Saturation",1]}
+{"unsupported":["Keyframes","mask animation",1]}
+{"unsupported":["Media","gif clip",1]}
+{"unsupported":["Other","placeholder_things (thing)",1]}
+{"unsupported":["Playback","loop",1]}
+{"unsupported":["Remove background","edge expansion or feather",1]}
+{"unsupported":["Remove background","result not saved in the project",1]}
+{"unsupported":["Remove background","stroke",1]}
+{"unsupported":["Reverse playback","reversed clip without CapCut's reversed copy (rendered forward)",1]}
+{"unsupported":["Text","curved text (rendered straight)",1]}
+{"unsupported":["Text","multiple outlines (first one rendered)",1]}
+{"unsupported":["Text effect","Melting Heart",1]}
+{"unsupported":["Text shape","Bubble",1]}
+{"unsupported":["Transition","Pull In (shown as a cross-fade)",1]}
+{"unsupported":["Video effect","Shake",1]}
+{"layer":0,"id":"V1","content":["video","<project>/media/v.mov"],"track":0,"render":0,"main":true,"target":[0,1000000],"map":[4000000,1000000,1000000,true],"crop":[0.000000,0.000000,1.000000,1.000000],"clip":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"uniform":true,"tone_maps_hdr":true,"retouch":false,"enhance":false,"stabilization":2,"blend":null,"canvas":["canvas_gradient","",0.000000,""],"cutout":null,"chroma":null}
+{"transition":0,"name":"Pull In","kind":"crossFade","next":1,"range":[850000,300000]}
+{"layer":1,"id":"V2","content":["video","<project>/media/p.png"],"track":0,"render":0,"main":true,"target":[1000000,1000000],"map":[0,1000000,1000000,true],"crop":[0.000000,0.000000,1.000000,1.000000],"clip":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"uniform":true,"tone_maps_hdr":true,"retouch":false,"enhance":false,"stabilization":0,"blend":null,"canvas":null,"cutout":null,"chroma":null}
+{"layer":2,"id":"T","content":["text"],"track":3,"render":0,"main":false,"target":[0,1000000],"map":[0,1000000,1000000,true],"crop":[0.000000,0.000000,1.000000,1.000000],"clip":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"uniform":true,"tone_maps_hdr":true,"retouch":false,"enhance":false,"stabilization":0,"blend":null,"canvas":null,"cutout":null,"chroma":null}
+{"text":2,"type":"text","content":"Hi","font":"","size":15.000000,"color":"#FFFFFF","alignment":1,"spacing":[0.020000,0.000000,0.820000],"border":["",0.080000],"background":["",1.000000],"shadow":false,"typesetting":0,"styles":[[0,2,null,null,null,null,2,false,false,false]],"intro":null,"outro":null,"loop":null,"glow":null}
+{"audio":0,"path":"<project>/media/v.mov","target":[0,1000000],"map":[4000000,1000000,1000000,true],"volume":1.000000,"fade":[0,0],"pitch":true,"voice":["none",null,null,null,null,null]}
+{"samples":0,"step":50000,"source":[4000000,4050000,4100000,4150000,4200000,4250000,4300000,4350000,4400000,4450000,4500000,4550000,4600000,4650000,4700000,4750000,4800000,4850000,4900000,4950000,5000000]}
+{"audio":1,"path":"<project>/media/p.png","target":[1000000,1000000],"map":[0,1000000,1000000,true],"volume":1.000000,"fade":[0,0],"pitch":true,"voice":["none",null,null,null,null,null]}
+{"samples":1,"step":50000,"source":[0,50000,100000,150000,200000,250000,300000,350000,400000,450000,500000,550000,600000,650000,700000,750000,800000,850000,900000,950000,1000000]}
+{"audio":2,"path":"<project>/media/a.m4a","target":[0,1000000],"map":[0,1000000,1000000,true],"volume":1.000000,"fade":[0,0],"pitch":true,"voice":["none",null,null,null,null,null]}
+{"samples":2,"step":50000,"source":[0,50000,100000,150000,200000,250000,300000,350000,400000,450000,500000,550000,600000,650000,700000,750000,800000,850000,900000,950000,1000000]}
+{"t":0,"filters":[]}
+{"f":0,"offset":0,"source":4000000,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":null,"fx":null,"masks":[],"tx":null,"clock":null}
+{"f":2,"offset":0,"source":0,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":[1.000000,1.000000,0.000000,0.000000,1.000000],"fx":null,"masks":[],"tx":null,"clock":null}
+{"t":1,"filters":[]}
+{"f":0,"offset":1,"source":4000001,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":null,"fx":null,"masks":[],"tx":null,"clock":null}
+{"f":2,"offset":1,"source":1,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":[1.000000,1.000000,0.000000,0.000000,1.000000],"fx":null,"masks":[],"tx":null,"clock":null}
+{"t":125000,"filters":[]}
+{"f":0,"offset":125000,"source":4125000,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":null,"fx":null,"masks":[],"tx":null,"clock":null}
+{"f":2,"offset":125000,"source":125000,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":[1.000000,1.000000,0.000000,0.000000,1.000000],"fx":null,"masks":[],"tx":null,"clock":null}
+{"t":250000,"filters":[]}
+{"f":0,"offset":250000,"source":4250000,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":null,"fx":null,"masks":[],"tx":null,"clock":null}
+{"f":2,"offset":250000,"source":250000,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":[1.000000,1.000000,0.000000,0.000000,1.000000],"fx":null,"masks":[],"tx":null,"clock":null}
+{"t":375000,"filters":[]}
+{"f":0,"offset":375000,"source":4375000,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":null,"fx":null,"masks":[],"tx":null,"clock":null}
+{"f":2,"offset":375000,"source":375000,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":[1.000000,1.000000,0.000000,0.000000,1.000000],"fx":null,"masks":[],"tx":null,"clock":null}
+{"t":500000,"filters":[]}
+{"f":0,"offset":500000,"source":4500000,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":null,"fx":null,"masks":[],"tx":null,"clock":null}
+{"f":2,"offset":500000,"source":500000,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":[1.000000,1.000000,0.000000,0.000000,1.000000],"fx":null,"masks":[],"tx":null,"clock":null}
+{"t":625000,"filters":[]}
+{"f":0,"offset":625000,"source":4625000,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":null,"fx":null,"masks":[],"tx":null,"clock":null}
+{"f":2,"offset":625000,"source":625000,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":[1.000000,1.000000,0.000000,0.000000,1.000000],"fx":null,"masks":[],"tx":null,"clock":null}
+{"t":750000,"filters":[]}
+{"f":0,"offset":750000,"source":4750000,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":null,"fx":null,"masks":[],"tx":null,"clock":null}
+{"f":2,"offset":750000,"source":750000,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":[1.000000,1.000000,0.000000,0.000000,1.000000],"fx":null,"masks":[],"tx":null,"clock":null}
+{"t":850000,"filters":[]}
+{"f":0,"offset":850000,"source":4850000,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":null,"fx":null,"masks":[],"tx":[1,"crossFade",0.000000],"clock":null}
+{"f":1,"offset":-150000,"source":0,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":null,"fx":null,"masks":[],"tx":null,"clock":null}
+{"f":2,"offset":850000,"source":850000,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":[1.000000,1.000000,0.000000,0.000000,1.000000],"fx":null,"masks":[],"tx":null,"clock":null}
+{"t":875000,"filters":[]}
+{"f":0,"offset":875000,"source":4875000,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":null,"fx":null,"masks":[],"tx":[1,"crossFade",0.083333],"clock":null}
+{"f":1,"offset":-125000,"source":0,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":null,"fx":null,"masks":[],"tx":null,"clock":null}
+{"f":2,"offset":875000,"source":875000,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":[1.000000,1.000000,0.000000,0.000000,1.000000],"fx":null,"masks":[],"tx":null,"clock":null}
+{"t":999999,"filters":[]}
+{"f":0,"offset":999999,"source":4999999,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":null,"fx":null,"masks":[],"tx":[1,"crossFade",0.499997],"clock":null}
+{"f":1,"offset":-1,"source":0,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":null,"fx":null,"masks":[],"tx":null,"clock":null}
+{"f":2,"offset":999999,"source":999999,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":[1.000000,1.000000,0.000000,0.000000,1.000000],"fx":null,"masks":[],"tx":null,"clock":null}
+{"t":1000000,"filters":[]}
+{"f":0,"offset":1000000,"source":5000000,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":null,"fx":null,"masks":[],"tx":[1,"crossFade",0.500000],"clock":null}
+{"f":1,"offset":0,"source":0,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":null,"fx":null,"masks":[],"tx":null,"clock":null}
+{"t":1000001,"filters":[]}
+{"f":0,"offset":1000001,"source":5000000,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":null,"fx":null,"masks":[],"tx":[1,"crossFade",0.500003],"clock":null}
+{"f":1,"offset":1,"source":1,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":null,"fx":null,"masks":[],"tx":null,"clock":null}
+{"t":1125000,"filters":[]}
+{"f":0,"offset":1125000,"source":5000000,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":null,"fx":null,"masks":[],"tx":[1,"crossFade",0.916667],"clock":null}
+{"f":1,"offset":125000,"source":125000,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":null,"fx":null,"masks":[],"tx":null,"clock":null}
+{"t":1149999,"filters":[]}
+{"f":0,"offset":1149999,"source":5000000,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":null,"fx":null,"masks":[],"tx":[1,"crossFade",0.999997],"clock":null}
+{"f":1,"offset":149999,"source":149999,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":null,"fx":null,"masks":[],"tx":null,"clock":null}
+{"t":1250000,"filters":[]}
+{"f":1,"offset":250000,"source":250000,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":null,"fx":null,"masks":[],"tx":null,"clock":null}
+{"t":1375000,"filters":[]}
+{"f":1,"offset":375000,"source":375000,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":null,"fx":null,"masks":[],"tx":null,"clock":null}
+{"t":1500000,"filters":[]}
+{"f":1,"offset":500000,"source":500000,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":null,"fx":null,"masks":[],"tx":null,"clock":null}
+{"t":1625000,"filters":[]}
+{"f":1,"offset":625000,"source":625000,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":null,"fx":null,"masks":[],"tx":null,"clock":null}
+{"t":1750000,"filters":[]}
+{"f":1,"offset":750000,"source":750000,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":null,"fx":null,"masks":[],"tx":null,"clock":null}
+{"t":1875000,"filters":[]}
+{"f":1,"offset":875000,"source":875000,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":null,"fx":null,"masks":[],"tx":null,"clock":null}
+{"t":1999999,"filters":[]}
+{"f":1,"offset":999999,"source":999999,"tr":[1.000000,1.000000,0.000000,0.000000,0.000000,false,false,1.000000],"text":null,"fx":null,"masks":[],"tx":null,"clock":null}
+{"t":2000000,"filters":[]}

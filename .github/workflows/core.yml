@@ -1,13 +1,15 @@
-# Checks the Rust core (core/, openspec/changes/rust-core): formatting, lints and tests on Linux, and the tests on
-# Windows too, where the per-OS defaults (`cfg(windows)`) are compiled. The toolchain comes from rust-toolchain.toml.
+# Checks the Rust core (core/, openspec/changes/rust-core): formatting, lints and tests on Linux, the tests on Windows
+# too (where the per-OS defaults, `cfg(windows)`, are compiled), and on macOS the Swift build and tests plus the golden
+# parity of the Swift, C# and Rust implementations on the fixture projects. The toolchain comes from
+# rust-toolchain.toml.
 name: Core
 
 on:
   push:
     branches: [main]
-    paths: ['core/**', 'Localization/**', 'rust-toolchain.toml', '.github/workflows/core.yml']
+    paths: ['core/**', 'Localization/**', 'rust-toolchain.toml', '.github/workflows/core.yml', 'Sources/**', 'Tests/**', 'Package.swift', 'windows/src/**', 'scripts/golden.sh']
   pull_request:
-    paths: ['core/**', 'Localization/**', 'rust-toolchain.toml', '.github/workflows/core.yml']
+    paths: ['core/**', 'Localization/**', 'rust-toolchain.toml', '.github/workflows/core.yml', 'Sources/**', 'Tests/**', 'Package.swift', 'windows/src/**', 'scripts/golden.sh']
 
 env:
   CARGO_TERM_COLOR: always
@@ -38,3 +40,24 @@ jobs:
         with:
           workspaces: core
       - run: cargo test
+
+  macos:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-dotnet@v6.0.0
+        with:
+          dotnet-version: 10.0.x
+      - uses: Swatinem/rust-cache@v2.9.3
+        with:
+          workspaces: core
+      - run: swift build
+      - run: swift test
+      - name: Golden parity on the fixtures
+        run: scripts/golden.sh fixtures
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: golden-diff
+          path: build/golden/diff
+          if-no-files-found: ignore

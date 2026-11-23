@@ -1,0 +1,13 @@
+Project: voice  canvas 1920x1080  30.0 fps  duration 6.00s
+Visual layers: 2, audio clips: 4
+  [0/t0] 0.00s+2.00s x1.00 video v.mov
+  [0/t1] 0.00s+2.00s x1.00 video v.mov
+  audio 0.00s+2.00s vol 1.40 v.mov
+  audio 0.00s+1.00s vol 1.00 a.m4a [keep voice] [denoise 0.85] [enhance 75] [Booming 50%]
+  audio 1.00s+1.00s vol 1.00 a.m4a [remove voice]
+  audio 2.00s+1.00s vol 1.00 a.m4a [enhance 100]
+Not supported yet:
+  Audio: vocal separation mode 7 ×1
+  Audio effect: Robot ×1
+Missing media:
+  lost.mp3

@@ -1,0 +1,8 @@
+Project: compound-clips  canvas 1920x1080  30.0 fps  duration 9.00s
+Visual layers: 3, audio clips: 3
+  [0/t0] 0.00s+2.00s x2.00 compound (1 layers)
+  [0/t0] 2.00s+3.00s curve compound (1 layers)
+  [0/t0] 5.00s+2.00s x1.00 compound (1 layers)
+  audio 0.50s+1.00s vol 0.40 voice.m4a [keep voice] [denoise 0.70]
+  audio 2.97s+1.73s vol 0.50 voice.m4a
+  audio 6.00s+1.00s vol 0.50 voice.m4a

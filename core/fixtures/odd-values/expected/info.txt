@@ -1,0 +1,7 @@
+Project: odd-values  canvas 1080x1920  30.0 fps  duration 3.00s
+Visual layers: 1, audio clips: 0
+  [0/t2] 0.00s+1.00s x1.00 text "Hello"
+Not supported yet:
+  Transition: Sand Spread (shown as a cross-fade) ×1
+Missing media:
+  /nonexistent/clip.mov

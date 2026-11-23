@@ -1,0 +1,8 @@
+Project: clip-looks  canvas 1920x1080  30.0 fps  duration 4.00s
+Visual layers: 4, audio clips: 0
+  [0/t0] 0.00s+1.00s x1.00 photo p.png
+  [0/t0] 1.00s+1.00s x1.00 photo p.png
+  [0/t0] 2.00s+1.00s x1.00 photo p.png
+  [0/t0] 3.00s+1.00s x1.00 video v.mov
+Not supported yet:
+  Mask: expansion ×1

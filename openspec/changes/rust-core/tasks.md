@@ -70,19 +70,19 @@ Stages follow design.md → Migration Plan. Each group ends in a state where bot
 
 ## 5. Stage 1 — golden parity harness
 
-- [ ] 5.1 Create `core/fixtures/` (`draft.fixture.json`, `timelines.fixture.json`, `media.txt`) seeded from the
+- [x] 5.1 Create `core/fixtures/` (`draft.fixture.json`, `timelines.fixture.json`, `media.txt`) seeded from the
   inline drafts of the Swift and C# tests plus the fixtures listed in design decision 11, and verify the harness
   materializes each as a project under both draft file names
-- [ ] 5.2 Add hidden `ecc dump-timeline` and `ecc dump-writers` to the Swift CLI, and the identical commands to
+- [x] 5.2 Add hidden `ecc dump-timeline` and `ecc dump-writers` to the Swift CLI, and the identical commands to
   the C# CLI, not listed in help; document them in `docs/DEVELOPMENT.md`; verify both print the canonical JSON
   for one fixture and that `swift test` / `dotnet test` still pass
-- [ ] 5.3 Add the same commands plus `info` to `ecc-golden`, and verify they run on Linux
-- [ ] 5.4 Write `scripts/golden.sh fixtures|local` (UUID normalization, one timeline at a time, diff report) and
+- [x] 5.3 Add the same commands plus `info` to `ecc-golden`, and verify they run on Linux
+- [x] 5.4 Write `scripts/golden.sh fixtures|local` (UUID normalization, one timeline at a time, diff report) and
   `core/fixtures/known-differences.md`, and verify `golden.sh fixtures` shows Rust = Swift on every fixture and
   Rust = C# except listed known differences
-- [ ] 5.5 Run `golden.sh local` over the author's CapCut library and verify `info` and `timeline.json` are
+- [x] 5.5 Run `golden.sh local` over the author's CapCut library and verify `info` and `timeline.json` are
   identical for every timeline (count of projects/timelines and any known differences in the PR description)
-- [ ] 5.6 Commit expected outputs under `core/fixtures/<name>/expected/` with an `UPDATE_GOLDEN=1` rewrite path,
+- [x] 5.6 Commit expected outputs under `core/fixtures/<name>/expected/` with an `UPDATE_GOLDEN=1` rewrite path,
   and verify `cargo test` fails on a deliberately changed expected file
 - [ ] 5.7 Add `.github/workflows/core.yml` (Linux: fmt, clippy, `cargo test`; macOS: `swift build`, `swift test`,
   `golden.sh fixtures`) and verify it passes on the stage-1 PR

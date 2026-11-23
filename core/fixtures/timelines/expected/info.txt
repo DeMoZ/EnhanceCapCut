@@ -1,0 +1,8 @@
+Timelines: *Draft cut, Main (main)
+Project: timelines  canvas 1920x1080  30.0 fps  duration 1.00s
+Visual layers: 1, audio clips: 0
+  [0/t0] 0.00s+1.00s x1.00 photo p.png
+Timelines: Draft cut, *Main (main)
+Project: timelines  canvas 1920x1080  30.0 fps  duration 1.00s
+Visual layers: 1, audio clips: 0
+  [0/t0] 0.00s+1.00s x1.00 photo p.png

@@ -1,0 +1,149 @@
+{
+ "duration": 8000000,
+ "tracks": [
+  {
+   "type": "text",
+   "name": "Captions ru",
+   "segments": [
+    {
+     "id": "R1",
+     "material_id": "RU",
+     "target_timerange": {
+      "start": 0,
+      "duration": 2000000
+     }
+    },
+    {
+     "id": "R2",
+     "material_id": "RU2",
+     "target_timerange": {
+      "start": 2000000,
+      "duration": 2000000
+     }
+    }
+   ]
+  },
+  {
+   "type": "text",
+   "attribute": 2,
+   "segments": [
+    {
+     "id": "E1",
+     "material_id": "EN",
+     "target_timerange": {
+      "start": 0,
+      "duration": 2000000
+     }
+    }
+   ]
+  },
+  {
+   "type": "text",
+   "segments": [
+    {
+     "id": "T1",
+     "material_id": "TH",
+     "target_timerange": {
+      "start": 2000000,
+      "duration": 2000000
+     }
+    },
+    {
+     "id": "Z1",
+     "material_id": "ZH",
+     "target_timerange": {
+      "start": 4000000,
+      "duration": 2000000
+     }
+    }
+   ]
+  },
+  {
+   "type": "text",
+   "segments": [
+    {
+     "id": "G1",
+     "material_id": "GLOW",
+     "target_timerange": {
+      "start": 6000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "GLOWFX"
+     ]
+    },
+    {
+     "id": "G2",
+     "material_id": "PLAIN",
+     "target_timerange": {
+      "start": 7000000,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "STALE"
+     ]
+    }
+   ]
+  }
+ ],
+ "materials": {
+  "texts": [
+   {
+    "id": "RU",
+    "type": "subtitle",
+    "language": "ru-RU",
+    "content": "{\"text\":\"Привет, мир\",\"styles\":[{\"range\":[0,11],\"size\":8,\"fill\":{\"content\":{\"solid\":{\"color\":[1,1,1]}}}}]}"
+   },
+   {
+    "id": "RU2",
+    "type": "subtitle",
+    "language": "ru-RU",
+    "content": "{\"text\":\"Вторая строка\\nтекста\",\"styles\":[{\"range\":[0,20],\"size\":8,\"fill\":{\"content\":{\"solid\":{\"color\":[1,1,1]}}}}]}"
+   },
+   {
+    "id": "EN",
+    "type": "subtitle",
+    "language": "en-US",
+    "content": "{\"text\":\"Hello, world\",\"styles\":[{\"range\":[0,12],\"size\":8,\"fill\":{\"content\":{\"solid\":{\"color\":[1,1,1]}}}}]}"
+   },
+   {
+    "id": "TH",
+    "type": "subtitle",
+    "language": "th-TH",
+    "content": "{\"text\":\"สวัสดีครับ ทุกคน\",\"styles\":[{\"range\":[0,16],\"size\":8,\"fill\":{\"content\":{\"solid\":{\"color\":[1,1,1]}}}}]}",
+    "font_size": 16
+   },
+   {
+    "id": "ZH",
+    "type": "subtitle",
+    "language": "zh-CN",
+    "content": "{\"text\":\"你好，世界\",\"styles\":[{\"range\":[0,5],\"size\":8,\"fill\":{\"content\":{\"solid\":{\"color\":[1,1,1]}}}}]}",
+    "typesetting": 1
+   },
+   {
+    "id": "GLOW",
+    "content": "{\"text\":\"glow\",\"styles\":[{\"range\":[0,4],\"fill\":{\"content\":{\"solid\":{\"color\":[0.9,0.2,0.2]}}},\"effectStyle\":{\"path\":\"/cache/x\"}}]}"
+   },
+   {
+    "id": "PLAIN",
+    "content": "{\"text\":\"plain\",\"styles\":[{\"range\":[0,5]}]}"
+   },
+   {
+    "id": "WS",
+    "content": "{\"text\":\"   \",\"styles\":[]}"
+   }
+  ],
+  "effects": [
+   {
+    "id": "GLOWFX",
+    "type": "text_effect",
+    "name": "ART Artistic EN Yellow Glow"
+   },
+   {
+    "id": "STALE",
+    "type": "text_effect",
+    "name": "Neon"
+   }
+  ]
+ }
+}

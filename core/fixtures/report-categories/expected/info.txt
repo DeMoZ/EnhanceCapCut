@@ -1,0 +1,38 @@
+Project: report-categories  canvas 1920x1080  30.0 fps  duration 2.00s
+Visual layers: 3, audio clips: 3
+  [0/t0] 0.00s+1.00s x1.00 video v.mov
+  [0/t0] 1.00s+1.00s x1.00 video p.png
+  [0/t3] 0.00s+1.00s x1.00 text "Hi"
+  audio 0.00s+1.00s vol 1.00 v.mov
+  audio 1.00s+1.00s vol 1.00 p.png
+  audio 0.00s+1.00s vol 1.00 a.m4a
+Not supported yet:
+  AI processing: GenAiSmartEdit ×1
+  AI processing: deflicker ×1
+  Adjust: segment ×1
+  Animation: Combo 3 ×1
+  Animation: Swing ×1
+  Audio: vocal separation mode 9 ×1
+  Audio effect: Robot ×1
+  Beauty / makeup: Doll ×1
+  Beauty / makeup: retouch ×1
+  Blend mode: Vivid ×1
+  Canvas: canvas_gradient ×1
+  Color adjustment: color correct ×1
+  Color adjustment: smart color adjust ×1
+  Effect: Sparkle ×1
+  Keyframes: Saturation ×1
+  Keyframes: mask animation ×1
+  Media: gif clip ×1
+  Other: placeholder_things (thing) ×1
+  Playback: loop ×1
+  Remove background: edge expansion or feather ×1
+  Remove background: result not saved in the project ×1
+  Remove background: stroke ×1
+  Reverse playback: reversed clip without CapCut's reversed copy (rendered forward) ×1
+  Text: curved text (rendered straight) ×1
+  Text: multiple outlines (first one rendered) ×1
+  Text effect: Melting Heart ×1
+  Text shape: Bubble ×1
+  Transition: Pull In (shown as a cross-fade) ×1
+  Video effect: Shake ×1

@@ -12,8 +12,11 @@ and C# (`windows/src/EnhanceCapCut.Draft`) code into one Rust crate. The plan, i
   compositors ask at one moment. `info`: the `ecc info` text. `subtitles`: cues from words, line wrapping (ICU4X word
   breaks for no-space scripts) and SRT. `writers`: captions, voice-over and dubbed timelines written into drafts
   byte-preservingly, with backups and the "open in CapCut" refusal; ids and time are inputs (`IdSource`, `now_us`).
-- `ecc-golden`: the Rust side of the golden-parity runner: `ecc-golden info [project] [--timeline name|number]`
-  prints what `ecc info` prints.
+- `ecc-golden`: the Rust side of the golden-parity runner: `info`, `dump-timeline` and `dump-writers`
+  (`[project] [--timeline name|number]`) print what the hidden commands of the Swift and C# CLIs print, and
+  `materialize` writes a fixture as a project. `fixtures/` holds the synthetic projects with their expected outputs
+  and `known-differences.md`; `scripts/golden.sh fixtures|local` compares the three implementations (see
+  docs/DEVELOPMENT.md › Rust core and golden parity).
 
 ```bash
 cd core

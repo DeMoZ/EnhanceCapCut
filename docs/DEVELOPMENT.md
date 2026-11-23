@@ -9,6 +9,7 @@ Building, testing and releasing EnhanceCapCut. Conventions are in [CLAUDE.md](..
 - Xcode 16+ command line tools (Swift 6 toolchain) to build.
 - Optional: `ffmpeg` (`brew install ffmpeg`) for loudness normalization.
 - The .NET 10 SDK for the Windows version (it builds and tests on macOS too).
+- Rust (via `rustup`) for the shared core in `core/`; the version is pinned in `rust-toolchain.toml`.
 
 ## Build and test
 
@@ -25,6 +26,38 @@ Layout: `Sources/EnhanceCapCutCore` (draft model, timeline, renderer, exporter, 
 `windows/` (the Windows version in C#/.NET).
 
 No CapCut resources (shaders, Lua, LUTs, fonts) and no user media or project files are part of this repo.
+
+## Rust core and golden parity
+
+`core/` is the shared Rust core the apps are moving to ([openspec/changes/rust-core](../openspec/changes/rust-core));
+until the switch it sits next to the Swift and C# code and nothing calls it. It needs a Rust toolchain
+(`rust-toolchain.toml` pins it; `rustup` installs it on first use).
+
+```sh
+cd core && cargo test                # the core's tests and the committed golden outputs
+scripts/golden.sh fixtures           # Swift, C# and Rust on every fixture project
+scripts/golden.sh local              # the same on every timeline of your CapCut library
+```
+
+While the core is ported, the Swift and C# CLIs have two hidden commands (not in help) that print canonical dumps the
+runner compares with the core's `ecc-golden`:
+
+- `ecc dump-timeline [project] [--timeline name|number]` — the built timeline: report, every layer's static data
+  (content, timing, time map, crop, clip, keyframes, masks, effects, transitions, animations, text style), audio clips
+  (with their time map sampled every 50 ms, at most 200 samples), filter-track filters, and every on-screen layer's
+  state (transform, text animation, effects, masks, transition, clock hands) at 0, each clip edge ±1 µs, each keyframe
+  ±1 µs, each transition's start, cut and last µs, and 16 even steps. One JSON object per line, fields in a fixed
+  order, doubles as `%.6f`, paths in the project as `<project>/…`.
+- `ecc dump-writers [project] [--timeline name|number]` — the caption writer (twice) and the voice-over writer (each
+  original-audio mode, then `withoutVoiceOver`) run on the draft with fixed tracks; new UUIDs become `<id1>`,
+  `<id2>`… in order of appearance.
+
+The three implementations are `Sources/ecc/Golden.swift`, `windows/src/ecc/Golden.cs` and
+`core/ecc-golden/src/dump.rs`; a change to the format goes into all three. Fixtures are in `core/fixtures/<name>/`
+(`draft.fixture.json`, optional `timelines.fixture.json` and `media.txt`, see `core/ecc-golden/src/fixtures.rs`) with
+the core's outputs in `expected/`: `UPDATE_GOLDEN=1 cargo test -p ecc-golden` rewrites them. Differences the runner
+accepts are listed, with reasons, in `core/fixtures/known-differences.md`. Set `RUST_BACKTRACE=1` to see where a
+core panic came from.
 
 ## Build the app
 

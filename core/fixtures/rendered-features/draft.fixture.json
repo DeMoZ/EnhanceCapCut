@@ -1,0 +1,189 @@
+{
+ "tracks": [
+  {
+   "type": "video",
+   "segments": [
+    {
+     "id": "A",
+     "material_id": "P",
+     "target_timerange": {
+      "start": 0,
+      "duration": 1000000
+     },
+     "extra_material_refs": [
+      "FLASH",
+      "BLEND",
+      "RETOUCH",
+      "ROOT",
+      "PUDDING",
+      "SPEED",
+      "CANVAS",
+      "CHROMA",
+      "HSL0",
+      "ANIM",
+      "MASK"
+     ],
+     "common_keyframes": [
+      {
+       "property_type": "KFTypeAlpha",
+       "keyframe_list": [
+        {
+         "time_offset": 0,
+         "values": [
+          1
+         ]
+        }
+       ]
+      },
+      {
+       "property_type": "KFTypeCommonMaskPositionX",
+       "keyframe_list": [
+        {
+         "time_offset": 0,
+         "values": [
+          0
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "B",
+     "material_id": "R",
+     "target_timerange": {
+      "start": 1000000,
+      "duration": 1000000
+     },
+     "reverse": true
+    }
+   ]
+  },
+  {
+   "type": "sticker",
+   "segments": [
+    {
+     "id": "C",
+     "material_id": "CLOCK",
+     "target_timerange": {
+      "start": 0,
+      "duration": 1
+     }
+    }
+   ]
+  }
+ ],
+ "materials": {
+  "videos": [
+   {
+    "id": "P",
+    "type": "photo",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/p.png",
+    "video_algorithm": {
+     "algorithms": [
+      {
+       "type": "QualityEnhance"
+      }
+     ]
+    }
+   },
+   {
+    "id": "R",
+    "type": "video",
+    "path": "##_draftpath_placeholder_FIXTURE_##/media/v.mov",
+    "reverse_path": "##_draftpath_placeholder_FIXTURE_##/media/reversed.mov"
+   }
+  ],
+  "transitions": [
+   {
+    "id": "FLASH",
+    "name": "Flashback",
+    "duration": 100000
+   }
+  ],
+  "effects": [
+   {
+    "id": "BLEND",
+    "type": "mix_mode",
+    "name": "Screen"
+   },
+   {
+    "id": "RETOUCH",
+    "type": "figure",
+    "sub_type": "auto_beauty",
+    "name": "Smooth"
+   },
+   {
+    "id": "ROOT",
+    "type": "makeup_root"
+   }
+  ],
+  "video_effects": [
+   {
+    "id": "PUDDING",
+    "name": "Pudding Bounce",
+    "effect_id": "7534579654615649553"
+   }
+  ],
+  "speeds": [
+   {
+    "id": "SPEED",
+    "speed": 1
+   }
+  ],
+  "canvases": [
+   {
+    "id": "CANVAS",
+    "type": "canvas_blur",
+    "blur": 0.25
+   }
+  ],
+  "chromas": [
+   {
+    "id": "CHROMA",
+    "color": "#00FF00",
+    "intensity_value": 0.5,
+    "shadow_value": 0.1,
+    "spill_value": 0.3
+   }
+  ],
+  "hsl": [
+   {
+    "id": "HSL0",
+    "type": "hsl"
+   }
+  ],
+  "material_animations": [
+   {
+    "id": "ANIM",
+    "animations": [
+     {
+      "type": "in",
+      "name": "Fade In",
+      "duration": 100000
+     }
+    ]
+   }
+  ],
+  "common_mask": [
+   {
+    "id": "MASK",
+    "resource_type": "circle",
+    "name": "Circle",
+    "config": {
+     "width": 0.4,
+     "height": 0.4,
+     "feather": 0.2,
+     "invert": true
+    }
+   }
+  ],
+  "stickers": [
+   {
+    "id": "CLOCK",
+    "name": "Clock",
+    "resource_id": "7528282080199904565"
+   }
+  ]
+ }
+}

@@ -49,6 +49,7 @@ name = "ecc-golden"
 version = "0.1.0"
 dependencies = [
  "ecc-core",
+ "serde_json",
 ]
 
 [[package]]
