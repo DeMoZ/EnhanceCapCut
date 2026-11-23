@@ -1,0 +1,318 @@
+# Design: one Rust core for both apps
+
+## Context
+
+See proposal.md for the motivation. What the code looks like today:
+
+- **Swift core** (`Sources/EnhanceCapCutCore`): `Draft/` (lenient `Decodable` models on `AnyKey` helpers,
+  `JSONScanner`/`JSONEdits`/`JSONText` for byte-preserving edits, `Project.swift` with `ProjectLocator`,
+  `DraftLoader`), `Timeline/` (`TimelineBuilder` → `Timeline` of `VisualLayer` classes, `AudioClip`,
+  `FilterLayer`, `RenderReport`; `TimeMap`, `KeyframeTrack` + `KeyframeBezier`, `ClipAnimation`,
+  `TextAnimation`, `ClipMask`, `Transition`, `VideoEffect`, `ColorFilter`, `BlendMode`, `ChromaKey`,
+  `ClockSticker`, `TextEffect`), and in `Subtitles/`: `Segmenter` (+ `LineWrapper` on `NLTokenizer`,
+  `SRTWriter`), `DraftSubtitleWriter`, `DraftVoiceOverWriter`, `DubTimeline`. `Localization.swift` holds `L()`.
+- **C# port** (`windows/src/EnhanceCapCut.Draft`, net10.0, no platform APIs): the same files one-to-one, plus
+  things that stay C# here: `ExportSettings`, `VoiceFilterGraph`, `McpServer`.
+- **Mirrored render-side code** outside the core: since #93 the voice processing stages and constants exist in
+  both languages (Swift `VoiceProcessor` / `SpectralProcessing` / `VoiceFilter` on Accelerate; C#
+  `VoiceProcessor`, `VoiceFilterProcessing`, `SpectralProcessing`, `Fft` in `EnhanceCapCut.Render`), and since #90
+  vertical text placement (`VerticalTextLayout`, measured with Core Text / DirectWrite).
+- Platform reach inside the core is small and known: file existence checks and directory listings
+  (`TimelineBuilder` missing media, cutout mask folders, CapCut's effect cache for voice filters and LUTs),
+  home-relative roots (projects, CapCut cache, our backup folder), `NSWorkspace` / `Process` for "is CapCut
+  running", `NLTokenizer` for no-space scripts, `UUID()` and `Date()` in the writers.
+- Report texts are localized at build time (`note(L("Transition"), …)`), so the core needs the translation table.
+- Text style ranges in drafts count code points; renderers need UTF-16 ranges (`TextContent.utf16Range`).
+- The renderers evaluate the timeline per frame: `VisualLayer.transform(at:)`, `TimeMap.sourceTime`,
+  `TextAnimations.state`, `VideoEffect.state`, `ClipMask.geometry(at:)`, transition `progress(at:)`; the audio
+  renderer samples `TimeMap` every 50 ms and the volume envelope at ramp breaks.
+- Build: SwiftPM (`swift-tools-version:6.0`, `swiftLanguageModes: [.v5]`, macOS 15), `whisper` already comes as
+  a dynamic XCFramework `binaryTarget`; `scripts/build-app.sh --pkg` builds `--arch arm64 --arch x86_64`, signs
+  with Developer ID (hardened runtime), `pkgbuild`/`productbuild`, notarizes. Windows: .NET 10,
+  `dotnet publish -r win-x64 --self-contained`; CI `windows.yml` on `windows-latest` (PRs and main),
+  `release.yml` on `macos-26` + `windows-latest` for tags. There is no macOS CI job on pull requests today.
+- `.gitignore` blocks `draft_info.json` / `draft_content.json` everywhere, so committed fixture drafts need other
+  file names.
+- Parity today: one manual comparison of `ecc info` on 102 timelines of 69 projects, identical up to Unicode
+  normalization of file names (docs/PLAN.md, Windows stage 1). No committed fixtures; drafts are inline JSON in
+  tests (148 Swift tests, 109 C# `[Fact]`s).
+
+## Goals / Non-Goals
+
+**Goals:**
+
+- One implementation of everything in the two capability specs, called from Swift and C# through generated
+  bindings; no hand-written wrapper layer per language beyond small convenience extensions.
+- Both apps keep building, testing and shipping after every stage.
+- Parity proven mechanically (golden outputs) before each switch, and kept by snapshots afterwards.
+- No change to signing, notarization, installer layout or the Windows publish shape beyond one extra native
+  library on Windows.
+
+**Non-Goals:**
+
+- Rewriting renderers, encoders, text layout, speech, translation, voices, voice DSP, UI or the MCP server.
+- Linux or other new platforms (Linux is only a cheap CI runner for `cargo test`).
+- Windows arm64 or any new Windows release artifact (the crate builds for `aarch64-pc-windows-msvc`, but
+  nothing publishes it until a release asks for it).
+- Performance work beyond "not slower than today".
+- The mirrored render-side code (voice DSP from #93, `VerticalTextLayout` from #90). It is duplicated too, but it
+  is tied to native audio buffers and font measurement; it is a candidate for a follow-up change once this one
+  has proved the bindings, build and golden setup.
+
+## Decisions
+
+### 1. What crosses into Rust, and the seams that stay native
+
+Rust gets the modules listed in the proposal. The platform seams become plain inputs:
+
+- **Roots**: `CoreEnvironment { projects_root, capcut_cache_roots, backup_root }` with per-OS defaults in Rust
+  (`cfg(target_os)`: `~/Movies/CapCut/...` and the sandboxed container on macOS, `%LOCALAPPDATA%\CapCut\...` on
+  Windows, `~/Library/Application Support/EnhanceCapCut/Backups` / `%LOCALAPPDATA%\EnhanceCapCut\Backups`).
+  Native code and tests may override any of them; golden tests always do.
+- **File system**: Rust uses `std::fs` directly (existence, listing, reading, atomic writes). Both OSes expose
+  the same semantics we rely on; APFS lookups stay normalization-insensitive, so no path normalization is added.
+- **"Is CapCut running"** stays native (`NSWorkspace` / `Process.GetProcessesByName`). Write functions take a
+  `capcut_running: bool`; Rust checks the `.locked` file and refuses when both are true.
+- **Ids and clock**: writer functions take an `IdSource` (random UUIDs by default, a counter in tests) and a
+  `now` timestamp, so outputs are deterministic under test.
+
+Alternative considered: moving the "is running" check and roots into Rust behind `cfg` only. Rejected for the
+process check (needs `sysinfo`-style dependencies and differs from what the apps already show the user); roots
+keep Rust defaults because the Rust golden CLI needs them without a native host.
+
+### 2. Crate layout
+
+```
+core/
+  Cargo.toml            workspace; rust-toolchain.toml at repo root pins the toolchain
+  ecc-core/             pure Rust: draft, project, timeline, eval, subtitles, writers, info, l10n — no FFI
+  ecc-ffi/              #[uniffi::export] surface; crate-type = ["staticlib", "cdylib"]; lib name ecc_core
+  ecc-golden/           binary: info, dump-timeline, apply-captions, apply-voice-over (golden runner, CI on Linux)
+  fixtures/             synthetic projects + expected outputs (see 7)
+```
+
+`ecc-core` has no knowledge of bindings, so it is tested with plain `cargo test` and can change shape without
+regenerating anything. `ecc-ffi` is a thin mapping layer (records/objects/errors) and is the only API both apps
+see. Release profile: `lto = "thin"`, `codegen-units = 1`, `panic = "unwind"` (UniFFI turns panics into errors;
+`abort` would kill the app), `debug = "line-tables-only"`.
+
+### 3. Binding generator: UniFFI for both languages
+
+| Option | Swift side | C# side | Cost |
+|---|---|---|---|
+| **A. UniFFI + uniffi-bindgen-cs** (chosen) | official UniFFI Swift bindings | NordSecurity `uniffi-bindgen-cs` | one annotated Rust API; records, enums with data, objects (`Arc`), errors generated for both; third-party C# generator pinned to a UniFFI version |
+| B. cbindgen + C module / csbindgen | hand-written Swift wrapper over a C header | csbindgen `DllImport`s + hand-written C# wrapper | raw `extern "C"` API; two hand-written wrapper layers (ownership, strings, nested enums) — the duplication we remove, now in unsafe code |
+| C. UniFFI (Swift) + csbindgen (C#) | generated | hand-written C# over a separate C ABI | two ABI surfaces in Rust |
+| D. JSON over a few `extern "C"` calls | `Codable` mirror of the Timeline | `System.Text.Json` mirror | model types duplicated again; per-frame evaluation either duplicated or JSON per call |
+
+A wins because the thing we are removing is per-language duplication; B and C bring it back as wrappers, D
+brings back the models. UniFFI's record transfer is a serialization into a byte buffer, which is acceptable
+because the Timeline crosses once per build and per-frame calls are batched (decision 4).
+
+Pinning: `uniffi` and `uniffi-bindgen-cs` versions are pinned together in `core/Cargo.toml` and installed with
+`cargo install --locked` in CI (the C# generator lags UniFFI by one or two minors; we upgrade only when both
+support the same version). Generated bindings are committed (`Sources/EccCore/ecc_core.swift` plus header and
+modulemap in the XCFramework; `windows/src/EnhanceCapCut.Draft/Generated/ecc_core.cs`), and CI regenerates them
+and fails on a diff, so a forgotten regeneration can't ship.
+
+Fallback if the stage-0 spike shows `uniffi-bindgen-cs` cannot express our API (or breaks on .NET 10): C# uses
+option D for the static Timeline data plus csbindgen for a handful of batched evaluation calls, keeping Swift
+on UniFFI. The spike decides this before any Swift switch work starts, so tasks do not change after it.
+
+### 4. API shape across the boundary
+
+- `Timeline` is a UniFFI **object** (`Arc<Timeline>`, immutable, `Send + Sync`): `info()`, `layers()`,
+  `audio_clips()`, `filters()`, `report()`, `has_subtitles()`, `without_subtitles()`. Compound content holds an
+  `Arc<Timeline>`, which gives recursion without recursive records.
+- Static per-layer data are **records** fetched once (`VisualLayer`, `AudioClip`, `TextLayerSpec`, …), keeping
+  today's Swift type and field names so consumer edits stay mechanical (UniFFI maps `snake_case` to Swift
+  `camelCase` and C# `PascalCase`).
+- Evaluation is batched: `timeline.frame(t) -> FrameState` returns every active layer's transform, text
+  animation, effect, mask and transition state in one call per video frame. `TimeMap` and `KeyframeTrack` are
+  objects with vectorized methods (`source_times(offsets: Vec<i64>)`, `values(at: Vec<i64>)`) for the audio
+  renderer.
+- Types: times `i64` µs; paths `String` (Swift extension `.url`, C# as is); canvas `Size { width, height }`
+  (Swift extension → `CGSize`); modification dates as Unix ms; text style ranges exposed in UTF-16 units.
+- Errors: one `CoreError` enum with localized messages (`ProjectOpen`, `NoTimelineList`, `Malformed`, `Io`).
+- `format_info(project_path, timeline: Option<String>) -> String` produces the whole `ecc info` text; both CLIs
+  print it, so their outputs are identical by construction.
+- Swift: a target `EccCore` (generated Swift) on the `binaryTarget`; `EnhanceCapCutCore` does
+  `@_exported import EccCore` so the app and CLI need no new imports. C#: generated code lives in
+  `EnhanceCapCut.Draft`, which keeps its name (no reference churn) and shrinks to the bindings plus the C# that
+  stays (`ExportSettings`, `VoiceFilterGraph`, `McpServer`, UI `Localization`, `IsOpenInCapCut`).
+
+### 5. Lenient reading and byte-exact writing in Rust
+
+- Drafts are parsed once into `serde_json::Value`; models are built by hand through a `Lenient` accessor trait
+  mirroring `Lenient.swift` (`opt`, `num` accepting numeric strings, `int64` rounding doubles, `bool` accepting
+  0/1, `list` skipping bad elements), with a small macro for the boilerplate. Strict `serde` derive was
+  rejected: a mistyped field fails the whole struct unless every field gets a custom deserializer, which is the
+  same code with less control.
+- Writers port `JSONScanner` / `JSONEdits` byte-for-byte and `JSONText` with a float formatter that reproduces
+  Swift's `Double.description` (`1.0`, `1e-05`, shortest round-trip) — Rust's `Display` differs (`1`,
+  `0.00001`). The same formatter serves `ecc info` (`"\(fps)"`); `%.2f`-style output uses explicit rounding
+  helpers. Golden byte comparisons pin both.
+
+### 6. Localization in the core
+
+`ecc-core` has a `tr!("English {0}", arg)` macro with the same `{n}` substitution as `L()`, over
+`Localization/ru.json` embedded with `include_str!` (one file, still shared). Native apps call
+`set_core_language("ru")` when they call `Localization.use`; until then the core is English, so CLIs stay
+English. UI texts keep the native `L()`. The key-coverage tests are extended: the Swift test that fails on unused
+`ru.json` entries also scans `core/**/*.rs` for `tr!` keys, and a `cargo test` checks every `tr!` key has a
+Russian entry. Alternative rejected: returning untranslated keys plus args for native translation — the report
+mixes our texts with CapCut names, and every consumer would re-implement the assembly.
+
+### 7. Word segmentation for no-space scripts
+
+`icu_segmenter` (ICU4X) word segmenter with compiled data: dictionary for Chinese/Japanese, LSTM models for Thai,
+Lao, Khmer, Burmese. The wrapper keeps today's rules on top (attach skipped characters to the previous unit, keep
+numbers with the next word). This replaces `NLTokenizer` on macOS and the space/grapheme split on Windows, so
+both platforms get the same breaks (a deliberate behaviour change, see spec `subtitle-authoring`). Size budget:
+measured in the spike; if ICU data pushes the library over budget (risk below), use LSTM-only data for the four
+Southeast Asian scripts and grapheme breaks for Chinese/Japanese (typographically allowed there).
+
+### 8. macOS build integration
+
+- `scripts/build-core.sh [--universal]`: `cargo build --release -p ecc-ffi` for the host target, or for
+  `aarch64-apple-darwin` and `x86_64-apple-darwin` with `MACOSX_DEPLOYMENT_TARGET=15.0`; `lipo` into one fat
+  `libecc_core.a`; `xcodebuild -create-xcframework -library … -headers …` →
+  `build/core/EccCoreFFI.xcframework` (under the already ignored `/build/`).
+- `Package.swift`: `.binaryTarget(name: "EccCoreFFI", path: "build/core/EccCoreFFI.xcframework")`,
+  `.target(name: "EccCore", dependencies: ["EccCoreFFI"])`; `EnhanceCapCutCore` depends on `EccCore`.
+- `scripts/build-app.sh` runs `build-core.sh` first (`--universal` with `--pkg`). Static linking puts the core
+  inside the `ecc` and `EnhanceCapCut` executables: nothing new to copy into `Contents/Frameworks`, sign or
+  notarize separately; the existing codesign/notarytool steps are unchanged.
+- Swift 6 toolchain in Swift 5 mode: generated code builds in both modes; the spike checks it with the current
+  Xcode command line tools, without `-warnings-as-errors`.
+
+Alternatives rejected: a SwiftPM build-tool plugin running `cargo` (sandboxed, no network for the registry, no
+writes outside the plugin work dir); committing prebuilt `.a` files (repo bloat, unclear provenance); a remote
+`binaryTarget(url:checksum:)` (every core change would need a published artifact before `swift build`).
+
+### 9. Windows / .NET build integration
+
+- `EnhanceCapCut.Draft.csproj` gets `AllowUnsafeBlocks` and an MSBuild target `BuildRustCore` before `Build`:
+  maps `$(RuntimeIdentifier)` (or the host when empty) to a Rust triple (`win-x64` → `x86_64-pc-windows-msvc`,
+  `osx-arm64` → `aarch64-apple-darwin`, …), runs `cargo build --release -p ecc-ffi --target …`, and adds the
+  `cdylib` (`ecc_core.dll` / `libecc_core.dylib`) as `None` with `CopyToOutputDirectory` and
+  `CopyToPublishDirectory`. `-p:SkipRustBuild=true` skips it when CI has built the core already.
+- `dotnet test windows/EnhanceCapCut.slnx` keeps working on macOS (host dylib copied next to the test assembly).
+- `dotnet publish -r win-x64 --self-contained` puts `ecc_core.dll` next to `EnhanceCapCut.exe` / `ecc.exe`;
+  the `runtimes/` pruning in `release.yml` does not touch it.
+
+### 10. CI
+
+- `windows.yml`: `rustup` (preinstalled on `windows-latest`) honours `rust-toolchain.toml`; `Swatinem/rust-cache`;
+  install the pinned `uniffi-bindgen-cs`; build the core; then the existing `dotnet` steps unchanged.
+- New `core.yml`: `ubuntu-latest` job with `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test`
+  (includes golden snapshots) and the bindings-are-current check; `macos-26` job with `build-core.sh`,
+  `swift build`, `swift test`, and the Swift-vs-Rust golden comparison while both exist.
+- `release.yml`: the macOS job gets the core via `build-app.sh --pkg`; the Windows job builds the core for
+  `x86_64-pc-windows-msvc` before `dotnet publish`. The local release fallback (stuck `macos-26` runner) needs
+  only `rustup` on the release Mac, since `build-app.sh` builds the core itself.
+
+### 11. Golden parity
+
+- **Fixtures** (`core/fixtures/<name>/`): `draft.fixture.json` (+ optional `timelines.fixture.json`,
+  `media.txt` listing placeholder files to create). The harness materializes each into a temp project with
+  `draft_info.json` *and*, in a second pass, `draft_content.json`. Seeded from the inline drafts in the Swift and
+  C# tests, then one fixture per report category, speed curves, compound clips, masks, transitions, keyframes
+  with easing (#89), "Enhance quality" (#88), vertical typesetting (#90, now rendered, so no longer reported),
+  captions in en/ru/th/zh, voice-over with every original-audio mode.
+- **Outputs**: `info.txt`; `timeline.json` — a canonical dump (static data, plus `frame(t)` and audio samples
+  at 0, every clip boundary ±1 µs, every keyframe time ±1 µs and 16 even steps; numbers printed with 6 decimals);
+  writer outputs for fixed tracks, with UUIDs replaced by `<id1>`, `<id2>`… in order of appearance and a fixed
+  `now`.
+- **Producers**: a hidden `ecc dump-timeline` / `ecc dump-writers` in the Swift and C# CLIs (stage 1, not in
+  help, documented in `docs/DEVELOPMENT.md`) and the same commands in `ecc-golden`.
+- **Runner** `scripts/golden.sh fixtures|local`: `fixtures` runs in CI; `local` walks every project and timeline
+  of the author's CapCut library with the three CLIs and diffs `info` and `timeline.json` (memory-light: one
+  timeline at a time, no media decoding). Known, accepted differences are listed with reasons in
+  `core/fixtures/known-differences.md` (file-name Unicode normalization; no-space script wrapping).
+- **Reference**: where Swift and C# disagree, Swift is the reference (the macOS renderer is calibrated against
+  CapCut exports); the C# difference is noted in `known-differences.md` until the Windows switch removes it.
+- **After the switch**: expected outputs are committed under `core/fixtures/<name>/expected/` and checked by
+  `cargo test` (`UPDATE_GOLDEN=1` rewrites them); they become the only parity reference once the old code is gone.
+
+### 12. Tests after the move
+
+Logic tests move to Rust (`ecc-core` unit tests, ported from the Swift tests first since they are the reference,
+adding C#-only cases). Swift and C# keep thin binding smoke tests (build a fixture timeline, read a record,
+evaluate a frame, write captions) and all tests of the code that stays native. The localization key tests stay
+on both sides and learn about `core/`.
+
+## Risks / Trade-offs
+
+- [`uniffi-bindgen-cs` lags or stalls] → pinned pair of versions; spike in stage 0 before committing; fallback in
+  decision 3 is chosen up front, so the plan does not change if it is needed.
+- [Binary size: Rust std + serde_json + ICU segmenter data in a universal binary] → budget +6 MB for the `.pkg`
+  and +4 MB for the Windows publish, measured in the spike and on every release build (`size` printed in CI);
+  thin LTO, `opt-level = 3` but stripped symbols in the app; LSTM-only ICU data if over budget.
+- [Build time: cold universal cargo build adds minutes to `build-app.sh` and CI] → `rust-cache` in CI; dev builds
+  host-only; `cargo` incremental for the core; the core is a separate step, so `swift build` after a Swift-only
+  change does not rebuild Rust.
+- [Debugging through FFI: a panic or bad value surfaces as a generic error] → panics are caught and carry the
+  message and location into `CoreError`; `ecc-golden` reproduces any timeline problem without the app;
+  line tables kept so LLDB / Visual Studio show Rust frames; `RUST_BACKTRACE=1` documented for the CLIs.
+- [Timeline transfer cost: records are serialized across the boundary] → one transfer per build and one
+  `frame(t)` call per frame; acceptance: building + transferring the largest local timeline costs ≤ 50 ms more
+  than today, `frame(t)` with 50 active layers ≤ 0.1 ms, export time of a reference project within 2 % of today.
+- [Keyframes and easing (#89) and "Enhance quality" (#88) are the newest ported code; Swift and C# may already
+  differ] → dedicated fixtures sampled at and around every keyframe; Swift wins on disagreement; the switch PR
+  of each platform includes a render of a keyframe-heavy project compared against a recent CapCut export.
+- [Float formatting differences (Swift `description`, `%.2f`, C# invariant formatting)] → one formatter in Rust,
+  byte-level golden tests over `info.txt` and writer outputs.
+- [Thai/CJK wrapping changes for users] → fixtures with known-good breaks; check against the Thai exports among
+  the 10 newest CapCut exports; release notes mention it.
+- [Triple maintenance while migrating (Swift, C#, Rust)] → any core change between stage 1 and stage 4 lands in
+  Rust too, with a fixture; `capcut-feature` work that touches `TimelineBuilder` is preferably scheduled after the
+  macOS switch; stages 3–4 kept short.
+- [Agents and worktrees: each worktree gets its own multi-GB `target/`] → documented optional shared
+  `CARGO_TARGET_DIR` (cargo locks it, concurrent builds wait instead of clobbering).
+- [Contributors need Rust] → `rust-toolchain.toml` makes `rustup` install the right version automatically; one
+  line in `docs/DEVELOPMENT.md` requirements.
+
+## Migration Plan
+
+Each stage is its own PR (or a few), leaves both apps working, and has an exit criterion.
+
+0. **Spike** (throwaway branch): a minimal `ecc-core` (lenient draft + project lookup + `format_info` for a
+   two-layer draft) through UniFFI into Swift and through `uniffi-bindgen-cs` into C#; universal static
+   XCFramework linked by `swift build --arch arm64 --arch x86_64`; .NET 10 test on macOS and `windows-latest`;
+   ICU segmenter size. *Exit*: both bindings build and run in CI; size and generator choice recorded in this
+   design (updating decision 3 or 7 only if the fallback is taken).
+1. **Crate alongside**: `core/` with the full core and Rust tests; `ecc-golden`; hidden dump commands in the
+   Swift and C# CLIs; fixtures and `scripts/golden.sh`; `core.yml`. Apps unchanged. *Exit*: `cargo test` green;
+   golden `fixtures` identical Rust = Swift (and = C# except listed known differences); `golden.sh local`
+   identical on all the author's timelines (the previous check covered 102 timelines of 69 projects), with
+   the count in the PR description.
+2. **Bindings and build plumbing**: `ecc-ffi`, generated Swift/C# bindings, `build-core.sh`, `Package.swift`,
+   MSBuild target, CI steps, `build-app.sh`; nothing calls the core yet except smoke tests. *Exit*: `.pkg` built
+   with `--pkg` is universal (`lipo -info` on both executables), signed and notarized; Windows publish contains
+   `ecc_core.dll`; all existing tests green; size within budget.
+3. **macOS switch**: `Sources/EnhanceCapCutCore` consumers (`Render`, `Export`, `Subtitles` pipeline and
+   `Dubber`, `Automation`, `ecc`, app) use the Rust types; Swift `Draft/`, `Timeline/` and the writers stay in
+   the tree, unused, for rollback. *Exit*: `swift test` green; `golden.sh local` identical; renders of three
+   recent projects (incl. keyframes, compound, captions) match the previous build frame-for-frame within
+   tolerance and look right next to their CapCut exports; caption + voice-over write round-trips in CapCut;
+   export time within 2 %; shipped in a release.
+4. **Windows switch**: `EnhanceCapCut.Render`, `.Subtitles`, `.Windows`, `.App`, `ecc` use the generated types;
+   old C# core files stay for rollback. *Exit*: `dotnet test` green on macOS and Windows CI; `ui-smoke` and
+   `update-smoke` pass; end-to-end export test passes; `ecc info` of the Windows CLI equals the macOS CLI on the
+   fixtures (now by construction); shipped in a release.
+5. **Removal**: after one release with both switches and no core regression reports, delete Swift `Draft/`,
+   `Timeline/`, `Segmenter`/`DraftSubtitleWriter`/`DraftVoiceOverWriter`/`DubTimeline` and their C# twins, the
+   hidden dump commands of the native CLIs, and the moved tests; update `CLAUDE.md` (drop the "keep in step"
+   rules, describe `core/`), `docs/DEVELOPMENT.md`, `windows/README.md`, `docs/PLAN.md`, `openspec/config.yaml`
+   context. *Exit*: no duplicated core logic left (`rg` for the old type names finds only bindings); docs
+   describe one core.
+
+**Rollback**: stages 0–2 add code only. Stages 3 and 4 are single switch PRs that can be reverted while the old
+code is still in the tree; stage 5 happens only after a release proved the switch.
+
+## Open Questions
+
+- Exact UniFFI / `uniffi-bindgen-cs` versions — whatever pair is current and compatible at stage 0.
+- Whether the MCP server's draft-only tools (list, info) later call the core directly from both CLIs — possible
+  after stage 4 without changing this plan.
