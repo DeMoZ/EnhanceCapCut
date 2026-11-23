@@ -77,25 +77,63 @@ record! {
     }
 }
 
-record! { TextStroke = d::TextStroke { width: f64, color: Vec<f64>, alpha: f64 } }
-
 record! {
-    /// `range` is in UTF-16 units of `TextContent.text`.
-    TextStyle = d::TextStyle {
-        range: Vec<i64>,
-        size: Option<f64>,
-        font_path: Option<String>,
-        fill_color: Option<Vec<f64>>,
-        fill_alpha: Option<f64>,
-        strokes: Vec<TextStroke>,
-        bold: bool,
-        italic: bool,
-        underline: bool,
-        effect_style_path: Option<String>,
-    }
+    #[derive(PartialEq)]
+    TextStroke = d::TextStroke { width: f64, color: Vec<f64>, alpha: f64 }
 }
 
-record! { TextContent = d::TextContent { text: String, styles: Vec<TextStyle> } }
+/// A style run of a text. `range` is the draft's (code points); `utf16_start`/`utf16_end` are the same run in UTF-16
+/// units of `TextContent.text`, clamped to it (an `NSRange` / .NET string range).
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct TextStyle {
+    pub range: Vec<i64>,
+    pub utf16_start: u64,
+    pub utf16_end: u64,
+    pub size: Option<f64>,
+    pub font_path: Option<String>,
+    pub fill_color: Option<Vec<f64>>,
+    pub fill_alpha: Option<f64>,
+    pub strokes: Vec<TextStroke>,
+    pub bold: bool,
+    pub italic: bool,
+    pub underline: bool,
+    pub effect_style_path: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct TextContent {
+    pub text: String,
+    pub styles: Vec<TextStyle>,
+}
+
+impl Ffi for d::TextContent {
+    type Out = TextContent;
+    fn ffi(self) -> TextContent {
+        let styles = self
+            .styles
+            .iter()
+            .map(|style| {
+                let run = self.utf16_range(Some(style));
+                let style = style.clone();
+                TextStyle {
+                    range: style.range,
+                    utf16_start: run.start as u64,
+                    utf16_end: run.end as u64,
+                    size: style.size,
+                    font_path: style.font_path,
+                    fill_color: style.fill_color,
+                    fill_alpha: style.fill_alpha,
+                    strokes: style.strokes.ffi(),
+                    bold: style.bold,
+                    italic: style.italic,
+                    underline: style.underline,
+                    effect_style_path: style.effect_style_path,
+                }
+            })
+            .collect();
+        TextContent { text: self.text, styles }
+    }
+}
 
 // Animations.
 

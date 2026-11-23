@@ -979,6 +979,12 @@ static class _UniFFILib {
     
     
     
+    
+    
+    
+    
+    
+    
 
     static _UniFFILib() {
         _UniFFILib.uniffiCheckContractApiVersion();
@@ -1545,7 +1551,29 @@ static class _UniFFILib {
     [DllImport("ecc_core", CallingConvention = CallingConvention.Cdecl)]
     public static extern
 #endif
+     RustBuffer uniffi_ecc_core_fn_func_locate_voice_filter(RustBuffer @path,RustBuffer @resourceId,RustBuffer @cacheRoots,ref UniffiRustCallStatus _uniffi_out_err
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("ecc_core")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("ecc_core", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
      RustBuffer uniffi_ecc_core_fn_func_lut_layout(ulong @width,ulong @height,ref UniffiRustCallStatus _uniffi_out_err
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("ecc_core")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("ecc_core", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     ulong uniffi_ecc_core_fn_func_lut_max_size(ref UniffiRustCallStatus _uniffi_out_err
     );
 
     #if NET8_0_OR_GREATER
@@ -1755,6 +1783,17 @@ static class _UniFFILib {
     public static extern
 #endif
      RustBuffer uniffi_ecc_core_fn_func_ducked_ranges(RustBuffer @lines,ref UniffiRustCallStatus _uniffi_out_err
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("ecc_core")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("ecc_core", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     RustBuffer uniffi_ecc_core_fn_func_ducking_ramps(ref UniffiRustCallStatus _uniffi_out_err
     );
 
     #if NET8_0_OR_GREATER
@@ -2458,7 +2497,29 @@ static class _UniFFILib {
     [DllImport("ecc_core", CallingConvention = CallingConvention.Cdecl)]
     public static extern
 #endif
+     ushort uniffi_ecc_core_checksum_func_locate_voice_filter(
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("ecc_core")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("ecc_core", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
      ushort uniffi_ecc_core_checksum_func_lut_layout(
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("ecc_core")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("ecc_core", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     ushort uniffi_ecc_core_checksum_func_lut_max_size(
     );
 
     #if NET8_0_OR_GREATER
@@ -2668,6 +2729,17 @@ static class _UniFFILib {
     public static extern
 #endif
      ushort uniffi_ecc_core_checksum_func_ducked_ranges(
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("ecc_core")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("ecc_core", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     ushort uniffi_ecc_core_checksum_func_ducking_ramps(
     );
 
     #if NET8_0_OR_GREATER
@@ -3198,9 +3270,21 @@ static class _UniFFILib {
             }
         }
         {
+            var checksum = _UniFFILib.uniffi_ecc_core_checksum_func_locate_voice_filter();
+            if (checksum != 37275) {
+                throw new UniffiContractChecksumException($"EnhanceCapCut.Core: uniffi bindings expected function `uniffi_ecc_core_checksum_func_locate_voice_filter` checksum `37275`, library returned `{checksum}`");
+            }
+        }
+        {
             var checksum = _UniFFILib.uniffi_ecc_core_checksum_func_lut_layout();
             if (checksum != 19055) {
                 throw new UniffiContractChecksumException($"EnhanceCapCut.Core: uniffi bindings expected function `uniffi_ecc_core_checksum_func_lut_layout` checksum `19055`, library returned `{checksum}`");
+            }
+        }
+        {
+            var checksum = _UniFFILib.uniffi_ecc_core_checksum_func_lut_max_size();
+            if (checksum != 30716) {
+                throw new UniffiContractChecksumException($"EnhanceCapCut.Core: uniffi bindings expected function `uniffi_ecc_core_checksum_func_lut_max_size` checksum `30716`, library returned `{checksum}`");
             }
         }
         {
@@ -3315,6 +3399,12 @@ static class _UniFFILib {
             var checksum = _UniFFILib.uniffi_ecc_core_checksum_func_ducked_ranges();
             if (checksum != 16049) {
                 throw new UniffiContractChecksumException($"EnhanceCapCut.Core: uniffi bindings expected function `uniffi_ecc_core_checksum_func_ducked_ranges` checksum `16049`, library returned `{checksum}`");
+            }
+        }
+        {
+            var checksum = _UniFFILib.uniffi_ecc_core_checksum_func_ducking_ramps();
+            if (checksum != 60158) {
+                throw new UniffiContractChecksumException($"EnhanceCapCut.Core: uniffi bindings expected function `uniffi_ecc_core_checksum_func_ducking_ramps` checksum `60158`, library returned `{checksum}`");
             }
         }
         {
@@ -5606,6 +5696,39 @@ class FfiConverterTypeDubResult: FfiConverterRustBuffer<DubResult> {
 
 
 
+/// <summary>
+/// The ducking ramps (µs): the original goes down `down` before a line and back up `up` after it.
+/// </summary>
+public record DuckingRamps (
+    long Down, 
+    long Up
+) {
+}
+
+class FfiConverterTypeDuckingRamps: FfiConverterRustBuffer<DuckingRamps> {
+    public static FfiConverterTypeDuckingRamps INSTANCE = new FfiConverterTypeDuckingRamps();
+
+    public override DuckingRamps Read(BigEndianStream stream) {
+        return new DuckingRamps(
+            Down: FfiConverterInt64.INSTANCE.Read(stream),
+            Up: FfiConverterInt64.INSTANCE.Read(stream)
+        );
+    }
+
+    public override int AllocationSize(DuckingRamps value) {
+        return 0
+            + FfiConverterInt64.INSTANCE.AllocationSize(value.Down)
+            + FfiConverterInt64.INSTANCE.AllocationSize(value.Up);
+    }
+
+    public override void Write(DuckingRamps value, BigEndianStream stream) {
+            FfiConverterInt64.INSTANCE.Write(value.Down, stream);
+            FfiConverterInt64.INSTANCE.Write(value.Up, stream);
+    }
+}
+
+
+
 public record FilterLayer (
     string Id, 
     TimeRange Target, 
@@ -6644,10 +6767,13 @@ class FfiConverterTypeTextStroke: FfiConverterRustBuffer<TextStroke> {
 
 
 /// <summary>
-/// `range` is in UTF-16 units of `TextContent.text`.
+/// A style run of a text. `range` is the draft's (code points); `utf16_start`/`utf16_end` are the same run in UTF-16
+/// units of `TextContent.text`, clamped to it (an `NSRange` / .NET string range).
 /// </summary>
 public record TextStyle (
     long[] Range, 
+    ulong Utf16Start, 
+    ulong Utf16End, 
     double? Size, 
     string? FontPath, 
     double[]? FillColor, 
@@ -6666,6 +6792,8 @@ class FfiConverterTypeTextStyle: FfiConverterRustBuffer<TextStyle> {
     public override TextStyle Read(BigEndianStream stream) {
         return new TextStyle(
             Range: FfiConverterSequenceInt64.INSTANCE.Read(stream),
+            Utf16Start: FfiConverterUInt64.INSTANCE.Read(stream),
+            Utf16End: FfiConverterUInt64.INSTANCE.Read(stream),
             Size: FfiConverterOptionalDouble.INSTANCE.Read(stream),
             FontPath: FfiConverterOptionalString.INSTANCE.Read(stream),
             FillColor: FfiConverterOptionalSequenceDouble.INSTANCE.Read(stream),
@@ -6681,6 +6809,8 @@ class FfiConverterTypeTextStyle: FfiConverterRustBuffer<TextStyle> {
     public override int AllocationSize(TextStyle value) {
         return 0
             + FfiConverterSequenceInt64.INSTANCE.AllocationSize(value.Range)
+            + FfiConverterUInt64.INSTANCE.AllocationSize(value.Utf16Start)
+            + FfiConverterUInt64.INSTANCE.AllocationSize(value.Utf16End)
             + FfiConverterOptionalDouble.INSTANCE.AllocationSize(value.Size)
             + FfiConverterOptionalString.INSTANCE.AllocationSize(value.FontPath)
             + FfiConverterOptionalSequenceDouble.INSTANCE.AllocationSize(value.FillColor)
@@ -6694,6 +6824,8 @@ class FfiConverterTypeTextStyle: FfiConverterRustBuffer<TextStyle> {
 
     public override void Write(TextStyle value, BigEndianStream stream) {
             FfiConverterSequenceInt64.INSTANCE.Write(value.Range, stream);
+            FfiConverterUInt64.INSTANCE.Write(value.Utf16Start, stream);
+            FfiConverterUInt64.INSTANCE.Write(value.Utf16End, stream);
             FfiConverterOptionalDouble.INSTANCE.Write(value.Size, stream);
             FfiConverterOptionalString.INSTANCE.Write(value.FontPath, stream);
             FfiConverterOptionalSequenceDouble.INSTANCE.Write(value.FillColor, stream);
@@ -10556,12 +10688,35 @@ public static class EccCore {
 
 
     /// <summary>
+    /// A voice filter preset folder in CapCut's effect cache: `path` when it is one, else the cached resource
+    /// `resource_id` under `cache_roots`.
+    /// </summary>
+    public static string? LocateVoiceFilter(string? @path, string @resourceId, string[] @cacheRoots) {
+        return FfiConverterOptionalString.INSTANCE.Lift(
+    _UniffiHelpers.RustCall( (ref UniffiRustCallStatus _status) =>
+    _UniFFILib.uniffi_ecc_core_fn_func_locate_voice_filter(FfiConverterOptionalString.INSTANCE.Lower(@path), FfiConverterString.INSTANCE.Lower(@resourceId), FfiConverterSequenceString.INSTANCE.Lower(@cacheRoots), ref _status)
+));
+    }
+
+
+    /// <summary>
     /// The layout of a lookup image of this size, or `None` when it isn't one.
     /// </summary>
     public static LutLayout? LutLayout(ulong @width, ulong @height) {
         return FfiConverterOptionalTypeLutLayout.INSTANCE.Lift(
     _UniffiHelpers.RustCall( (ref UniffiRustCallStatus _status) =>
     _UniFFILib.uniffi_ecc_core_fn_func_lut_layout(FfiConverterUInt64.INSTANCE.Lower(@width), FfiConverterUInt64.INSTANCE.Lower(@height), ref _status)
+));
+    }
+
+
+    /// <summary>
+    /// The largest lookup table read (entries per channel); `.cube` files above it are skipped.
+    /// </summary>
+    public static ulong LutMaxSize() {
+        return FfiConverterUInt64.INSTANCE.Lift(
+    _UniffiHelpers.RustCall( (ref UniffiRustCallStatus _status) =>
+    _UniFFILib.uniffi_ecc_core_fn_func_lut_max_size( ref _status)
 ));
     }
 
@@ -10780,6 +10935,14 @@ public static class EccCore {
         return FfiConverterSequenceTypeTimeSpan.INSTANCE.Lift(
     _UniffiHelpers.RustCall( (ref UniffiRustCallStatus _status) =>
     _UniFFILib.uniffi_ecc_core_fn_func_ducked_ranges(FfiConverterSequenceTypeLineRange.INSTANCE.Lower(@lines), ref _status)
+));
+    }
+
+
+    public static DuckingRamps DuckingRamps() {
+        return FfiConverterTypeDuckingRamps.INSTANCE.Lift(
+    _UniffiHelpers.RustCall( (ref UniffiRustCallStatus _status) =>
+    _UniFFILib.uniffi_ecc_core_fn_func_ducking_ramps( ref _status)
 ));
     }
 

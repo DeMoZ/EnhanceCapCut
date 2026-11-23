@@ -64,6 +64,12 @@ impl Ffi for t::LutLayout {
     }
 }
 
+/// The largest lookup table read (entries per channel); `.cube` files above it are skipped.
+#[uniffi::export]
+pub fn lut_max_size() -> u64 {
+    t::ColorFilter::MAX_SIZE as u64
+}
+
 /// The layout of a lookup image of this size, or `None` when it isn't one.
 #[uniffi::export]
 pub fn lut_layout(width: u64, height: u64) -> Option<LutLayout> {
@@ -99,4 +105,13 @@ pub fn flashback_frame(progress: f64) -> FlashbackFrame {
             })
             .collect(),
     }
+}
+
+/// A voice filter preset folder in CapCut's effect cache: `path` when it is one, else the cached resource
+/// `resource_id` under `cache_roots`.
+#[uniffi::export]
+pub fn locate_voice_filter(path: Option<String>, resource_id: String, cache_roots: Vec<String>) -> Option<String> {
+    let roots: Vec<std::path::PathBuf> = cache_roots.into_iter().map(Into::into).collect();
+    t::VoiceFilter::locate(path.as_deref().map(std::path::Path::new), &resource_id, &roots)
+        .map(|p| p.to_string_lossy().into_owned())
 }
