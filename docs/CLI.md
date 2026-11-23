@@ -27,7 +27,8 @@ unspecified options fall back to the app's saved settings. `ecc voice` takes `--
 `--remove-voice`, `--denoise 0.85`, `--enhance 75` (the ambient sound level) and/or
 `--filter <id>` with `--strength 1` (a voice filter by its CapCut resource id or cached effect folder).
 Voice filters are read from CapCut's own effect cache, so a filter renders only after CapCut has
-downloaded it (i.e. it has been used or previewed in CapCut on this Mac).
+downloaded it (i.e. it has been used or previewed in CapCut on this Mac). On Windows the voice isolation model
+(DeepFilterNet3, 8.6 MB) is downloaded the first time a render or `ecc voice` needs it.
 `ecc subtitles` takes `--language` (spoken, e.g. `ru-RU`), `--translate en,th`, `--no-original`, `--show <code>`
 (the visible track), `--keep-previous` (don't replace earlier tracks), `--srt <folder>` and `--draft out.json`
 (write the changed draft there instead of into the project), `--no-captions`, `--voice en,th` (voice-over

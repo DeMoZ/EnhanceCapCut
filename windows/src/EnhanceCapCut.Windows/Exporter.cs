@@ -43,12 +43,10 @@ public sealed class Exporter(Timeline timeline, ExportSettings settings, string 
         // 1. Audio.
         Report(ExportProgress.Phases.Audio, 0);
         var audioTimeline = Range is { } r ? AudioMixer.TrimmedForAudio(source, r) : source;
-        var withVoiceEffects = audioTimeline.AudioClips.Count(c => !c.Voice.IsEmpty);
-        if (withVoiceEffects > 0)
-        {
-            Warnings.Add($"Voice effects (isolate voice, reduce noise, enhance voice, voice filters) are not applied on Windows yet: {withVoiceEffects} clip(s) play unprocessed");
-        }
-        var mix = AudioMixer.Mix(audioTimeline, new MfAudioDecoder(), Warnings, p => Report(ExportProgress.Phases.Audio, p * 0.08), cancel);
+        var decoder = new MfAudioDecoder();
+        using var isolator = VoiceIsolation.Load(audioTimeline, Warnings, cancel);
+        var voice = new VoiceProcessor(decoder, isolator, Warnings);
+        var mix = AudioMixer.Mix(audioTimeline, decoder, Warnings, p => Report(ExportProgress.Phases.Audio, p * 0.08), cancel, voice);
         if (settings.NormalizeLoudness)
         {
             Report(ExportProgress.Phases.Loudness, 0.08);

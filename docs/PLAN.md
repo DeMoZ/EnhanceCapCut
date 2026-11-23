@@ -46,6 +46,12 @@ Usage counts from the author's 69 projects drive the order of the later mileston
       error 2.9 → 0.8 dB, spectrum error 2.9 → 1.3 dB, waveform corr 0.982 → 0.989; EatingSlugs (with
       "Reduce noise") level error −3.2 → −0.9 dB; ATV/CockScreams voiceovers within 0–1.8 dB.
 - [x] `ecc voice` auditions the processing on a single file.
+- [x] Windows (issue #49): the same stages and constants in C# (`VoiceProcessor`, `VoiceFilterProcessing`,
+      `SpectralDenoiser`, `VocalRemover`, `VoiceEnhancer` in `EnhanceCapCut.Render`); the voice isolation is
+      DeepFilterNet3 in ONNX Runtime (`VoiceIsolator`, an 8.6 MB model downloaded on first use) in place of
+      `AUSoundIsolation`. Against the Mac's output on the same files: corr 0.994–0.997 (denoise, enhance), keep /
+      remove vocal within 0.02; ElefantCafe ("Reduce noise" + "Enhance voice") against CapCut's export: source
+      0.69, Mac 0.96, Windows 0.96. `ecc voice` on Windows too (a WAV elsewhere).
 
 ## Subtitles and voice-over (done on the Mac)
 
@@ -83,8 +89,8 @@ Usage counts from the author's 69 projects drive the order of the later mileston
       `<project>_dub_<languages>_<original audio>_<n>`; the source stays untouched.
 - [ ] Check in CapCut that it opens a timeline made this way (see FORMAT.md › Timelines).
 - [ ] Voice cloning: speaker diarization, so a line's reference never borrows another speaker's voice; Chinese,
-      Japanese and Hebrew (need Cangjie / kana / diacritics front ends); voice isolation on Windows for cleaner
-      references and "Replace voice" there; GPU (CoreML / DirectML) for the decoder, now the slow part.
+      Japanese and Hebrew (need Cangjie / kana / diacritics front ends); Windows: use the voice isolation (now
+      there for the render) for cleaner cloning references and "Replace voice"; GPU (CoreML / DirectML) for the decoder, now the slow part.
 
 ## AI agents (done)
 

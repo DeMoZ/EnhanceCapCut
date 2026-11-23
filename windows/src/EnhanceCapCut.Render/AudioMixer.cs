@@ -56,9 +56,12 @@ public static class AudioMixer
             [], clips, timeline.Report);
     }
 
-    /// <summary>The whole mix (interleaved stereo); <paramref name="warnings"/> collects clips that could not be decoded.</summary>
+    /// <summary>
+    /// The whole mix (interleaved stereo); <paramref name="warnings"/> collects clips that could not be decoded.
+    /// Clips with voice effects go through <paramref name="voice"/> when given (otherwise they play unprocessed).
+    /// </summary>
     public static float[] Mix(Timeline timeline, IAudioDecoder decoder, List<string> warnings,
-        Action<double>? progress = null, CancellationToken cancel = default)
+        Action<double>? progress = null, CancellationToken cancel = default, VoiceProcessor? voice = null)
     {
         var total = Frames(timeline.Duration);
         var mix = new float[total * 2];
@@ -68,8 +71,9 @@ public static class AudioMixer
             cancel.ThrowIfCancellationRequested();
             var clip = clips[i];
             var map = clip.TimeMap;
-            var audio = decoder.Decode(clip.Path, Math.Max(0, map.SourceStart - DecodeMarginUs),
-                map.SourceStart + map.SourceDuration + DecodeMarginUs);
+            var audio = voice is not null && !clip.Voice.IsEmpty ? voice.Process(clip, cancel)
+                : decoder.Decode(clip.Path, Math.Max(0, map.SourceStart - DecodeMarginUs),
+                    map.SourceStart + map.SourceDuration + DecodeMarginUs);
             if (audio is null || audio.Frames == 0)
             {
                 warnings.Add($"{Path.GetFileName(clip.Path)}: no audio could be decoded");

@@ -41,8 +41,7 @@ with one click EnhanceCapCut opens the project you're working on and
 > - clip animations other than the In / Out fade, zoom, slide, rotate and shake (Combo included,
 >   [#83](../../issues/83));
 > - AI smart edit and other AI processing ([#87](../../issues/87)), makeup looks and face/body reshape ([#78](../../issues/78));
-> - voice filters other than Booming, Live House and Old Hollywood ([#48](../../issues/48)); on Windows, all voice
->   processing — isolate voice, reduce noise, enhance voice ([#49](../../issues/49)).
+> - voice filters other than Booming, Live House and Old Hollywood ([#48](../../issues/48)).
 >
 > Progress: [the board](https://github.com/users/DeMoZ/projects/3) · [the issues](../../issues?q=label%3Acapcut-feature).
 

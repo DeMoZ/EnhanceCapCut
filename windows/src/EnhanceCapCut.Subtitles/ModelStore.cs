@@ -33,6 +33,14 @@ public static class ModelStore
         "https://huggingface.co/Masterx/chatterbox-multilingual-v3-ONNX/resolve/19b94afe41de738624b2f3afc75b4cd56221fbeb/" + f.Name,
         f.Bytes)).ToList();
 
+    /// <summary>
+    /// DeepFilterNet3 (MIT / Apache-2.0) as ONNX, the neural graph only: voice isolation for CapCut's "Isolate voice",
+    /// "Reduce noise" and "Enhance voice" on Windows (<see cref="VoiceIsolator"/>). Pinned to a revision of the export.
+    /// </summary>
+    public static readonly ModelFile VoiceIsolation = new("deepfilternet3", "deepfilter.onnx",
+        "https://huggingface.co/soniqo/DeepFilterNet3-ONNX/resolve/63d8ba442ba900143c468b798e94a04009b2f0c9/deepfilter.onnx",
+        8_608_859);
+
     public static readonly IReadOnlyList<ModelFile> Translation =
     [
         new("nllb", "encoder_model_quantized.onnx", Nllb + "onnx/encoder_model_quantized.onnx", 419_120_483),
