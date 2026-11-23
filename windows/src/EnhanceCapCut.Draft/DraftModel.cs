@@ -677,7 +677,7 @@ public sealed class TextMaterial
     public double BoldWidth { get; set; }
     public double ItalicDegree { get; set; }
     public bool Underline { get; set; }
-    /// <summary><c>1</c> = vertical typesetting (unsupported, rendered horizontally).</summary>
+    /// <summary><c>1</c> = vertical typesetting (characters stacked in columns, see <c>VerticalTextLayout</c>).</summary>
     public int Typesetting { get; set; }
     /// <summary>"Curve" text (bent along an arc), not supported.</summary>
     public bool CurveEnabled { get; set; }

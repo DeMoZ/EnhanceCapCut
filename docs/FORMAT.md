@@ -105,6 +105,14 @@ CapCut's default font `SystemFont/en.ttf` is Latin-only. Its fallbacks live next
 (`NotoSans-Regular.ttf`, `NotoSansThai-Regular.ttf`, …). Measured: Cyrillic is drawn at the nominal size;
 Thai is scaled so its ascent+descent equals the primary font's (≈0.66×).
 
+Line breaks: CapCut breaks at word boundaries, Thai (no spaces) at dictionary words — checked on exports
+(Dumpling: `поэтому ставить буду на 1 | минуту или полторы`; KohChangSquid: `ที่นี่มีตลาดกลางคืนขนาดเล็กบน | เกาะ`);
+Core Text and DirectWrite break the same way.
+
+`typesetting` = 1 is vertical text. None of the author's projects use it, so its layout is not calibrated: we stack
+upright characters top to bottom in columns that run right to left (a newline or `line_max_width` starts the next
+column), columns spaced like lines, `alignment` 0/1/2 = top/middle/bottom (`VerticalTextLayout`).
+
 ### Text animations
 
 A text (or sticker) segment's `extra_material_refs` holds one `materials.material_animations[]` entry (`type`

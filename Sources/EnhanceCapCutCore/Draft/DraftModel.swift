@@ -670,7 +670,7 @@ public struct TextMaterial: Decodable {
     public var boldWidth: Double
     public var italicDegree: Double
     public var underline: Bool
-    /// `1` = vertical typesetting (unsupported, rendered horizontally).
+    /// `1` = vertical typesetting (characters stacked in columns, see `VerticalTextLayout`).
     public var typesetting: Int
     /// "Curve" text (bent along an arc), not supported.
     public var curveEnabled: Bool

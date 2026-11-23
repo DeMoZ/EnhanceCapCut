@@ -242,8 +242,9 @@ instead of `draft_info.json`, and keeps its projects in
 
 ## Known gaps in milestone 1
 
-- Text: text effects only as glows; only the common text animations (#68); vertical typesetting is rendered horizontally; CapCut breaks
-  Cyrillic/Thai lines mid-word, we break at word boundaries; Cyrillic fallback weight differs slightly.
+- Text: text effects only as glows; only the common text animations (#68); vertical typesetting (#47) follows the
+  usual CJK layout and isn't checked against a CapCut export yet (no vertical text in the author's projects);
+  Cyrillic fallback weight differs slightly.
 - Keyframes: bezier easing (#46) follows the community-documented `left/right_control` layout; no curved keyframe
   in the author's projects to check it against a CapCut export yet.
 - Speed curves: video follows the curve exactly; audio follows it in 50 ms steps.
