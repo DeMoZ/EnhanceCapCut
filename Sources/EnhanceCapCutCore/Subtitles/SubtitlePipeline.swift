@@ -69,6 +69,7 @@ public final class SubtitlePipeline {
         let targets = options.targets.filter { $0.code != sourceLanguage.code }
         let dubbing = targets.filter { options.voices[$0.code] != nil }
         let cloning = dubbing.contains { options.voices[$0.code] == Dubber.clonedVoiceID }
+        if cloning { try VoiceCloner.checkAvailable() }
         // Cloned lines are checked with Whisper, so it's needed then too.
         var models = cloning ? ModelStore.voiceCloning : []
         if (options.engine == .whisper || cloning) && !ModelStore.isDownloaded(ModelStore.whisper) { models.append(ModelStore.whisper) }

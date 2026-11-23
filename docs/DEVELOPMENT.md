@@ -27,6 +27,12 @@ Layout: `Sources/EnhanceCapCutCore` (draft model, timeline, renderer, exporter, 
 
 No CapCut resources (shaders, Lua, LUTs, fonts) and no user media or project files are part of this repo.
 
+Voice cloning runs in ONNX Runtime, which isn't a build dependency: `OnnxRuntime.swift` loads Microsoft's
+`libonnxruntime.dylib` at run time. `scripts/fetch-onnxruntime.sh` puts it into `build/onnxruntime` (from the NuGet
+package Microsoft.ML.OnnxRuntime, the version the Windows version uses, checked by SHA-256); `swift run ecc clone`
+finds it there, and `ECC_ONNXRUNTIME=<path>` points to another copy. Microsoft builds it for Apple Silicon only, so
+on Intel Macs voice cloning is unavailable.
+
 ## Rust core and golden parity
 
 `core/` is the shared Rust core the apps are moving to ([openspec/changes/rust-core](../openspec/changes/rust-core));
@@ -86,7 +92,8 @@ scripts/build-app.sh --pkg
 ```
 
 Builds a universal (Apple Silicon + Intel) app and `build/EnhanceCapCut-<version>.pkg`, which installs
-into `/Applications` and refreshes the Services menu.
+into `/Applications` and refreshes the Services menu. Every build ships `libonnxruntime.dylib` (Apple Silicon) in
+`Contents/Frameworks` and its licence files in `Contents/Resources/onnxruntime`.
 
 Releases are built by GitHub Actions (`.github/workflows/release.yml`) for both platforms: bump
 `CFBundleShortVersionString` and `CFBundleVersion` in `App/Info.plist` (the version of the Windows build too),

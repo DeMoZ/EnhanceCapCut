@@ -146,9 +146,11 @@ struct SubtitlesView: View {
         Section {
             Toggle(isOn: $model.cloneVoice) {
                 Text(L("Clone the original voice"))
-                Text(L("Keeps each speaker's voice, intonation and emotion. Runs on this Mac; slower than system voices."))
+                Text(VoiceCloner.unavailableReason
+                     ?? L("Keeps each speaker's voice, intonation and emotion. Runs on this Mac; slower than system voices."))
             }
-            if model.cloneVoice {
+            .disabled(!VoiceCloner.isAvailable)
+            if model.cloning {
                 Label(L("Only for your own voice or people who agreed to have their voice cloned."),
                       systemImage: "exclamationmark.triangle.fill")
                     .font(.caption).foregroundStyle(.orange)
@@ -172,7 +174,7 @@ struct SubtitlesView: View {
                     LabeledContent(lang.displayName) { Text(L("Original voice, cloned")).foregroundStyle(.secondary) }
                 } else {
                     voiceRow(lang)
-                    if model.cloneVoice {
+                    if model.cloning {
                         Text(L("Voice cloning doesn't speak {0}: a system voice will speak it.", lang.displayName))
                             .font(.caption).foregroundStyle(.secondary)
                     }

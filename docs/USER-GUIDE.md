@@ -104,7 +104,7 @@ so the app speaks them through Xcode's Swift interpreter (`Tools/SiriVoice/siri-
 
 **Clone the original voice** dubs in the voice of the person speaking, with the intonation and emotion of each
 line: every translated line is spoken by [Chatterbox Multilingual](https://huggingface.co/ResembleAI/chatterbox)
-V3 (Resemble AI, MIT; the ONNX export runs in ONNX Runtime on this Mac) from a reference that is the original speech
+V3 (Resemble AI, MIT; the ONNX export runs in ONNX Runtime on this Mac, which needs Apple silicon) from a reference that is the original speech
 at that line, taken from the timeline with Apple's voice isolation. Each line is read back with Whisper and made
 again when it came out garbled; lines that run long are sped up (at most 1.35×) without changing the pitch.
 **Expressiveness** (0.5 = like the original) makes the delivery calmer or more dramatic. It speaks Arabic, Danish,

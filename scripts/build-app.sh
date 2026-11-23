@@ -48,6 +48,11 @@ mkdir -p "$app/Contents/Frameworks"
 ditto "$bin/whisper.framework" "$app/Contents/Frameworks/whisper.framework"
 # Sparkle (app updates), signed inside out as its documentation lists.
 ditto "$bin/Sparkle.framework" "$app/Contents/Frameworks/Sparkle.framework"
+# ONNX Runtime (voice cloning) from Microsoft's NuGet package, Apple silicon only; OnnxRuntime.swift loads it.
+scripts/fetch-onnxruntime.sh
+cp build/onnxruntime/libonnxruntime.dylib "$app/Contents/Frameworks/"
+mkdir -p "$app/Contents/Resources/onnxruntime"
+cp build/onnxruntime/LICENSE build/onnxruntime/ThirdPartyNotices.txt "$app/Contents/Resources/onnxruntime/"
 for exe in "$app/Contents/MacOS/EnhanceCapCut" "$app/Contents/MacOS/ecc"; do
   install_name_tool -add_rpath @executable_path/../Frameworks "$exe" 2>/dev/null || true
 done
@@ -58,6 +63,7 @@ cp Tools/SiriVoice/siri-voice.swift "$app/Contents/Resources/"
 # Interface translations (Localization.swift), shared with the Windows version.
 cp -R Localization "$app/Contents/Resources/"
 sign "$app/Contents/Frameworks/whisper.framework"
+sign "$app/Contents/Frameworks/libonnxruntime.dylib"
 sparkle="$app/Contents/Frameworks/Sparkle.framework/Versions/B"
 sign "$sparkle/XPCServices/Installer.xpc"
 sign "$sparkle/XPCServices/Downloader.xpc" --preserve-metadata=entitlements

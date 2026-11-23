@@ -247,6 +247,7 @@ case "subtitles":
     }
     let exaggeration = Float(option("--exaggeration") ?? "") ?? 0.5
     if voices.values.contains(Dubber.clonedVoiceID) {
+        if let reason = VoiceCloner.unavailableReason { fail(reason) }
         guard args.contains("--consent") else {
             fail("Cloning copies a real person's voice. Use it only for voices you have the right to use: your own, or "
                 + "people who agreed to it. Add --consent to confirm you have their consent.")
@@ -331,6 +332,7 @@ case "clone":
         fail("usage: ecc clone <reference audio> --language en --text \"…\" -o out.wav [--exaggeration 0.5] [--seed 1]")
     }
     guard let code = VoiceCloner.modelLanguage(language) else { fail("Voice cloning doesn't speak \(language)") }
+    if let reason = VoiceCloner.unavailableReason { fail(reason) }
     let exaggeration = Float(option("--exaggeration") ?? "") ?? 0.5
     let seed = UInt64(option("--seed") ?? "") ?? 1
     if !ModelStore.isDownloaded(ModelStore.voiceCloning) {
