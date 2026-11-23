@@ -215,7 +215,6 @@ private struct Builder {
                     guard !track.isHidden, segment.visible, let text = texts[segment.materialId],
                           let parsed = TextContent.parse(text.content),
                           !parsed.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { continue }
-                    if text.typesetting != 0 { note(L("Text"), L("vertical typesetting (rendered horizontally)")) }
                     if text.curveEnabled { note(L("Text"), L("curved text (rendered straight)")) }
                     if parsed.styles.contains(where: { $0.strokes.count > 1 }) { note(L("Text"), L("multiple outlines (first one rendered)")) }
                     // A text effect applies only while a style carries its `effectStyle` (see `TextEffectLook`).

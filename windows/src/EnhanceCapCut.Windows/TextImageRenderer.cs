@@ -46,32 +46,25 @@ public sealed class TextImageRenderer(Graphics graphics) : IDisposable
         // Break lines at the material's max line width (a fraction of the canvas width) and at newlines.
         var wrapWidth = (float)Math.Max(material.LineMaxWidth, 0.05) * TextCalibration.WrapFactor * canvasWidth * scale;
         using var layout = graphics.Write.CreateTextLayout(text, format, wrapWidth, 1_000_000);
-        using var layout1 = layout.QueryInterfaceOrNull<IDWriteTextLayout1>();
 
         var brushes = new List<ID2D1SolidColorBrush>();
         var outlines = new List<Outline>();
+        var runs = new List<Run>();
         float maxFontSize = 0, strokeWidth = 0;
         var styles = spec.Content.Styles.Count == 0 ? [null] : spec.Content.Styles.Cast<TextStyle?>().ToList();
         foreach (var style in styles)
         {
             var (lo, hi) = spec.Content.Utf16Range(style);
             if (hi <= lo) continue;
-            var range = new TextRange((uint)lo, (uint)(hi - lo));
             var size = (float)(style?.Size ?? material.FontSize) * Unit(style?.FontPath);
             maxFontSize = Math.Max(maxFontSize, size);
-            layout.SetFontSize(size, range);
-            var font = Font(style?.FontPath ?? material.FontPath);
-            layout.SetFontFamilyName(font?.Family ?? FallbackFamily, range);
-            layout.SetFontCollection(font?.Collection, range);
-            if ((style?.Bold ?? false) || material.BoldWidth > 0) layout.SetFontWeight(FontWeight.Bold, range);
-            if ((style?.Italic ?? false) || material.ItalicDegree > 0) layout.SetFontStyle(FontStyle.Italic, range);
-            if ((style?.Underline ?? false) || material.Underline) layout.SetUnderline(true, range);
             var alpha = (style?.FillAlpha ?? 1) * material.GlobalAlpha;
             var fill = style?.FillColor is { } c ? Rgba.FromRgb(c, alpha) : Rgba.FromHex(material.TextColor, alpha);
             var brush = Brush(fill);
             brushes.Add(brush);
-            layout.SetDrawingEffect(brush, range);
-            if (material.LetterSpacing != 0) layout1?.SetCharacterSpacing(0, (float)material.LetterSpacing * size, 0, range);
+            runs.Add(new(lo, hi, size, Font(style?.FontPath ?? material.FontPath), (style?.Bold ?? false) || material.BoldWidth > 0,
+                (style?.Italic ?? false) || material.ItalicDegree > 0, (style?.Underline ?? false) || material.Underline, brush));
+            ApplyRun(layout, runs[^1], 0, text.Length, material.LetterSpacing);
             if (style?.Strokes.FirstOrDefault() is { Width: > 0 } stroke)
             {
                 var relative = (float)stroke.Width * TextCalibration.StrokeScale;
@@ -88,9 +81,10 @@ public sealed class TextImageRenderer(Graphics graphics) : IDisposable
         if (maxFontSize <= 0) { brushes.ForEach(b => b.Dispose()); return null; }
         // Hidden characters keep their place but draw nothing (no fill, outline or shadow).
         var visible = Math.Clamp(visibleLength ?? text.Length, 0, text.Length);
+        ID2D1SolidColorBrush? clear = null;
         if (visible < text.Length)
         {
-            var clear = Brush(new Rgba(0, 0, 0, 0));
+            clear = Brush(new Rgba(0, 0, 0, 0));
             brushes.Add(clear);
             layout.SetDrawingEffect(clear, new TextRange((uint)visible, (uint)(text.Length - visible)));
         }
@@ -105,6 +99,19 @@ public sealed class TextImageRenderer(Graphics graphics) : IDisposable
         var lines = Math.Max(1, (int)metrics.LineCount);
         var textWidth = MathF.Ceiling(metrics.Width);
         var textHeight = MathF.Ceiling((lines - 1) * pitch + ascent + descent);
+        // What gets drawn: the whole layout, or for vertical text one layout per character; origins are relative to
+        // the text box, Offset is where the layout's text starts in the whole text.
+        var pieces = new List<(IDWriteTextLayout Layout, Vector2 Origin, int Offset)>();
+        if (material.Typesetting == 1)
+        {
+            textWidth = textHeight = 0;
+            pieces = VerticalPieces(text, format, runs, clear, visible, baseSize, ascent, (float)material.LetterSpacing,
+                wrapWidth, pitch, material.Alignment, ref textWidth, ref textHeight);
+        }
+        else
+        {
+            pieces.Add((layout, new Vector2(-metrics.Left, 0), 0));
+        }
 
         var hasBackground = material.BackgroundColor.Length > 0 && material.BackgroundAlpha > 0;
         var padX = hasBackground ? (float)material.BackgroundWidth * baseSize : 0;
@@ -116,25 +123,35 @@ public sealed class TextImageRenderer(Graphics graphics) : IDisposable
         var margin = MathF.Ceiling(strokeWidth * 2 + shadowOffset + Math.Max(shadowBlur, glowBlur) * 2 + maxFontSize * 0.4f + 4);
         float boxWidth = textWidth + padX * 2, boxHeight = textHeight + padY * 2;
         int width = (int)(boxWidth + margin * 2), height = (int)(boxHeight + margin * 2);
-        if (width <= 0 || height <= 0 || width >= 16384 || height >= 16384) { brushes.ForEach(b => b.Dispose()); return null; }
+        if (width <= 0 || height <= 0 || width >= 16384 || height >= 16384)
+        {
+            brushes.ForEach(b => b.Dispose());
+            DisposePieces(pieces, layout);
+            return null;
+        }
 
         // Text (outline under fill, so the stroke only grows outward), then background and shadow around it.
-        var origin = new Vector2(margin + padX - metrics.Left, margin + padY);
+        var origin = new Vector2(margin + padX, margin + padY);
         var glyphs = graphics.CreateBitmap(width, height, BitmapOptions.Target);
         using (var fallbackBrush = Brush(new Rgba(1, 1, 1, 1)))
         {
             graphics.DrawInto(glyphs, dc =>
             {
                 dc.Clear(new Color4(0, 0, 0, 0));
-                if (outlines.Count > 0)
+                foreach (var piece in pieces)
                 {
-                    using var renderer = new OutlineRenderer(graphics, outlines, Brush, visible);
-                    layout.Draw(IntPtr.Zero, renderer, origin.X, origin.Y);
+                    var at = origin + piece.Origin;
+                    if (outlines.Count > 0)
+                    {
+                        using var renderer = new OutlineRenderer(graphics, outlines, Brush, visible, piece.Offset);
+                        piece.Layout.Draw(IntPtr.Zero, renderer, at.X, at.Y);
+                    }
+                    dc.DrawTextLayout(at, piece.Layout, fallbackBrush, DrawTextOptions.EnableColorFont);
                 }
-                dc.DrawTextLayout(origin, layout, fallbackBrush, DrawTextOptions.EnableColorFont);
             });
         }
         brushes.ForEach(b => b.Dispose());
+        DisposePieces(pieces, layout);
         if (!hasBackground && !material.HasShadow && spec.Glow is null) return glyphs;
 
         var result = graphics.CreateBitmap(width, height, BitmapOptions.Target);
@@ -174,6 +191,83 @@ public sealed class TextImageRenderer(Graphics graphics) : IDisposable
         });
         glyphs.Dispose();
         return result;
+    }
+
+    /// <summary>One style's look over the UTF-16 range [Start, End) of the text.</summary>
+    sealed record Run(int Start, int End, float Size, (IDWriteFontCollection Collection, string Family)? Font, bool Bold,
+        bool Italic, bool Underline, ID2D1SolidColorBrush Brush);
+
+    /// <summary>Applies a run to a layout of the text's range [from, to); vertical text has no letter spacing in its
+    /// per-character layouts.</summary>
+    static void ApplyRun(IDWriteTextLayout layout, Run run, int from, int to, double letterSpacing)
+    {
+        int lo = Math.Max(run.Start, from), hi = Math.Min(run.End, to);
+        if (hi <= lo) return;
+        var range = new TextRange((uint)(lo - from), (uint)(hi - lo));
+        layout.SetFontSize(run.Size, range);
+        layout.SetFontFamilyName(run.Font?.Family ?? FallbackFamily, range);
+        layout.SetFontCollection(run.Font?.Collection, range);
+        if (run.Bold) layout.SetFontWeight(FontWeight.Bold, range);
+        if (run.Italic) layout.SetFontStyle(FontStyle.Italic, range);
+        if (run.Underline) layout.SetUnderline(true, range);
+        layout.SetDrawingEffect(run.Brush, range);
+        if (letterSpacing != 0)
+        {
+            using var layout1 = layout.QueryInterfaceOrNull<IDWriteTextLayout1>();
+            layout1?.SetCharacterSpacing(0, (float)letterSpacing * run.Size, 0, range);
+        }
+    }
+
+    /// <summary>
+    /// Vertical text: one layout per character (text element), placed by <see cref="VerticalTextLayout"/>.
+    /// <paramref name="ascent"/> is the part of a cell of <paramref name="baseSize"/> above the baseline.
+    /// </summary>
+    List<(IDWriteTextLayout Layout, Vector2 Origin, int Offset)> VerticalPieces(string text, IDWriteTextFormat format,
+        List<Run> runs, ID2D1SolidColorBrush? clear, int visible, float baseSize, float ascent, float letterSpacing,
+        float limit, float columnPitch, int alignment, ref float width, ref float height)
+    {
+        var starts = System.Globalization.StringInfo.ParseCombiningCharacters(text);
+        var kinds = new List<VerticalTextLayout.Kind>();
+        var advances = new List<float>();
+        var sizes = new List<float>();
+        for (var k = 0; k < starts.Length; k++)
+        {
+            var end = k + 1 < starts.Length ? starts[k + 1] : text.Length;
+            var piece = text[starts[k]..end];
+            var size = runs.LastOrDefault(r => starts[k] >= r.Start && starts[k] < r.End)?.Size ?? baseSize;
+            var kind = piece.Any(ch => ch is '\n' or '\r' or '\u2028' or '\u2029') ? VerticalTextLayout.Kind.Newline
+                : string.IsNullOrWhiteSpace(piece) ? VerticalTextLayout.Kind.Space : VerticalTextLayout.Kind.Character;
+            kinds.Add(kind);
+            sizes.Add(size);
+            var advance = kind == VerticalTextLayout.Kind.Space ? VerticalTextLayout.SpaceAdvance : VerticalTextLayout.CharacterAdvance;
+            advances.Add(kind == VerticalTextLayout.Kind.Newline ? 0 : size * (advance + letterSpacing));
+        }
+        var (placements, w, h) = VerticalTextLayout.Arrange(kinds, advances, limit, columnPitch, baseSize, alignment);
+        width = MathF.Ceiling(w);
+        height = MathF.Ceiling(h);
+        var pieces = new List<(IDWriteTextLayout, Vector2, int)>();
+        foreach (var p in placements)
+        {
+            var start = starts[p.Index];
+            var end = p.Index + 1 < starts.Length ? starts[p.Index + 1] : text.Length;
+            var layout = graphics.Write.CreateTextLayout(text[start..end], format, 1_000_000, 1_000_000);
+            layout.TextAlignment = TextAlignment.Leading;
+            foreach (var run in runs) ApplyRun(layout, run, start, end, 0);
+            if (clear is not null && start >= visible) layout.SetDrawingEffect(clear, new TextRange(0, (uint)(end - start)));
+            var size = sizes[p.Index];
+            layout.SetLineSpacing(LineSpacingMethod.Uniform, size, size * ascent / baseSize);
+            var m = layout.Metrics;
+            pieces.Add((layout, new Vector2(p.CenterX - m.Width / 2 - m.Left, p.Top), start));
+        }
+        return pieces;
+    }
+
+    static void DisposePieces(List<(IDWriteTextLayout Layout, Vector2 Origin, int Offset)> pieces, IDWriteTextLayout main)
+    {
+        foreach (var piece in pieces)
+        {
+            if (!ReferenceEquals(piece.Layout, main)) piece.Layout.Dispose();
+        }
     }
 
     /// <summary>A solid brush (Direct2D takes straight alpha here).</summary>
@@ -251,7 +345,8 @@ public sealed class TextImageRenderer(Graphics graphics) : IDisposable
     /// Strokes each glyph run's outline (centered on the glyph edge, width = 2 × relative × font size, round joins)
     /// in the colour of the outline range it belongs to.
     /// </summary>
-    sealed class OutlineRenderer(Graphics graphics, List<Outline> outlines, Func<Rgba, ID2D1SolidColorBrush> brush, int visible)
+    sealed class OutlineRenderer(Graphics graphics, List<Outline> outlines, Func<Rgba, ID2D1SolidColorBrush> brush, int visible,
+        int offset = 0)
         : TextRendererBase
     {
         readonly ID2D1StrokeStyle round = graphics.Factory.CreateStrokeStyle(new StrokeStyleProperties
@@ -263,7 +358,7 @@ public sealed class TextImageRenderer(Graphics graphics) : IDisposable
         public override void DrawGlyphRun(IntPtr clientDrawingContext, float baselineOriginX, float baselineOriginY,
             MeasuringMode measuringMode, GlyphRun glyphRun, GlyphRunDescription glyphRunDescription, IUnknown clientDrawingEffect)
         {
-            var position = (int)glyphRunDescription.TextPosition;
+            var position = offset + (int)glyphRunDescription.TextPosition;
             // Runs split where the drawing effect changes, so a run is either shown or hidden as a whole.
             if (position >= visible) return;
             var outline = outlines.LastOrDefault(o => position >= o.Start && position < o.End);

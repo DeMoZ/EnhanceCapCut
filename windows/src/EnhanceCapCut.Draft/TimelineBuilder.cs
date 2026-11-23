@@ -241,7 +241,6 @@ public static class TimelineBuilder
                         {
                             if (track.IsHidden || !segment.Visible || texts.GetValueOrDefault(segment.MaterialId) is not { } text
                                 || TextContent.Parse(text.Content) is not { } parsed || string.IsNullOrWhiteSpace(parsed.Text)) continue;
-                            if (text.Typesetting != 0) Note(L("Text"), L("vertical typesetting (rendered horizontally)"));
                             if (text.CurveEnabled) Note(L("Text"), L("curved text (rendered straight)"));
                             if (parsed.Styles.Any(s => s.Strokes.Count > 1)) Note(L("Text"), L("multiple outlines (first one rendered)"));
                             // A text effect applies only while a style carries its effectStyle (see TextEffectLook).

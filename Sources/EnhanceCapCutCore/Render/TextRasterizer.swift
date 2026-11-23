@@ -119,8 +119,26 @@ enum TextRasterizer {
         let baseFont = makeFont(path: baseStyle?.fontPath ?? material.fontPath, size: baseSize, bold: false, italic: false)
         let a = CTFontGetAscent(baseFont), d = CTFontGetDescent(baseFont)
         let ascent = baseSize * a / max(a + d, 1), descent = baseSize - ascent
-        let textSize = CGSize(width: ceil(lines.map(\.width).max() ?? 0),
+        var pieces: [Piece] = []
+        var textSize: CGSize
+        if material.typesetting == 1 {
+            (pieces, textSize) = verticalPieces(fill: attributed, outline: outline, baseSize: baseSize, ascent: ascent,
+                                                letterSpacing: CGFloat(material.letterSpacing), limit: wrapWidth,
+                                                columnPitch: pitch, alignment: material.alignment)
+            textSize = CGSize(width: ceil(textSize.width), height: ceil(textSize.height))
+        } else {
+            textSize = CGSize(width: ceil(lines.map(\.width).max() ?? 0),
                               height: ceil(CGFloat(lines.count - 1) * pitch + ascent + descent))
+            for (i, line) in lines.enumerated() {
+                let x: CGFloat
+                switch paragraph.alignment {
+                case .left: x = 0
+                case .right: x = textSize.width - line.width
+                default: x = (textSize.width - line.width) / 2
+                }
+                pieces.append((line.fill, line.outline, x, ascent + CGFloat(i) * pitch))
+            }
+        }
 
         let hasBackground = !material.backgroundColor.isEmpty && material.backgroundAlpha > 0
         let padX = hasBackground ? CGFloat(material.backgroundWidth) * baseSize : 0
@@ -154,17 +172,11 @@ enum TextRasterizer {
         }
 
         let textLeft = margin + padX
-        let firstBaseline = CGFloat(height) - margin - padY - ascent  // CG origin is bottom-left
+        let textTop = CGFloat(height) - margin - padY  // CG origin is bottom-left
         func draw(_ pick: (CTLine, CTLine) -> CTLine) {
-            for (i, line) in lines.enumerated() {
-                let x: CGFloat
-                switch paragraph.alignment {
-                case .left: x = textLeft
-                case .right: x = textLeft + textSize.width - line.width
-                default: x = textLeft + (textSize.width - line.width) / 2
-                }
-                ctx.textPosition = CGPoint(x: x, y: firstBaseline - CGFloat(i) * pitch)
-                CTLineDraw(pick(line.fill, line.outline), ctx)
+            for piece in pieces {
+                ctx.textPosition = CGPoint(x: textLeft + piece.x, y: textTop - piece.baseline)
+                CTLineDraw(pick(piece.fill, piece.outline), ctx)
             }
         }
         if let glow = spec.glow {
