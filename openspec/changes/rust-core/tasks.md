@@ -35,22 +35,22 @@ Stages follow design.md → Migration Plan. Each group ends in a state where bot
 
 ## 3. Stage 1 — timeline, report and evaluation
 
-- [ ] 3.1 Port `TimeMap`, `KeyframeTrack` and `KeyframeBezier` (easing from #89, keyframes on the source time
+- [x] 3.1 Port `TimeMap`, `KeyframeTrack` and `KeyframeBezier` (easing from #89, keyframes on the source time
   axis) and verify the ported `KeyframeEasingTests` and `CoreTests` time-map cases pass in Rust
-- [ ] 3.2 Port `ClipAnimation`, `TextAnimation`, `ClipMask`, `Transition`, `VideoEffect`, `BlendMode`,
+- [x] 3.2 Port `ClipAnimation`, `TextAnimation`, `ClipMask`, `Transition`, `VideoEffect`, `BlendMode`,
   `ChromaKey`, `ClockSticker`, `TextEffect`, `ColorFilter` (cache lookup through `CoreEnvironment`) and verify
   their ported test files pass
-- [ ] 3.3 Port `TimelineBuilder` and `Timeline` (layers, audio clips, filters, compound clips, cutouts, voice
+- [x] 3.3 Port `TimelineBuilder` and `Timeline` (layers, audio clips, filters, compound clips, cutouts, voice
   effects, "Enhance quality" from #88, text `typesetting` passed through for vertical text from #90,
   `without_subtitles`) and verify the ported builder tests pass, including
   C#-only cases from `DraftTests.cs`
-- [ ] 3.4 Port the report (`note`, `reportRefs`, `report(key:item:)`, missing files) and verify one test per
+- [x] 3.4 Port the report (`note`, `reportRefs`, `report(key:item:)`, missing files) and verify one test per
   report category and that rendered features are not listed
-- [ ] 3.5 Add `Timeline::frame(t) -> FrameState` and vectorized `TimeMap` / `KeyframeTrack` sampling, and verify
+- [x] 3.5 Add `Timeline::frame(t) -> FrameState` and vectorized `TimeMap` / `KeyframeTrack` sampling, and verify
   tests that `frame(t)` equals per-layer evaluation for every layer at clip boundaries and keyframe times
 - [x] 3.6 Add the `tr!` macro over the embedded `Localization/ru.json` and `set_core_language`, and verify a
   `cargo test` that every `tr!` key has a Russian entry and that the default language is English
-- [ ] 3.7 Port `ecc info` formatting as `format_info` and verify its output on the seeded fixtures equals the
+- [x] 3.7 Port `ecc info` formatting as `format_info` and verify its output on the seeded fixtures equals the
   Swift CLI's byte for byte
 
 ## 4. Stage 1 — subtitles and draft writers
