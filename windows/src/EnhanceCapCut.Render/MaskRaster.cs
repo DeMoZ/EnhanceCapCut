@@ -1,5 +1,5 @@
 using System.Text.Json;
-using EnhanceCapCut.Draft;
+using EnhanceCapCut.Core;
 
 namespace EnhanceCapCut.Render;
 
@@ -185,6 +185,15 @@ public static class MaskRaster
 /// </summary>
 public static class BrushFrames
 {
+    /// <summary>The frame times in <paramref name="folder"/>, ascending (files named by source time in µs).</summary>
+    public static List<long> Times(string folder)
+    {
+        if (!Directory.Exists(folder)) return [];
+        return Directory.EnumerateFiles(folder)
+            .Select(f => long.TryParse(Path.GetFileName(f), out var t) ? t : (long?)null)
+            .OfType<long>().Order().ToList();
+    }
+
     public static (int Width, int Height)? Size(string folder)
     {
         try
@@ -228,16 +237,18 @@ public sealed class ClipMaskFrames
         Masks = masks;
         for (var i = 0; i < masks.Count; i++)
         {
-            if (masks[i].BrushFolder is { } folder)
-                brushes[i] = new Brush(folder, ClipMask.BrushTimes(folder), BrushFrames.Size(folder));
+            if (masks[i].Kind is ClipMaskKind.Brush { Directory: var folder })
+                brushes[i] = new Brush(folder, BrushFrames.Times(folder), BrushFrames.Size(folder));
         }
     }
 
     /// <summary>
     /// The coverage frame at source time <paramref name="t"/> for a clip frame of <paramref name="width"/>×<paramref name="height"/>
-    /// pixels; <c>Changed</c> is false when it is the same as the previous call's.
+    /// pixels, with the masks' geometry at that time (<see cref="LayerFrame.Masks"/>, one per mask); <c>Changed</c> is
+    /// false when it is the same as the previous call's.
     /// </summary>
-    public (byte[] Pixels, int Width, int Height, bool Changed)? FrameAt(long t, double width, double height)
+    public (byte[] Pixels, int Width, int Height, bool Changed)? FrameAt(long t, IReadOnlyList<MaskGeometry> geometries,
+        double width, double height)
     {
         var (w, h) = MaskRaster.RasterSize(width, height);
         var layers = new List<MaskRaster.Layer>();
@@ -245,9 +256,9 @@ public sealed class ClipMaskFrames
         for (var i = 0; i < Masks.Count; i++)
         {
             var mask = Masks[i];
-            if (mask.Shape is { } shape)
+            if (mask.Kind is ClipMaskKind.Shape { ShapeValue: var shape })
             {
-                var g = mask.GeometryAt(t);
+                var g = i < geometries.Count ? geometries[i] : mask.Geometry;
                 layers.Add(new MaskRaster.ShapeLayer(shape, g, mask.Inverted));
                 key.Append($"|{shape} {g} {mask.Inverted}");
                 continue;

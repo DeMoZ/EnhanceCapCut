@@ -49,7 +49,7 @@ public sealed class ColorTableEffectTests
         if (!OperatingSystem.IsWindows()) return;
         using var graphics = new Graphics();
         using var image = Bitmap(graphics, 16, 8, (x, _) => x < 8 ? ((byte)26, (byte)204, (byte)51) : ((byte)230, (byte)153, (byte)128));
-        using var keyer = new ChromaKeyer(graphics, new EnhanceCapCut.Draft.ChromaKey(0.1, 0.8, 0.2, 0.5));
+        using var keyer = new ChromaKeyer(graphics, new EnhanceCapCut.Core.ChromaKey(0.1, 0.8, 0.2, 0.5, 0, 0, 0));
         var output = Read(graphics, keyer.Apply(image));
         var row = 4 * 16 * 4;
         Assert.True(output[row + 1 * 4 + 3] == 0, $"screen is transparent (alpha {output[row + 1 * 4 + 3]})");

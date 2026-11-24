@@ -1,3 +1,4 @@
+using EnhanceCapCut.Core;
 using EnhanceCapCut.Draft;
 using EnhanceCapCut.Subtitles;
 using EnhanceCapCut.Windows;
@@ -196,7 +197,7 @@ sealed class SubtitlesWindow : Window
         ToolTipService.SetToolTip(replaceRow, L("Removes the caption and voice-over tracks an earlier run added to this timeline (only the "
             + "kinds created now), and its volume changes. Your own tracks stay."));
         srtRow = options.Add(L("Also save .srt files to the export folder"), srtSwitch);
-        options.Footer = L("The project file is backed up before it's changed ({0}).", DraftSubtitleWriter.BackupRoot);
+        options.Footer = L("The project file is backed up before it's changed ({0}).", DraftWriter.BackupRoot);
         replaceSwitch.Switched += on => model.ReplacePrevious = on;
         srtSwitch.Switched += on => model.SaveSrt = on;
 
@@ -285,7 +286,7 @@ sealed class SubtitlesWindow : Window
 
     void UpdateProject()
     {
-        projectPicker.Set(export.DisplayedProjects.Select(p => (p.Folder, p.IsOpen ? L("{0}  — open in CapCut", p.Name) : p.Name)),
+        projectPicker.Set(export.DisplayedProjects.Select(p => (p.Path, p.IsOpen ? L("{0}  — open in CapCut", p.Name) : p.Name)),
             export.SelectedProjectFolder);
         timelinePicker.Set(export.Timelines.Select(t => (t.Id, t.IsMain ? L("{0}  — main", t.Name) : t.Name)), export.SelectedTimelineID);
         timelineRow.IsShown = export.Timelines.Count > 1;

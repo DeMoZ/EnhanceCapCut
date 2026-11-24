@@ -1,8 +1,10 @@
 ﻿using System.Globalization;
+using System.Text;
+using EnhanceCapCut.Core;
 using EnhanceCapCut.Draft;
 
-// Command-line front end of the Windows version, used for automation and for checking the draft port
-// against the macOS version (`ecc info` prints the same report as the Swift CLI).
+// Command-line front end of the Windows version, used for automation (`ecc info` prints the Rust core's report, the
+// same text as the macOS CLI's).
 //   ecc list
 //   ecc info [project] [--timeline name|number]
 //   ecc render [project] [--timeline name|number] [-o file] [--codec h264|hevc|hevc10] [--quality 0-100 | --bitrate Mbps]
@@ -25,6 +27,15 @@ using EnhanceCapCut.Draft;
 //   ecc mcp
 //             (an MCP server on stdin/stdout for AI agents: list, info, render and subtitles as tools; see docs/CLI.md)
 
+// UTF-8 like the macOS CLI (Windows consoles default to an OEM code page), so reports and file names come out intact:
+// into a pipe or file straight as bytes, without touching a console (there may be none); in a console through its code
+// page.
+if (Console.IsOutputRedirected) Console.SetOut(new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false)) { AutoFlush = true });
+else
+{
+    try { Console.OutputEncoding = new UTF8Encoding(false); }
+    catch (IOException) { }
+}
 var rest = new List<string>(args);
 var command = rest.Count == 0 ? "help" : rest[0];
 if (rest.Count > 0) rest.RemoveAt(0);
@@ -79,27 +90,12 @@ CapCutProject Project()
 // `--timeline` picks one of the project's timelines by name or 1-based number; the main one by default.
 ProjectTimeline TimelineOf(string? arg, CapCutProject project)
 {
-    var all = project.Timelines();
-    if (arg is null) return all.FirstOrDefault(t => t.IsMain) ?? all[0];
-    if (all.FirstOrDefault(t => string.Equals(t.Name, arg, StringComparison.OrdinalIgnoreCase) || t.Id == arg) is { } named) return named;
-    if (int.TryParse(arg, out var n) && n >= 1 && n <= all.Count) return all[n - 1];
-    Fail($"No timeline {arg} in {project.Name}: " + string.Join(", ", all.Select(t => t.Name)));
+    if (project.Timeline(arg) is { } timeline) return timeline;
+    Fail($"No timeline {arg} in {project.Name}: " + string.Join(", ", project.Timelines().Select(t => t.Name)));
     return null!;
 }
 
 static string F2(double v) => v.ToString("0.00", CultureInfo.InvariantCulture);
-static string Seconds(long us) => F2(us / 1_000_000.0) + "s";
-// Swift prints whole doubles as "30.0".
-static string SwiftDouble(double v) => v == Math.Floor(v) && Math.Abs(v) < 1e15
-    ? ((long)v).ToString(CultureInfo.InvariantCulture) + ".0" : v.ToString(CultureInfo.InvariantCulture);
-// The first `count` characters (grapheme clusters, as Swift counts them).
-static string Prefix(string s, int count)
-{
-    var e = StringInfo.GetTextElementEnumerator(s);
-    var length = 0;
-    for (var i = 0; i < count && e.MoveNext(); i++) length = e.ElementIndex + ((string)e.Current).Length;
-    return s[..length];
-}
 
 switch (command)
 {
@@ -110,75 +106,11 @@ switch (command)
 
     case "info":
     {
+        // The Rust core's report, the same text as the macOS CLI's.
         var timelineArg = Option("--timeline");
         RejectUnknownOptions();
-        var p = Project();
-        var pt = TimelineOf(timelineArg, p);
-        var timeline = TimelineBuilder.Build(p, pt);
-        var timelines = p.Timelines();
-        if (timelines.Count > 1)
-        {
-            Console.WriteLine("Timelines: " + string.Join(", ",
-                timelines.Select(t => (t == pt ? "*" : "") + t.Name + (t.IsMain ? " (main)" : ""))));
-        }
-        Console.WriteLine($"Project: {p.Name}  canvas {timeline.CanvasWidth}x{timeline.CanvasHeight}  "
-            + $"{SwiftDouble(timeline.Fps)} fps  duration {Seconds(timeline.Duration)}");
-        Console.WriteLine($"Visual layers: {timeline.Layers.Count}, audio clips: {timeline.AudioClips.Count}");
-        foreach (var layer in timeline.Layers)
-        {
-            var kind = layer.Content switch
-            {
-                VideoContent v => "video " + Path.GetFileName(v.Path),
-                PhotoContent ph => "photo " + Path.GetFileName(ph.Path),
-                TextContentLayer t => "text \"" + Prefix(t.Spec.Content.Text, 30).Replace("\n", " ") + "\"",
-                CompoundContent c => $"compound ({c.Timeline.Layers.Count} layers)",
-                StickerContent st => "sticker " + st.Name,
-                _ => "?",
-            };
-            var speed = layer.TimeMap.IsConstant ? "x" + F2(layer.TimeMap.AverageSpeed) : "curve";
-            Console.WriteLine($"  [{layer.RenderIndex}/t{layer.TrackIndex}] {Seconds(layer.Target.Start)}+{Seconds(layer.Target.Duration)} {speed} {kind}");
-        }
-        foreach (var clip in timeline.AudioClips)
-        {
-            var fx = "";
-            var v = clip.Voice;
-            if (v.Separation == VoiceEffects.SeparationMode.KeepVoice) fx += " [keep voice]";
-            if (v.Separation == VoiceEffects.SeparationMode.RemoveVoice) fx += " [remove voice]";
-            if (v.Denoise is { } d) fx += $" [denoise {F2(d)}]";
-            if (v.Enhance is { } e) fx += $" [enhance {(e * 100).ToString("0", CultureInfo.InvariantCulture)}]";
-            if (v.Filter is { } f)
-                fx += $" [{f.Name}{(f.Strength < 1 ? " " + (f.Strength * 100).ToString("0", CultureInfo.InvariantCulture) + "%" : "")}]";
-            Console.WriteLine($"  audio {Seconds(clip.Target.Start)}+{Seconds(clip.Target.Duration)} vol {F2(clip.Volume)} {Path.GetFileName(clip.Path)}{fx}");
-        }
-        if (timeline.Report.Unsupported.Count > 0)
-        {
-            Console.WriteLine("Not supported yet:");
-            foreach (var item in timeline.Report.Unsupported) Console.WriteLine($"  {item.Category}: {item.Name} ×{item.Count}");
-        }
-        if (timeline.Report.MissingFiles.Count > 0)
-        {
-            Console.WriteLine("Missing media:");
-            foreach (var file in timeline.Report.MissingFiles) Console.WriteLine($"  {file}");
-        }
-        break;
-    }
-
-    // Hidden (not in help): the canonical dumps of the golden-parity runner, see Golden.cs.
-    case "dump-timeline":
-    {
-        var timelineArg = Option("--timeline");
-        RejectUnknownOptions();
-        var p = Project();
-        Console.Write(Golden.DumpTimeline(TimelineBuilder.Build(p, TimelineOf(timelineArg, p)), p.Folder));
-        break;
-    }
-
-    case "dump-writers":
-    {
-        var timelineArg = Option("--timeline");
-        RejectUnknownOptions();
-        var p = Project();
-        Console.Write(Golden.DumpWriters(p, TimelineOf(timelineArg, p)));
+        try { Console.Write(EccCore.FormatInfo(rest.FirstOrDefault(a => !a.StartsWith('-')), timelineArg, CoreEnvironment.Current)); }
+        catch (CoreException e) { Fail(e.Message); }
         break;
     }
 
@@ -325,10 +257,10 @@ async Task Subtitles()
         }, engine, originalVoice: originalVoice);
     var tracks = output.Captions;
     foreach (var track in output.VoiceOver)
-        Console.WriteLine($"voice-over {track.Language.Code}{(track.IsAudible ? " (audible)" : "")}: {track.Lines.Count} lines → {track.Path}");
+        Console.WriteLine($"voice-over {track.Language}{(track.IsAudible ? " (audible)" : "")}: {track.Lines.Length} lines → {track.Path}");
     foreach (var track in tracks)
     {
-        Console.WriteLine($"{track.Language.Code}{(track.IsVisible ? " (shown)" : "")}: {track.Cues.Count} cues");
+        Console.WriteLine($"{track.Language}{(track.IsVisible ? " (shown)" : "")}: {track.Cues.Length} cues");
         foreach (var cue in track.Cues.Take(3))
             Console.WriteLine($"  {F2(cue.Start)}–{F2(cue.End)} " + cue.Text.Replace("\n", " / "));
     }
@@ -338,27 +270,34 @@ async Task Subtitles()
                      pt.IsMain ? p.Name : $"{p.Name} {pt.Name}"))
             Console.WriteLine($"Wrote {path}");
     }
-    byte[] Apply(byte[] draft) => EnhanceCapCut.Subtitles.SubtitlePipeline.Apply(output, draft, original, replace, p.Folder);
-    if (draftOut is not null)
+    var edits = output.Edits(original, replace);
+    try
     {
-        File.WriteAllBytes(draftOut, Apply(File.ReadAllBytes(pt.DraftPath)));
-        Console.WriteLine($"Wrote {draftOut}");
+        if (draftOut is not null)
+        {
+            File.WriteAllBytes(draftOut, DraftWriter.Apply(edits, File.ReadAllBytes(pt.DraftPath), p.Path));
+            Console.WriteLine($"Wrote {draftOut}");
+        }
+        // Voice-over goes to a dubbed copy of the timeline; captions alone into the timeline itself.
+        else if (output.VoiceOver.FirstOrDefault(t => t.IsAudible && !t.IsBackground)?.Language is { } heard)
+        {
+            var codes = output.VoiceOver.Where(t => !t.IsBackground).Select(t => t.Language).Where(c => c != heard).Prepend(heard);
+            var name = DraftWriter.DubName(p, codes, original);
+            var result = DraftWriter.CreateDub(edits, p, pt, name).Result;
+            Console.WriteLine($"New timeline {name}");
+            foreach (var file in result.Files) Console.WriteLine($"Wrote {file}");
+            Console.WriteLine($"Backup: {result.BackupFolder}");
+        }
+        else
+        {
+            var result = DraftWriter.Write(edits, p, pt);
+            foreach (var file in result.Files) Console.WriteLine($"Updated {file}");
+            Console.WriteLine($"Backup: {result.BackupFolder}");
+        }
     }
-    // Voice-over goes to a dubbed copy of the timeline; captions alone into the timeline itself.
-    else if (output.VoiceOver.FirstOrDefault(t => t.IsAudible && !t.IsBackground)?.Language.Code is { } heard)
+    catch (CoreException e)
     {
-        var codes = output.VoiceOver.Where(t => !t.IsBackground).Select(t => t.Language.Code).Where(c => c != heard).Prepend(heard);
-        var name = DubTimeline.Name(p, codes, original);
-        var (_, result) = DubTimeline.Create(p, pt, name, tracks.Sum(t => t.Cues.Count), Apply);
-        Console.WriteLine($"New timeline {name}");
-        foreach (var file in result.Files) Console.WriteLine($"Wrote {file}");
-        Console.WriteLine($"Backup: {result.BackupFolder}");
-    }
-    else
-    {
-        var result = DraftSubtitleWriter.Write(p, pt, tracks.Sum(t => t.Cues.Count), Apply);
-        foreach (var file in result.Files) Console.WriteLine($"Updated {file}");
-        Console.WriteLine($"Backup: {result.BackupFolder}");
+        Fail(e.Message);
     }
 }
 
@@ -402,15 +341,19 @@ async Task Clone()
 // Audition "Isolate voice" / "Reduce noise" / "Enhance voice" / a voice filter on a single media file (as the Swift CLI).
 async Task Voice()
 {
-    var effects = new VoiceEffects();
-    if (rest.Remove("--keep-voice")) effects = effects with { Separation = VoiceEffects.SeparationMode.KeepVoice };
-    if (rest.Remove("--remove-voice")) effects = effects with { Separation = VoiceEffects.SeparationMode.RemoveVoice };
+    var effects = VoiceEffects.Only(VoiceSeparation.None);
+    if (rest.Remove("--keep-voice")) effects = effects with { Separation = VoiceSeparation.KeepVoice };
+    if (rest.Remove("--remove-voice")) effects = effects with { Separation = VoiceSeparation.RemoveVoice };
     if (Option("--denoise") is { } dn) effects = effects with { Denoise = Number(dn) };
     if (Option("--enhance") is { } en) effects = effects with { Enhance = Number(en) / 100 };
     var strength = Option("--strength") is { } st ? Number(st) : 1;
     if (Option("--filter") is { } fx)
     {
-        if (VoiceFilter.Locate(Path.GetFullPath(fx), fx) is not { } dir) { Fail($"No cached voice filter preset: {fx}"); return; }
+        if (EccCore.LocateVoiceFilter(Path.GetFullPath(fx), fx, CoreEnvironment.Current.CapcutCacheRoots) is not { } dir)
+        {
+            Fail($"No cached voice filter preset: {fx}");
+            return;
+        }
         effects = effects with { Filter = new VoiceFilter(Path.GetFileName(Path.GetDirectoryName(dir)) ?? fx, dir, strength) };
     }
     var output = Option("-o");
@@ -431,7 +374,7 @@ async Task Voice()
     var whole = decoder.Decode(input, 0, long.MaxValue);
     if (whole is null) { Fail($"No audio in {input}"); return; }
     var length = (long)(whole.Frames * 1_000_000.0 / EnhanceCapCut.Render.AudioMixer.SampleRate);
-    var clip = new AudioClip(input, new TimeRange(0, length), new TimeMap(0, length, length), 1, 0, 0, true) { Voice = effects };
+    var clip = new AudioClip(input, new TimeRange(0, length), TimeMap.Constant(0, length, length), 1, 0, 0, true, null, effects);
     var warnings = new List<string>();
     if (EnhanceCapCut.Render.VoiceProcessor.NeedsIsolation(effects))
         await EnhanceCapCut.Subtitles.ModelStore.EnsureAsync([EnhanceCapCut.Subtitles.ModelStore.VoiceIsolation]);
@@ -502,21 +445,24 @@ void Render()
     RejectUnknownOptions();
     var p = Project();
     var pt = TimelineOf(timelineArg, p);
-    var timeline = TimelineBuilder.Build(p, pt);
+    Timeline timeline;
+    try { timeline = Timeline.Build(p, pt); }
+    catch (CoreException e) { Fail(e.Message); return; }
     var name = pt.IsMain ? p.Name : $"{p.Name} {pt.Name}";
     var (width, heightPx) = settings.OutputSize(timeline.CanvasWidth, timeline.CanvasHeight);
-    var rate = settings.Fps(timeline.Fps);
+    var rate = settings.Fps(timeline.Fps());
     var path = output is not null ? Path.GetFullPath(output)
         : Path.Combine(settings.OutputFolder, settings.FileName(name, width, heightPx, rate));
     var exporter = new EnhanceCapCut.Windows.Exporter(timeline, settings, path);
     if (from is not null || length is not null)
     {
         var start = (long)((from ?? 0) * 1_000_000);
-        var duration = length is { } l ? (long)(l * 1_000_000) : timeline.Duration - start;
-        exporter.Range = new TimeRange(start, Math.Min(duration, timeline.Duration - start));
+        var duration = length is { } l ? (long)(l * 1_000_000) : timeline.Duration() - start;
+        exporter.Range = new TimeRange(start, Math.Min(duration, timeline.Duration() - start));
     }
-    foreach (var item in timeline.Report.Unsupported) Console.WriteLine($"not supported: {item.Category}: {item.Name} ×{item.Count}");
-    foreach (var file in timeline.Report.MissingFiles) Console.WriteLine($"missing: {file}");
+    var report = timeline.Report();
+    foreach (var item in report.Unsupported) Console.WriteLine($"not supported: {item.Category}: {item.Name} ×{item.Count}");
+    foreach (var file in report.MissingFiles) Console.WriteLine($"missing: {file}");
     Console.WriteLine($"Rendering {name} → {path} ({width}x{heightPx} @ {rate.ToString(CultureInfo.InvariantCulture)} fps, "
         + EnhanceCapCut.Draft.ExportSettings.Title(settings.Codec) + ")");
     var last = DateTime.MinValue;

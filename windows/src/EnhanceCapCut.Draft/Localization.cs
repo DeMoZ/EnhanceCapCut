@@ -46,6 +46,8 @@ public static class Localization
     {
         Current = language;
         table = language == Language.English ? new Dictionary<string, string>() : Load(language) ?? new Dictionary<string, string>();
+        // The Rust core's texts (report, writer errors, original-audio names) follow the interface language.
+        EnhanceCapCut.Core.EccCore.SetCoreLanguage(language.Code());
     }
 
     /// <summary>The translation table for <paramref name="language"/>, from the embedded copy of the repo's file.</summary>

@@ -1,3 +1,4 @@
+using EnhanceCapCut.Core;
 using EnhanceCapCut.Draft;
 using Whisper.net;
 using static EnhanceCapCut.Draft.Localization;

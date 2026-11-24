@@ -1,3 +1,4 @@
+using EnhanceCapCut.Core;
 using EnhanceCapCut.Draft;
 using EnhanceCapCut.Render;
 using EnhanceCapCut.Subtitles;
@@ -11,7 +12,7 @@ abstract record SubtitlesPhase
 {
     public sealed record Idle : SubtitlesPhase;
     public sealed record Running(string Step, double Fraction) : SubtitlesPhase;
-    public sealed record Done(DraftSubtitleWriter.Result Result, string Summary, IReadOnlyList<string> Srt) : SubtitlesPhase;
+    public sealed record Done(WriteResult Result, string Summary, IReadOnlyList<string> Srt) : SubtitlesPhase;
     public sealed record Failed(string Message) : SubtitlesPhase;
 }
 
@@ -186,7 +187,7 @@ sealed class SubtitlesModel
     /// <summary>The audible voice-over track: the saved choice when it's among them, else the first one.</summary>
     /// <summary>The timeline a voice-over run creates (a dubbed copy of the selected one); null without voice-over.</summary>
     public string? DubTimelineName => Export.SelectedProject is { } project && EffectiveAudibleVoice is { } heard
-        ? DubTimeline.Name(project, DubLanguages.Select(l => l.Code).Where(c => c != heard).Prepend(heard), OriginalAudio)
+        ? DraftWriter.DubName(project, DubLanguages.Select(l => l.Code).Where(c => c != heard).Prepend(heard), OriginalAudio)
         : null;
 
     public string? EffectiveAudibleVoice => DubLanguages.Any(l => l.Code == AudibleVoice) ? AudibleVoice : DubLanguages.FirstOrDefault()?.Code;
@@ -203,7 +204,7 @@ sealed class SubtitlesModel
     /// <summary>Re-checks whether the selected project is open in CapCut.</summary>
     public void RefreshProjectState()
     {
-        ProjectIsOpen = Export.SelectedProject is { } project && DraftSubtitleWriter.IsOpenInCapCut(project);
+        ProjectIsOpen = Export.SelectedProject is { } project && project.IsOpenInCapCut;
         if (Phase is SubtitlesPhase.Done or SubtitlesPhase.Failed) Phase = new SubtitlesPhase.Idle();
         Notify();
     }
@@ -376,7 +377,8 @@ sealed class SubtitlesModel
         RefreshProjectState();
         if (ProjectIsOpen)
         {
-            Phase = new SubtitlesPhase.Failed(new ProjectOpenException(project.Name).Message);
+            Phase = new SubtitlesPhase.Failed(L("{0} is open in CapCut. Close the project (back to CapCut's home screen) and try again — "
+                + "otherwise CapCut overwrites the subtitles when it saves.", project.Name));
             Notify();
             return;
         }
@@ -435,22 +437,21 @@ sealed class SubtitlesModel
 
                 // 3. The draft.
                 var tracks = output.Captions;
-                var cueCount = tracks.Sum(t => t.Cues.Count);
-                byte[] Apply(byte[] draft) => SubtitlePipeline.Apply(output, draft, original, replace, project.Folder);
+                var edits = output.Edits(original, replace);
                 // Voice-over goes to a dubbed copy of the timeline; captions alone into the timeline itself.
-                DraftSubtitleWriter.Result result;
+                WriteResult result;
                 var target = project.Name;
                 if (dubName is not null && output.VoiceOver.Count > 0)
                 {
-                    result = DubTimeline.Create(project, projectTimeline, dubName, cueCount, Apply).Result;
+                    result = DraftWriter.CreateDub(edits, project, projectTimeline, dubName).Result;
                     target = L("the new timeline {0}", dubName);
                 }
-                else result = DraftSubtitleWriter.Write(project, projectTimeline, cueCount, Apply);
+                else result = DraftWriter.Write(edits, project, projectTimeline);
                 draftWritten = true;
                 var srt = srtFolder is not null ? SubtitlePipeline.WriteSrt(tracks, srtFolder, baseName) : [];
                 var parts = new List<string>();
-                if (tracks.Count > 0) parts.Add(L("{0} captions ({1})", result.CueCount, string.Join(", ", tracks.Select(t => t.Language.Code))));
-                if (output.VoiceOver.Count > 0) parts.Add(L("voice-over ({0})", string.Join(", ", output.VoiceOver.Select(t => t.Language.Code))));
+                if (tracks.Count > 0) parts.Add(L("{0} captions ({1})", result.CueCount, string.Join(", ", tracks.Select(t => t.Language))));
+                if (output.VoiceOver.Count > 0) parts.Add(L("voice-over ({0})", string.Join(", ", output.VoiceOver.Select(t => t.Language))));
                 var summary = L("Added {0} to {1}", string.Join(L(" and "), parts), target);
                 ui.TryEnqueue(() =>
                 {

@@ -1,4 +1,5 @@
 using System.Globalization;
+using EnhanceCapCut.Core;
 using EnhanceCapCut.Draft;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -245,7 +246,7 @@ sealed class ExportWindow : Window
 
     void UpdateProject()
     {
-        projectPicker.Set(model.DisplayedProjects.Select(p => (p.Folder, p.IsOpen ? L("{0}  — open in CapCut", p.Name) : p.Name)),
+        projectPicker.Set(model.DisplayedProjects.Select(p => (p.Path, p.IsOpen ? L("{0}  — open in CapCut", p.Name) : p.Name)),
             model.SelectedProjectFolder);
         sortToggle.IsChecked = model.SortProjectsByName;
         ToolTipService.SetToolTip(sortToggle, model.SortProjectsByName ? L("Sorted by name. Click for CapCut's order")
@@ -256,8 +257,8 @@ sealed class ExportWindow : Window
         var timeline = model.Timeline;
         canvasRow.IsShown = timeline is not null;
         if (timeline is not null)
-            canvasText.Text = L("{0}×{1}, {2} fps, {3}", timeline.CanvasWidth, timeline.CanvasHeight, Format.Fps(timeline.Fps),
-                Format.Duration(timeline.Duration));
+            canvasText.Text = L("{0}×{1}, {2} fps, {3}", timeline.CanvasWidth, timeline.CanvasHeight, Format.Fps(timeline.Fps()),
+                Format.Duration(timeline.Duration()));
         errorRow.IsShown = timeline is null && model.LoadError is not null;
         errorText.Text = model.LoadError ?? "";
         loadingRow.IsShown = timeline is null && model.LoadError is null && model.SelectedProject is not null;
@@ -267,7 +268,7 @@ sealed class ExportWindow : Window
 
     void UpdateUnsupported()
     {
-        var report = model.Timeline?.Report;
+        var report = model.Timeline?.Report();
         unsupported.IsShown = report is { IsEmpty: false };
         var signature = report is null ? "" : string.Join("\n", report.Unsupported.Select(i => i.Id + i.Count).Concat(report.MissingFiles));
         if (signature == unsupportedSignature) return;
@@ -282,14 +283,14 @@ sealed class ExportWindow : Window
             text.Foreground = Theme.Secondary;
             unsupported.Add(new StackPanel { Spacing = 2, Children = { Text.Headline(group.Key), text } });
         }
-        if (report.MissingFiles.Count > 0)
+        if (report.MissingFiles.Length > 0)
         {
             var title = Text.Headline(L("Missing media (rendered empty)"));
             title.Foreground = Theme.Red;
             var panel = new StackPanel { Spacing = 2, Children = { title } };
             foreach (var file in report.MissingFiles.Take(12))
                 panel.Children.Add(new TextBlock { Text = Format.MiddleEllipsis(file, 70), FontSize = 12 });
-            if (report.MissingFiles.Count > 12) panel.Children.Add(Text.Caption(L("…and {0} more", report.MissingFiles.Count - 12)));
+            if (report.MissingFiles.Length > 12) panel.Children.Add(Text.Caption(L("…and {0} more", report.MissingFiles.Length - 12)));
             unsupported.Add(panel);
         }
     }
@@ -301,7 +302,7 @@ sealed class ExportWindow : Window
         resolutionPicker.Set(Enum.GetValues<ExportSettings.Resolution>().Select(r => (r, ExportSettings.Title(r))), s.OutputResolution);
         outputSizeRow.IsShown = model.OutputSize is not null;
         if (model.OutputSize is { } size) outputSizeText.Text = $"{size.Width}×{size.Height}";
-        var fromProject = model.Timeline is { } t ? L("From project ({0})", Format.Fps(t.Fps)) : L("From project");
+        var fromProject = model.Timeline is { } t ? L("From project ({0})", Format.Fps(t.Fps())) : L("From project");
         frameRatePicker.Set(new[] { (0.0, fromProject) }.Concat(new[] { 24.0, 25, 30, 60 }.Select(f => (f, Format.Fps(f)))), s.FrameRate);
         codecPicker.Set(Enum.GetValues<ExportSettings.VideoCodec>().Select(c => (c, ExportSettings.Title(c))), s.Codec);
         rateControl.Select(s.RateControl);
@@ -310,7 +311,7 @@ sealed class ExportWindow : Window
         qualitySlider.Value = s.Quality;
         qualityText.Text = ((int)s.Quality).ToString(CultureInfo.InvariantCulture);
         if (bitrateBox.Value != s.BitrateMbps) bitrateBox.Value = s.BitrateMbps;
-        burnInRow.IsShown = model.Timeline?.HasSubtitles == true;
+        burnInRow.IsShown = model.Timeline?.HasSubtitles() == true;
         burnInSwitch.Set(s.BurnInSubtitles);
 
         normalizeSwitch.Set(s.NormalizeLoudness);

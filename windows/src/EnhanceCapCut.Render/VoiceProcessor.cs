@@ -1,3 +1,4 @@
+using EnhanceCapCut.Core;
 using EnhanceCapCut.Draft;
 
 namespace EnhanceCapCut.Render;
@@ -35,7 +36,7 @@ public sealed class VoiceProcessor(IAudioDecoder decoder, IVoiceIsolator? isolat
     bool reportedMissingIsolator;
 
     /// <summary>Whether <paramref name="voice"/> needs the voice isolation model.</summary>
-    public static bool NeedsIsolation(VoiceEffects voice) => voice.Separation != VoiceEffects.SeparationMode.None
+    public static bool NeedsIsolation(VoiceEffects voice) => voice.Separation != VoiceSeparation.None
         || AmbienceShare(voice) < 1;
 
     /// <summary>The share of the ambience (source − voice) kept on a clip without separation.</summary>
@@ -50,8 +51,8 @@ public sealed class VoiceProcessor(IAudioDecoder decoder, IVoiceIsolator? isolat
     /// <summary>The clip's processed source audio (covering its range plus padding), or null without audio.</summary>
     public DecodedAudio? Process(AudioClip clip, CancellationToken cancel = default)
     {
-        var start = Math.Max(0, clip.TimeMap.SourceStart - PaddingUs);
-        var end = clip.TimeMap.SourceStart + clip.TimeMap.SourceDuration + PaddingUs;
+        var start = Math.Max(0, clip.TimeMap.SourceStart() - PaddingUs);
+        var end = clip.TimeMap.SourceStart() + clip.TimeMap.SourceDuration() + PaddingUs;
         var key = (clip.Path, start, end, clip.Voice);
         if (cache.TryGetValue(key, out var cached)) return cached;
         var audio = decoder.Decode(clip.Path, start, end);
@@ -74,20 +75,20 @@ public sealed class VoiceProcessor(IAudioDecoder decoder, IVoiceIsolator? isolat
         {
             switch (voice.Separation)
             {
-                case VoiceEffects.SeparationMode.None:
+                case VoiceSeparation.None:
                     x = Blend(x, Isolate(x, cancel), (float)(1 - AmbienceShare(voice)));
                     break;
-                case VoiceEffects.SeparationMode.KeepVoice:
+                case VoiceSeparation.KeepVoice:
                     x = Isolate(x, cancel);
                     break;
-                case VoiceEffects.SeparationMode.RemoveVoice:
+                case VoiceSeparation.RemoveVoice:
                     x = VocalRemover.Process(x, Isolate(x, cancel), cancel: cancel);
                     break;
             }
         }
-        if (voice.Separation == VoiceEffects.SeparationMode.RemoveVoice && voice.Denoise is { } denoise)
+        if (voice.Separation == VoiceSeparation.RemoveVoice && voice.Denoise is { } denoise)
             x = SpectralDenoiser.Process(x, denoise, cancel);
-        if (voice.Enhance is not null && voice.Separation != VoiceEffects.SeparationMode.RemoveVoice)
+        if (voice.Enhance is not null && voice.Separation != VoiceSeparation.RemoveVoice)
             foreach (var c in x) VoiceEnhancer.Apply(c, SampleRate);
         if (voice.Filter is { } filter)
         {
@@ -95,7 +96,7 @@ public sealed class VoiceProcessor(IAudioDecoder decoder, IVoiceIsolator? isolat
             try
             {
                 var graph = VoiceFilterGraph.Load(filter.Directory);
-                var first = (int)Math.Clamp(AudioMixer.Frames(clip.TimeMap.SourceStart - audio.StartUs), 0, x[0].Length);
+                var first = (int)Math.Clamp(AudioMixer.Frames(clip.TimeMap.SourceStart() - audio.StartUs), 0, x[0].Length);
                 var tail = x.Select(c => c[first..]).ToArray();
                 var processed = graph.Process(tail, SampleRate, filter.Strength, LoadLoop);
                 for (var c = 0; c < x.Length && c < processed.Length; c++)

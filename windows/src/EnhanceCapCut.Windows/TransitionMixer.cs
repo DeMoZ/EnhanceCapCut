@@ -1,5 +1,5 @@
 using System.Numerics;
-using EnhanceCapCut.Draft;
+using EnhanceCapCut.Core;
 using Vortice.Direct2D1;
 using Vortice.Mathematics;
 
@@ -45,16 +45,17 @@ sealed class TransitionMixer(Graphics graphics, int width, int height) : IDispos
         });
     }
 
-    /// <summary>See <see cref="FlashbackLook"/>: the dissolved picture averaged over copies zoomed and turned about the
-    /// centre.</summary>
+    /// <summary>The core's flashback look (<see cref="EccCore.FlashbackFrame"/>): the dissolved picture averaged over
+    /// copies zoomed and turned about the centre.</summary>
     void Flashback(double p)
     {
-        if (FlashbackLook.Strength(p) <= 0.001)
+        var look = EccCore.FlashbackFrame(p);
+        if (look.Strength <= 0.001)
         {
-            Dissolve(Result, FlashbackLook.Mix(p));
+            Dissolve(Result, look.Mix);
             return;
         }
-        Dissolve(dissolved, FlashbackLook.Mix(p));
+        Dissolve(dissolved, look.Mix);
         float cx = width / 2f, cy = height / 2f;
         graphics.DrawInto(Result, dc =>
         {
@@ -62,9 +63,9 @@ sealed class TransitionMixer(Graphics graphics, int width, int height) : IDispos
             // Clamped edges fill what turning uncovers.
             using var brush = dc.CreateBitmapBrush(dissolved, new BitmapBrushProperties1(ExtendMode.Clamp, ExtendMode.Clamp,
                 InterpolationMode.Linear));
-            for (var i = 0; i < FlashbackLook.BlurCopies; i++)
+            for (var i = 0; i < look.Copies.Length; i++)
             {
-                var (scale, rotation) = FlashbackLook.Copy(i, p);
+                var (scale, rotation) = (look.Copies[i].Scale, look.Copies[i].Rotation);
                 brush.Transform = Matrix3x2.CreateTranslation(-cx, -cy)
                     * Matrix3x2.CreateScale((float)scale)
                     * Matrix3x2.CreateRotation((float)(rotation * Math.PI / 180))

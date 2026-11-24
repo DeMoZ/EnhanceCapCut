@@ -1,4 +1,4 @@
-using EnhanceCapCut.Draft;
+using EnhanceCapCut.Core;
 using EnhanceCapCut.Render;
 
 namespace EnhanceCapCut.Render.Tests;
@@ -11,7 +11,7 @@ public class ColorLutTests
     public void ReadsLookupPixelsAndCubes()
     {
         // A 64×64 grid (N = 16) with red inverted, as BGRA.
-        var layout = ColorFilter.LayoutFor(64, 64)!;
+        var layout = EccCore.LutLayout(64, 64)!;
         var pixels = new byte[64 * 64 * 4];
         for (var b = 0; b < 16; b++)
         for (var g = 0; g < 16; g++)

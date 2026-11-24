@@ -1,4 +1,5 @@
 using System.Text.Json;
+using EnhanceCapCut.Core;
 using EnhanceCapCut.Draft;
 
 namespace EnhanceCapCut.Render.Tests;
@@ -321,7 +322,7 @@ public class VoiceProcessorTests
     }
 
     static AudioClip Clip(string path, long sourceStart, long duration, VoiceEffects voice) =>
-        new(path, new TimeRange(0, duration), new TimeMap(sourceStart, duration, duration), 1, 0, 0, true) { Voice = voice };
+        Core.Clip(path, new TimeRange(0, duration), TimeMap.Constant(sourceStart, duration, duration), 1, 0, 0, true, voice: voice);
 
     [Fact]
     public void AppliesTheFilterFromTheClipStart()
@@ -338,7 +339,7 @@ public class VoiceProcessorTests
         decoder.Files["a"] = VoiceProcessor.Interleaved(Voice.Stereo(Voice.Sine(500, Voice.Rate * 3, 0.2)));
         var warnings = new List<string>();
         var processor = new VoiceProcessor(decoder, null, warnings);
-        var result = processor.Process(Clip("a", 1_500_000, 1_000_000, new VoiceEffects { Filter = new VoiceFilter("Quiet", dir) }))!;
+        var result = processor.Process(Clip("a", 1_500_000, 1_000_000, Core.Effects(filter: new VoiceFilter("Quiet", dir, 1))))!;
         Assert.Empty(warnings);
         Assert.Equal(500_000, result.StartUs);
         var left = VoiceProcessor.Planar(result.Samples)[0];
@@ -369,16 +370,16 @@ public class VoiceProcessorTests
             for (var k = 0; k < 24_000; k++) { dot += x[i + k] * (double)part[j + k]; pp += part[j + k] * (double)part[j + k]; }
             return dot / pp;
         }
-        Assert.Equal(1, Share(new VoiceEffects { Separation = VoiceEffects.SeparationMode.KeepVoice }, high), 0.02);
-        Assert.Equal(0, Share(new VoiceEffects { Separation = VoiceEffects.SeparationMode.KeepVoice }, low), 0.02);
-        Assert.Equal(1, Share(new VoiceEffects { Separation = VoiceEffects.SeparationMode.RemoveVoice }, low), 0.05);
-        Assert.Equal(0, Share(new VoiceEffects { Separation = VoiceEffects.SeparationMode.RemoveVoice }, high), 0.05);
+        Assert.Equal(1, Share(Core.Effects(separation: VoiceSeparation.KeepVoice), high), 0.02);
+        Assert.Equal(0, Share(Core.Effects(separation: VoiceSeparation.KeepVoice), low), 0.02);
+        Assert.Equal(1, Share(Core.Effects(separation: VoiceSeparation.RemoveVoice), low), 0.05);
+        Assert.Equal(0, Share(Core.Effects(separation: VoiceSeparation.RemoveVoice), high), 0.05);
         // Reduce noise 0.85: the "ambience" kept at 15 %.
-        Assert.Equal(0.15, Share(new VoiceEffects { Denoise = 0.85 }, low), 0.02);
-        Assert.Equal(1, Share(new VoiceEffects { Denoise = 0.85 }, high), 0.02);
+        Assert.Equal(0.15, Share(Core.Effects(denoise: 0.85), low), 0.02);
+        Assert.Equal(1, Share(Core.Effects(denoise: 0.85), high), 0.02);
         // Mono sources are isolated once per clip, and each clip once per render.
         var calls = isolator.Calls;
-        Share(new VoiceEffects { Denoise = 0.85 }, low);
+        Share(Core.Effects(denoise: 0.85), low);
         Assert.Equal(calls, isolator.Calls);
     }
 
@@ -390,13 +391,13 @@ public class VoiceProcessorTests
         decoder.Files["a"] = VoiceProcessor.Interleaved(Voice.Stereo(tone));
         var warnings = new List<string>();
         var processor = new VoiceProcessor(decoder, null, warnings);
-        var result = processor.Process(Clip("a", 0, 2_000_000, new VoiceEffects { Denoise = 0.85, Enhance = 0.75 }))!;
+        var result = processor.Process(Clip("a", 0, 2_000_000, Core.Effects(denoise: 0.85, enhance: 0.75)))!;
         Assert.Single(warnings);
         var x = VoiceProcessor.Planar(result.Samples)[0];
         Assert.Equal(Voice.DB(VoiceEnhancer.Gain), Voice.DB(Voice.Rms(x, 24_000, 72_000) / Voice.Rms(tone, 24_000, 72_000)), 0.3);
-        Assert.True(VoiceProcessor.NeedsIsolation(new VoiceEffects { Enhance = 0.75 }));
-        Assert.False(VoiceProcessor.NeedsIsolation(new VoiceEffects { Enhance = 1 }));
-        Assert.False(VoiceProcessor.NeedsIsolation(new VoiceEffects { Filter = new VoiceFilter("x", "/") }));
+        Assert.True(VoiceProcessor.NeedsIsolation(Core.Effects(enhance: 0.75)));
+        Assert.False(VoiceProcessor.NeedsIsolation(Core.Effects(enhance: 1)));
+        Assert.False(VoiceProcessor.NeedsIsolation(Core.Effects(filter: new VoiceFilter("x", "/", 1))));
     }
 
     [Fact]
@@ -405,10 +406,9 @@ public class VoiceProcessorTests
         var tone = Voice.Sine(1000, Voice.Rate * 2, 0.1);
         var decoder = new MemoryDecoder();
         decoder.Files["a"] = VoiceProcessor.Interleaved(Voice.Stereo(tone));
-        var clip = Clip("a", 0, 1_000_000, new VoiceEffects { Separation = VoiceEffects.SeparationMode.KeepVoice });
-        var timeline = new Timeline("t", 1080, 1920, 1_000_000, 30, [], [clip], new RenderReport());
-        var plain = AudioMixer.Mix(timeline, decoder, []);
-        var voiced = AudioMixer.Mix(timeline, decoder, [], voice: new VoiceProcessor(decoder, new HighBandIsolator(), []));
+        var clip = Clip("a", 0, 1_000_000, Core.Effects(separation: VoiceSeparation.KeepVoice));
+        var plain = AudioMixer.Mix([clip], 1_000_000, decoder, []);
+        var voiced = AudioMixer.Mix([clip], 1_000_000, decoder, [], voice: new VoiceProcessor(decoder, new HighBandIsolator(), []));
         Assert.True(Voice.Rms(plain) > 0.05);
         // The 1 kHz tone is at the stand-in model's cutoff: −6 dB.
         Assert.Equal(-6, Voice.DB(Voice.Rms(voiced, 20_000, 60_000) / Voice.Rms(plain, 20_000, 60_000)), 0.5);

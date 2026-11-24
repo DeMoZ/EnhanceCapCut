@@ -5,9 +5,9 @@ using EnhanceCapCut.Draft;
 namespace EnhanceCapCut.Draft.Tests;
 
 // The translation tables against the code, as the macOS version's LocalizationTests.swift does for the Swift sources:
-// every L("…") key of the C# sources has a translation with the same {n} placeholders and ** marks. (That no table keeps
-// keys neither app uses is checked on the Mac side, which reads both source trees.) The tables are read through the
-// embedded copies, so this also checks that they are embedded.
+// every L("…") key of the C# sources and every tr!("…") key of the Rust core (whose report, errors and names the app
+// shows) has a translation with the same {n} placeholders and ** marks, and no table keeps keys that neither app nor the
+// core uses any more. The tables are read through the embedded copies, so this also checks that they are embedded.
 public class LocalizationTests
 {
     static string Repo([CallerFilePath] string path = "") => Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path)!, "..", "..", ".."));
@@ -15,8 +15,11 @@ public class LocalizationTests
     [Fact]
     public void EveryKeyIsTranslated()
     {
-        var keys = Keys(Path.Combine(Repo(), "windows", "src"));
+        var keys = Keys(Path.Combine(Repo(), "windows", "src"), "*.cs");
         Assert.True(keys.Count > 200);
+        var core = Keys(Path.Combine(Repo(), "core"), "*.rs", "tr!");
+        Assert.True(core.Count > 20);
+        keys.UnionWith(core);
         foreach (var language in Enum.GetValues<Localization.Language>().Where(l => l != Localization.Language.English))
         {
             var table = Localization.Load(language);
@@ -29,6 +32,18 @@ public class LocalizationTests
                 Assert.Equal(key.Split("**").Length, table[key].Split("**").Length);
             }
         }
+    }
+
+    [Fact]
+    public void NoUnusedKeys()
+    {
+        var used = Keys(Path.Combine(Repo(), "windows", "src"), "*.cs");
+        used.UnionWith(Keys(Path.Combine(Repo(), "Sources"), "*.swift"));
+        used.UnionWith(Keys(Path.Combine(Repo(), "core"), "*.rs", "tr!"));
+        // Language names are looked up by their English name (SubtitleLanguage.Title).
+        used.UnionWith(SubtitleLanguage.All.Select(l => l.Name));
+        foreach (var language in Enum.GetValues<Localization.Language>().Where(l => l != Localization.Language.English))
+            Assert.Empty(Localization.Load(language)!.Keys.Except(used).Order(StringComparer.Ordinal));
     }
 
     [Fact]
@@ -57,21 +72,24 @@ public class LocalizationTests
         "((?:[^"\\\n]|\\.)*)"
         """;
 
-    /// <summary>The keys of <c>L(...)</c> calls: a literal, or literals joined with <c>+</c> (the same rule as in
-    /// LocalizationTests.swift).</summary>
-    static HashSet<string> Keys(string root)
+    /// <summary>The keys of <c>L(...)</c> calls (<paramref name="name"/>: <c>tr!</c> for the Rust core) in the
+    /// <paramref name="pattern"/> files under <paramref name="root"/>: a literal, or literals joined with <c>+</c> (the
+    /// same rule as in LocalizationTests.swift).</summary>
+    static HashSet<string> Keys(string root, string pattern, string name = "L")
     {
-        var call = new Regex($@"(?<![A-Za-z0-9_])L\(\s*({Literal}(?:\s*\+\s*{Literal})*)");
+        // Not a call quoted in a string or in `docs` (the core's doc comments show tr!("…") in backticks).
+        var call = new Regex($@"(?<![A-Za-z0-9_`""]){Regex.Escape(name)}\(\s*({Literal}(?:\s*\+\s*{Literal})*)");
         var part = new Regex(Literal);
         var keys = new HashSet<string>();
-        foreach (var file in Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories))
+        foreach (var file in Directory.EnumerateFiles(root, pattern, SearchOption.AllDirectories))
         {
-            if (file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}")
-                || file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}")) continue;
+            var sep = Path.DirectorySeparatorChar;
+            if (file.Contains($"{sep}obj{sep}") || file.Contains($"{sep}bin{sep}") || file.Contains($"{sep}target{sep}")
+                || file.Contains($"{sep}.build{sep}")) continue;
             foreach (Match match in call.Matches(File.ReadAllText(file)))
             {
                 var key = string.Concat(part.Matches(match.Groups[1].Value).Select(m => m.Groups[1].Value));
-                keys.Add(key.Replace("\\\"", "\"").Replace("\\\\", "\\"));
+                keys.Add(key.Replace("\\\"", "\"").Replace("\\n", "\n").Replace("\\t", "\t").Replace("\\\\", "\\"));
             }
         }
         return keys;

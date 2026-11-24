@@ -1,4 +1,4 @@
-using EnhanceCapCut.Draft;
+using EnhanceCapCut.Core;
 
 namespace EnhanceCapCut.Render;
 
@@ -35,45 +35,31 @@ public static class AudioMixer
 
     public static long Frames(long us) => (long)Math.Round(us * (double)SampleRate / 1_000_000, MidpointRounding.AwayFromZero);
 
-    /// <summary>For partial exports: the audio clips inside <paramref name="range"/>, shifted so the range starts at zero.</summary>
-    public static Timeline TrimmedForAudio(Timeline timeline, TimeRange range)
-    {
-        var clips = new List<AudioClip>();
-        foreach (var clip in timeline.AudioClips)
-        {
-            long start = Math.Max(clip.Target.Start, range.Start), end = Math.Min(clip.Target.End, range.End);
-            if (end <= start) continue;
-            clips.Add(clip with
-            {
-                Target = new TimeRange(start - range.Start, end - start),
-                TimeMap = clip.TimeMap.Slice(start - clip.Target.Start, end - clip.Target.Start),
-                VolumeEnvelope = clip.VolumeEnvelope?.Shifted(start - clip.Target.Start),
-                FadeIn = start != clip.Target.Start ? 0 : clip.FadeIn,
-                FadeOut = end != clip.Target.End ? 0 : clip.FadeOut,
-            });
-        }
-        return new Timeline(timeline.Name, timeline.CanvasWidth, timeline.CanvasHeight, range.Duration, timeline.Fps,
-            [], clips, timeline.Report);
-    }
+    /// <summary>The whole timeline's mix, see <see cref="Mix(IReadOnlyList{AudioClip}, long, IAudioDecoder, List{string}, Action{double}?, CancellationToken, VoiceProcessor?)"/>.</summary>
+    public static float[] Mix(Timeline timeline, IAudioDecoder decoder, List<string> warnings,
+        Action<double>? progress = null, CancellationToken cancel = default, VoiceProcessor? voice = null) =>
+        Mix(timeline.AudioClips(), timeline.Duration(), decoder, warnings, progress, cancel, voice);
 
     /// <summary>
-    /// The whole mix (interleaved stereo); <paramref name="warnings"/> collects clips that could not be decoded.
-    /// Clips with voice effects go through <paramref name="voice"/> when given (otherwise they play unprocessed).
+    /// The mix of <paramref name="audioClips"/> over <paramref name="duration"/> µs (interleaved stereo): the whole
+    /// timeline's, or for a partial export <see cref="Timeline.AudioClipsIn"/> over the range. <paramref name="warnings"/>
+    /// collects clips that could not be decoded. Clips with voice effects go through <paramref name="voice"/> when given
+    /// (otherwise they play unprocessed).
     /// </summary>
-    public static float[] Mix(Timeline timeline, IAudioDecoder decoder, List<string> warnings,
+    public static float[] Mix(IReadOnlyList<AudioClip> audioClips, long duration, IAudioDecoder decoder, List<string> warnings,
         Action<double>? progress = null, CancellationToken cancel = default, VoiceProcessor? voice = null)
     {
-        var total = Frames(timeline.Duration);
+        var total = Frames(duration);
         var mix = new float[total * 2];
-        var clips = timeline.AudioClips.OrderBy(c => c.Target.Start).ToList();
+        var clips = audioClips.OrderBy(c => c.Target.Start).ToList();
         for (var i = 0; i < clips.Count; i++)
         {
             cancel.ThrowIfCancellationRequested();
             var clip = clips[i];
             var map = clip.TimeMap;
             var audio = voice is not null && !clip.Voice.IsEmpty ? voice.Process(clip, cancel)
-                : decoder.Decode(clip.Path, Math.Max(0, map.SourceStart - DecodeMarginUs),
-                    map.SourceStart + map.SourceDuration + DecodeMarginUs);
+                : decoder.Decode(clip.Path, Math.Max(0, map.SourceStart() - DecodeMarginUs),
+                    map.SourceStart() + map.SourceDuration() + DecodeMarginUs);
             if (audio is null || audio.Frames == 0)
             {
                 warnings.Add($"{Path.GetFileName(clip.Path)}: no audio could be decoded");
@@ -94,21 +80,22 @@ public static class AudioMixer
         if (count <= 0) return;
         var map = clip.TimeMap;
         // Source position (in decoded frames) shown at output frame j of the clip.
-        double SourceFrame(double j) =>
-            (map.PreciseSourceTime(j * 1_000_000.0 / SampleRate) - audio.StartUs) * SampleRate / 1_000_000;
+        var source = SourceCurve(map);
+        double SourceFrame(double j) => (source.At(j * 1_000_000.0 / SampleRate) - audio.StartUs) * SampleRate / 1_000_000;
 
         var rendered = new float[count * 2];
-        var speedChanges = !map.IsConstant || Math.Abs(map.AverageSpeed - 1) > 0.001;
+        var speedChanges = !map.IsConstant() || Math.Abs(map.AverageSpeed() - 1) > 0.001;
         if (speedChanges && clip.PreservePitch) TimeStretch.Render(audio.Samples, SourceFrame, rendered);
         else Resample(audio.Samples, SourceFrame, rendered);
 
         // Volume with linear fade ramps (each at most half the clip, like the macOS mix) and volume keyframes.
         var fadeIn = Frames(Math.Min(clip.FadeIn, clip.Target.Duration / 2));
         var fadeOut = Frames(Math.Min(clip.FadeOut, clip.Target.Duration / 2));
+        var envelope = clip.VolumeEnvelope is { } track ? VolumeCurve(track) : null;
         for (long j = 0; j < count; j++)
         {
             var g = clip.Volume;
-            if (clip.VolumeEnvelope is { } envelope) g *= envelope.Value((long)Math.Round(j * 1_000_000.0 / SampleRate));
+            if (envelope is not null) g *= envelope.At(j * 1_000_000.0 / SampleRate);
             if (j < fadeIn) g *= (double)j / fadeIn;
             if (j >= count - fadeOut) g *= (double)(count - j) / fadeOut;
             var o = (start + j) * 2;
@@ -116,6 +103,33 @@ public static class AudioMixer
             mix[o] += (float)(rendered[j * 2] * g);
             mix[o + 1] += (float)(rendered[j * 2 + 1] * g);
         }
+    }
+
+    /// <summary>Spacing of the time-map samples of a clip with a speed curve (µs).</summary>
+    public const long CurveStepUs = 5_000;
+
+    /// <summary>
+    /// The clip's source time (µs) at an offset from its start, from the core's time map: exact for constant speed (a
+    /// line between the clip's ends), sampled every <see cref="CurveStepUs"/> for speed curves. Asking the core once per
+    /// clip instead of once per audio frame keeps the mix fast (each call crosses the FFI boundary).
+    /// </summary>
+    public static PiecewiseLinear SourceCurve(TimeMap map)
+    {
+        var duration = Math.Max(map.TargetDuration(), 1);
+        if (map.IsConstant()) return new([0, duration], [map.PreciseSourceTime(0), map.PreciseSourceTime(duration)]);
+        var offsets = new List<long>();
+        for (long t = 0; t < duration; t += CurveStepUs) offsets.Add(t);
+        offsets.Add(duration);
+        var times = map.SourceTimes([.. offsets]);
+        return new([.. offsets.Select(o => (double)o)], [.. times.Select(t => (double)t)]);
+    }
+
+    /// <summary>A clip's volume keyframes as gains over offsets (µs): the core's piecewise-linear approximation
+    /// (<see cref="KeyframeTrack.Breaks"/> every <see cref="CurveStepUs"/> inside eased spans), like the macOS volume ramps.</summary>
+    public static PiecewiseLinear VolumeCurve(KeyframeTrack envelope)
+    {
+        var breaks = envelope.Breaks(CurveStepUs);
+        return new([.. breaks.Select(t => (double)t)], envelope.ValuesAt(breaks));
     }
 
     /// <summary>Varispeed: reads the source at fractional positions (cubic interpolation); pitch follows speed.</summary>
@@ -265,5 +279,24 @@ public static class Loudness
             y[i] = v;
         }
         return y;
+    }
+}
+
+/// <summary>A function given at increasing points, linear between them and constant outside.</summary>
+public sealed class PiecewiseLinear(double[] xs, double[] ys)
+{
+    public double At(double x)
+    {
+        if (xs.Length == 0) return 0;
+        if (x <= xs[0]) return ys[0];
+        if (x >= xs[^1]) return ys[^1];
+        int lo = 0, hi = xs.Length - 1;
+        while (hi - lo > 1)
+        {
+            var mid = (lo + hi) / 2;
+            if (xs[mid] <= x) lo = mid; else hi = mid;
+        }
+        var span = xs[hi] - xs[lo];
+        return span <= 0 ? ys[hi] : ys[lo] + (ys[hi] - ys[lo]) * (x - xs[lo]) / span;
     }
 }

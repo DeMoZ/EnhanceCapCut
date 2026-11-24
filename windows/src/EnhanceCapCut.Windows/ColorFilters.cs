@@ -1,4 +1,4 @@
-using EnhanceCapCut.Draft;
+using EnhanceCapCut.Core;
 using EnhanceCapCut.Render;
 using Vortice.Direct2D1;
 using Vortice.Mathematics;

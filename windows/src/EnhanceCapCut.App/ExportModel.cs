@@ -1,8 +1,10 @@
 using System.Diagnostics;
+using EnhanceCapCut.Core;
 using EnhanceCapCut.Draft;
 using EnhanceCapCut.Windows;
 using Microsoft.UI.Dispatching;
-using Timeline = EnhanceCapCut.Draft.Timeline;
+using Timeline = EnhanceCapCut.Core.Timeline;
+using TimeSpan = System.TimeSpan;
 
 namespace EnhanceCapCut.App;
 
@@ -24,7 +26,7 @@ sealed class ExportModel(DispatcherQueue ui)
     public event Action? Changed;
 
     /// <summary>Projects in CapCut's order: most recently modified first.</summary>
-    public List<CapCutProject> Projects { get; private set; } = [];
+    public IReadOnlyList<CapCutProject> Projects { get; private set; } = [];
 
     /// <summary>Show the project list by name instead of CapCut's order. Only affects the list, not the default selection.</summary>
     public bool SortProjectsByName
@@ -52,7 +54,7 @@ sealed class ExportModel(DispatcherQueue ui)
     string? selectedProjectFolder;
 
     /// <summary>Timelines of the selected project (CapCut 9 projects can have several).</summary>
-    public List<ProjectTimeline> Timelines { get; private set; } = [];
+    public IReadOnlyList<ProjectTimeline> Timelines { get; private set; } = [];
 
     public string? SelectedTimelineID
     {
@@ -93,12 +95,12 @@ sealed class ExportModel(DispatcherQueue ui)
     public IEnumerable<CapCutProject> DisplayedProjects =>
         SortProjectsByName ? Projects.OrderBy(p => p.Name, Comparer<string>.Create(Platform.LogicalCompare)) : Projects;
 
-    public CapCutProject? SelectedProject => Projects.FirstOrDefault(p => p.Folder == SelectedProjectFolder);
+    public CapCutProject? SelectedProject => Projects.FirstOrDefault(p => p.Path == SelectedProjectFolder);
     public ProjectTimeline? SelectedTimeline => Timelines.FirstOrDefault(t => t.Id == SelectedTimelineID);
     public bool IsExporting => State is ExportState.Exporting;
 
     public (int Width, int Height)? OutputSize => Timeline is { } t ? Settings.OutputSize(t.CanvasWidth, t.CanvasHeight) : null;
-    public double? OutputFps => Timeline is { } t ? Settings.Fps(t.Fps) : null;
+    public double? OutputFps => Timeline is { } t ? Settings.Fps(t.Fps()) : null;
 
     public string? OutputPath => SelectedProject is { } project && OutputSize is { } size && OutputFps is { } fps
         ? Path.Combine(Settings.OutputFolder, Settings.FileName(OutputName(project), size.Width, size.Height, fps))
@@ -119,10 +121,10 @@ sealed class ExportModel(DispatcherQueue ui)
         var previous = SelectedProjectFolder;
         Projects = ProjectLocator.AllProjects();
         string? next;
-        if (selectOpen && ProjectLocator.OpenProject() is { } open) next = open.Folder;
-        else if (previous is not null && Projects.Any(p => p.Folder == previous)) next = previous;
+        if (selectOpen && ProjectLocator.OpenProject() is { } open) next = open.Path;
+        else if (previous is not null && Projects.Any(p => p.Path == previous)) next = previous;
         // Nothing open in CapCut: the most recently edited project (first in CapCut's order).
-        else next = Projects.FirstOrDefault()?.Folder;
+        else next = Projects.FirstOrDefault()?.Path;
         SelectedProjectFolder = next;
         // Reload even when the selection didn't change: the draft or its timelines may have been edited.
         if (next == previous) ReloadTimelines(keepSelection: true);
@@ -154,11 +156,11 @@ sealed class ExportModel(DispatcherQueue ui)
         {
             Timeline? timeline = null;
             string? error = null;
-            try { timeline = TimelineBuilder.Build(project, projectTimeline); }
+            try { timeline = Timeline.Build(project, projectTimeline); }
             catch (Exception e) { error = e.Message; }
             ui.TryEnqueue(() =>
             {
-                if (SelectedProjectFolder != project.Folder || SelectedTimelineID != projectTimeline.Id) return;
+                if (SelectedProjectFolder != project.Path || SelectedTimelineID != projectTimeline.Id) return;
                 Timeline = timeline;
                 LoadError = error;
                 Notify();

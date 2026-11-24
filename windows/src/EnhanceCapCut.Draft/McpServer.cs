@@ -5,6 +5,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using EnhanceCapCut.Core;
 
 namespace EnhanceCapCut.Draft;
 
@@ -59,7 +60,7 @@ public sealed class McpProcessRunner(string executable) : IMcpRunner
 /// Port of the Swift <c>EnhanceCapCutCore/Automation/MCPServer.swift</c>: same tools, arguments and results, apart
 /// from what the platforms differ in (codecs, the speech engine, <c>original: replace</c>).
 /// </remarks>
-public sealed class McpServer(IMcpRunner runner, string version, Func<List<CapCutProject>>? projects = null)
+public sealed class McpServer(IMcpRunner runner, string version, Func<IReadOnlyList<CapCutProject>>? projects = null)
 {
     /// <summary>Protocol revisions this server speaks; the newest one is offered to clients asking for another.</summary>
     internal static readonly string[] ProtocolVersions = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
@@ -68,7 +69,7 @@ public sealed class McpServer(IMcpRunner runner, string version, Func<List<CapCu
     /// <summary>How many output lines a job keeps, and how many of the last ones <c>job_status</c> shows.</summary>
     internal const int KeptLines = 200, ShownLines = 20;
 
-    readonly Func<List<CapCutProject>> projects = projects ?? (() => ProjectLocator.AllProjects());
+    readonly Func<IReadOnlyList<CapCutProject>> projects = projects ?? (() => ProjectLocator.AllProjects());
     readonly Lock gate = new();
     readonly List<Job> jobs = [];
     int nextId = 1;

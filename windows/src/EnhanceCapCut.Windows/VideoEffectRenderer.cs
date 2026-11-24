@@ -1,5 +1,5 @@
 using System.Numerics;
-using EnhanceCapCut.Draft;
+using EnhanceCapCut.Core;
 using EnhanceCapCut.Render;
 using Vortice.Direct2D1;
 using Vortice.Direct2D1.Effects;
@@ -8,20 +8,17 @@ using Vortice.Mathematics;
 namespace EnhanceCapCut.Windows;
 
 /// <summary>
-/// A clip's video effects (port of the macOS VideoEffectRenderer; see FORMAT.md › Video effects): the combined
-/// <see cref="VideoEffectState"/> applied inside the clip's cropped picture — blur, zoom and rotation about its centre
+/// A clip's video effects (port of the macOS VideoEffectRenderer; see FORMAT.md › Video effects): the core's combined
+/// <see cref="VideoEffectState"/> of the frame (<see cref="LayerFrame.Effect"/>) applied inside the clip's cropped picture — blur, zoom and rotation about its centre
 /// with clamped edges, then the mix towards white. The result has the clip's full size, so the crop still applies.
 /// </summary>
 sealed class VideoEffectRenderer(Graphics graphics) : IDisposable
 {
     readonly Dictionary<string, (ID2D1Bitmap1 Picture, ID2D1Bitmap1 Result)> bitmaps = [];
 
-    public ID2D1Bitmap1 Apply(VisualLayer layer, ID2D1Bitmap1 image, long t)
+    public ID2D1Bitmap1 Apply(VisualLayer layer, ID2D1Bitmap1 image, VideoEffectState? effect)
     {
-        if (layer.Effects.Count == 0) return image;
-        var offset = t - layer.Target.Start;
-        var state = VideoEffectState.Combined(layer.Effects.Select(e => e.State(offset)));
-        if (state.IsIdentity) return image;
+        if (effect is not { IsIdentity: false } state) return image;
 
         var size = image.PixelSize;
         float x0 = 0, y0 = 0, x1 = size.Width, y1 = size.Height;

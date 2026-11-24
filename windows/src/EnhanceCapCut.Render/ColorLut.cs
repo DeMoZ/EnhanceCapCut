@@ -1,5 +1,5 @@
 using System.Globalization;
-using EnhanceCapCut.Draft;
+using EnhanceCapCut.Core;
 
 namespace EnhanceCapCut.Render;
 
@@ -49,7 +49,7 @@ public sealed class ColorLut(int size, float[] data)
                 rgb.AddRange([r, g, b]);
             }
         }
-        if (n < 2 || n > ColorFilter.MaxSize || rgb.Count != n * n * n * 3) return null;
+        if (n < 2 || n > (int)EccCore.LutMaxSize() || rgb.Count != n * n * n * 3) return null;
         return (n, rgb.ToArray());
     }
 
@@ -58,7 +58,7 @@ public sealed class ColorLut(int size, float[] data)
     public static (int Size, float[] Rgb)? FromPixels(byte[] pixels, int width, int height, int stride, int bytesPerPixel = 4,
         bool bgr = false)
     {
-        if (ColorFilter.LayoutFor(width, height) is not { } layout) return null;
+        if (EccCore.LutLayout((ulong)Math.Max(width, 0), (ulong)Math.Max(height, 0)) is not { } layout) return null;
         var n = layout.Size;
         var rgb = new float[n * n * n * 3];
         for (var b = 0; b < n; b++)

@@ -1,4 +1,4 @@
-using EnhanceCapCut.Draft;
+using EnhanceCapCut.Core;
 using EnhanceCapCut.Subtitles;
 
 namespace EnhanceCapCut.Windows;
@@ -7,9 +7,9 @@ namespace EnhanceCapCut.Windows;
 public static class VoiceIsolation
 {
     /// <summary>The isolator, or null when no clip needs one or the model can't be had (then a warning is added).</summary>
-    public static VoiceIsolator? Load(Timeline timeline, List<string> warnings, CancellationToken cancel = default)
+    public static VoiceIsolator? Load(IReadOnlyList<AudioClip> clips, List<string> warnings, CancellationToken cancel = default)
     {
-        if (!timeline.AudioClips.Any(c => Render.VoiceProcessor.NeedsIsolation(c.Voice))) return null;
+        if (!clips.Any(c => Render.VoiceProcessor.NeedsIsolation(c.Voice))) return null;
         try
         {
             ModelStore.EnsureAsync([ModelStore.VoiceIsolation], cancel: cancel).GetAwaiter().GetResult();

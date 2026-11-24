@@ -1,10 +1,10 @@
 using System.Runtime.InteropServices;
-using EnhanceCapCut.Draft;
+using EnhanceCapCut.Core;
 using EnhanceCapCut.Render;
 using Vortice.Direct2D1;
 using Vortice.Direct2D1.Effects;
 using Vortice.Mathematics;
-using ChromaKey = EnhanceCapCut.Draft.ChromaKey;
+using ChromaKey = EnhanceCapCut.Core.ChromaKey;
 
 namespace EnhanceCapCut.Windows;
 

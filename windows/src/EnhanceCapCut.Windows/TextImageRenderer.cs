@@ -1,5 +1,5 @@
 using System.Numerics;
-using EnhanceCapCut.Draft;
+using EnhanceCapCut.Core;
 using EnhanceCapCut.Render;
 using SharpGen.Runtime;
 using Vortice.DCommon;
@@ -51,7 +51,7 @@ public sealed class TextImageRenderer(Graphics graphics) : IDisposable
         var outlines = new List<Outline>();
         var runs = new List<Run>();
         float maxFontSize = 0, strokeWidth = 0;
-        var styles = spec.Content.Styles.Count == 0 ? [null] : spec.Content.Styles.Cast<TextStyle?>().ToList();
+        var styles = spec.Content.Styles.Length == 0 ? [null] : spec.Content.Styles.Cast<TextStyle?>().ToList();
         foreach (var style in styles)
         {
             var (lo, hi) = spec.Content.Utf16Range(style);
@@ -106,7 +106,7 @@ public sealed class TextImageRenderer(Graphics graphics) : IDisposable
         {
             textWidth = textHeight = 0;
             pieces = VerticalPieces(text, format, runs, clear, visible, baseSize, ascent, (float)material.LetterSpacing,
-                wrapWidth, pitch, material.Alignment, ref textWidth, ref textHeight);
+                wrapWidth, pitch, (int)material.Alignment, ref textWidth, ref textHeight);
         }
         else
         {
