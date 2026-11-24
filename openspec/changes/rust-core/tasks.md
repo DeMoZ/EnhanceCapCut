@@ -137,10 +137,10 @@ Stages follow design.md → Migration Plan. Each group ends in a state where bot
 
 ## 8. Stage 4 — Windows switch
 
-- [ ] 8.1 Move `EnhanceCapCut.Render`, `EnhanceCapCut.Subtitles`, `EnhanceCapCut.Windows`, `EnhanceCapCut.App`
+- [x] 8.1 Move `EnhanceCapCut.Render`, `EnhanceCapCut.Subtitles`, `EnhanceCapCut.Windows`, `EnhanceCapCut.App`
   and `ecc` (`info` prints `format_info`) to the generated types, call `set_core_language` at startup, and verify
   `dotnet test windows/EnhanceCapCut.slnx` passes on macOS
-- [ ] 8.2 Extend the C# `LocalizationTests` to `core/**/*.rs` keys and verify it passes
+- [x] 8.2 Extend the C# `LocalizationTests` to `core/**/*.rs` keys and verify it passes
 - [ ] 8.3 Verify `windows.yml` passes: unit tests, end-to-end export test, `ui-smoke.ps1` screenshots and
   `update-smoke.ps1`, with `ecc_core.dll` in the published folder
 - [ ] 8.4 Run the Windows `ecc info` on the fixtures and verify it equals the macOS CLI byte for byte, then
