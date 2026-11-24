@@ -98,9 +98,10 @@ Stages follow design.md → Migration Plan. Each group ends in a state where bot
 - [x] 6.3 Add `EccCoreFFI` (`binaryTarget`) and `EccCore` (committed generated Swift) to `Package.swift`,
   `@_exported import EccCore` in `EnhanceCapCutCore`, and Swift smoke tests (build a fixture timeline, read
   layers, `frame(t)`, write captions); verify `swift build` and `swift test` pass after `build-core.sh`
-- [ ] 6.4 Add the generated C# bindings to `EnhanceCapCut.Draft` (`Generated/`, `AllowUnsafeBlocks`), the
+- [x] 6.4 Add the generated C# bindings to `EnhanceCapCut.Draft` (`Generated/`, `AllowUnsafeBlocks`), the
   `BuildRustCore` MSBuild target with RID → Rust triple mapping and `SkipRustBuild`, and C# smoke tests; verify
-  `dotnet test windows/EnhanceCapCut.slnx` passes on macOS and on `windows-latest`
+  `dotnet test windows/EnhanceCapCut.slnx` passes on macOS and on `windows-latest` (windows.yml on main after #103
+  and #104)
 - [x] 6.5 Make `scripts/build-app.sh` run `build-core.sh` (`--universal` with `--pkg`) and verify a `--pkg`
   build is universal (`lipo -info` on `ecc` and `EnhanceCapCut`), passes `codesign --verify --strict`, and is
   accepted by `notarytool` (not checkable: no Developer ID, releases are ad-hoc signed; design decision 8)
