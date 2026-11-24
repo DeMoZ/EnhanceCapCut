@@ -46,12 +46,12 @@ on Intel Macs voice cloning is unavailable.
 
 ## Rust core and golden parity
 
-`core/` is the shared Rust core the apps are moving to ([openspec/changes/rust-core](../openspec/changes/rust-core)).
-The macOS app and CLI run on it: drafts, timelines and their evaluation (`Timeline.frame`), `ecc info`, caption
-segmentation and wrapping, and writing captions, voice-over and dubbed timelines (the renderers, speech, translation
-and voices stay native). The Windows version links it (the `BuildRustCore` target of `EnhanceCapCut.Draft`) but still
-uses its C# port until stage 4. It needs a Rust toolchain (`rust-toolchain.toml` pins it; `rustup` installs it on
-first use).
+`core/` is the Rust core both apps run on ([openspec/changes/rust-core](../openspec/changes/rust-core)): drafts,
+timelines and their evaluation (`Timeline.frame`), `ecc info`, caption segmentation and wrapping, and writing
+captions, voice-over and dubbed timelines (the renderers, speech, translation and voices stay native). The macOS app
+links it through `scripts/build-core.sh`, the Windows version through the `BuildRustCore` target of
+`EnhanceCapCut.Draft`, whose `CoreExtensions.cs` adds the C# conveniences (this machine's folders, project lookup,
+`DraftWriter`). It needs a Rust toolchain (`rust-toolchain.toml` pins it; `rustup` installs it on first use).
 
 The apps see it only through `core/ecc-ffi` and its generated bindings, both committed: `Sources/EccCore/EccCore.swift`
 (rewritten by `scripts/build-core.sh`) and `windows/src/EnhanceCapCut.Draft/Generated/ecc_core.cs` (rewritten by
@@ -66,25 +66,26 @@ then package. The scripts and the .NET build do follow `CARGO_TARGET_DIR` for a 
 
 ```sh
 cd core && cargo test                # the core's tests and the committed golden outputs
-scripts/golden.sh fixtures           # C# and Rust on every fixture project
+scripts/golden.sh fixtures           # `ecc info` of both CLIs and the core on every fixture project
 scripts/golden.sh local              # the same on every timeline of your CapCut library
 ```
 
-Until the Windows switch, the C# CLI has two hidden commands (not in help) that print canonical dumps the runner
-compares with the core's `ecc-golden` (the Swift CLI's went away with its port in stage 3):
+Both CLIs print the core's `ecc info`; the runner checks that they print it byte for byte as the core's `ecc-golden`
+does, and on the fixtures also as the committed `expected/info.txt` (CI runs it on macOS with both CLIs and on
+Windows with the C# one). `ecc-golden` also prints two canonical dumps, which `cargo test` compares with `expected/`
+(the native CLIs' twins went away with their ports in stages 3 and 4):
 
-- `ecc dump-timeline [project] [--timeline name|number]` — the built timeline: report, every layer's static data
+- `ecc-golden dump-timeline [project] [--timeline name|number]` — the built timeline: report, every layer's static data
   (content, timing, time map, crop, clip, keyframes, masks, effects, transitions, animations, text style), audio clips
   (with their time map sampled every 50 ms, at most 200 samples), filter-track filters, and every on-screen layer's
   state (transform, text animation, effects, masks, transition, clock hands) at 0, each clip edge ±1 µs, each keyframe
   ±1 µs, each transition's start, cut and last µs, and 16 even steps. One JSON object per line, fields in a fixed
   order, doubles as `%.6f`, paths in the project as `<project>/…`.
-- `ecc dump-writers [project] [--timeline name|number]` — the caption writer (twice) and the voice-over writer (each
+- `ecc-golden dump-writers [project] [--timeline name|number]` — the caption writer (twice) and the voice-over writer (each
   original-audio mode, then `withoutVoiceOver`) run on the draft with fixed tracks; new UUIDs become `<id1>`,
   `<id2>`… in order of appearance.
 
-The two implementations are `windows/src/ecc/Golden.cs` and `core/ecc-golden/src/dump.rs`; a change to the format
-goes into both. Fixtures are in `core/fixtures/<name>/`
+The dumps are written by `core/ecc-golden/src/dump.rs`. Fixtures are in `core/fixtures/<name>/`
 (`draft.fixture.json`, optional `timelines.fixture.json` and `media.txt`, see `core/ecc-golden/src/fixtures.rs`) with
 the core's outputs in `expected/`: `UPDATE_GOLDEN=1 cargo test -p ecc-golden` rewrites them. Differences the runner
 accepts are listed, with reasons, in `core/fixtures/known-differences.md`. Set `RUST_BACKTRACE=1` to see where a

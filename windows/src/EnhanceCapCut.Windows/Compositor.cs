@@ -1,5 +1,5 @@
 using System.Numerics;
-using EnhanceCapCut.Draft;
+using EnhanceCapCut.Core;
 using EnhanceCapCut.Render;
 using Vortice.Direct2D1;
 using Vortice.Direct2D1.Effects;
@@ -10,7 +10,9 @@ namespace EnhanceCapCut.Windows;
 /// <summary>
 /// Builds the composited frame of a timeline at increasing times (port of the macOS FrameCompositor).
 ///
-/// Each frame takes two passes: first every active layer's content is brought up to date in its own bitmap (video
+/// The core says what is on screen and where (<see cref="Timeline.Frame"/>, once per frame): both clips of a transition
+/// stay on screen for its range. Each frame then takes two passes: first every on-screen layer's content is brought up
+/// to date in its own bitmap (video
 /// frames uploaded and turned upright, nested compound clips rendered, text rasterized once per clip); then one
 /// Direct2D pass draws the canvas background and the layers in paint order with their <see cref="Layout"/>
 /// placement, crop and opacity.
@@ -19,6 +21,10 @@ public sealed class Compositor : IDisposable
 {
     readonly Graphics graphics;
     readonly Timeline timeline;
+    /// <summary>The timeline's layers (paint order) and filter-track filters, fetched once; <see cref="LayerFrame.Index"/>
+    /// points into them.</summary>
+    readonly VisualLayer[] layers;
+    readonly FilterLayer[] filterLayers;
     readonly ImageLoader photos;
     readonly bool ownsPhotos;
     readonly TextImageRenderer text;
@@ -60,6 +66,8 @@ public sealed class Compositor : IDisposable
         this.opaque = opaque;
         this.graphics = graphics;
         this.timeline = timeline;
+        layers = timeline.Layers();
+        filterLayers = timeline.Filters();
         this.warnings = warnings;
         Width = width;
         Height = height;
@@ -107,23 +115,28 @@ public sealed class Compositor : IDisposable
     /// <summary>Renders timeline time <paramref name="t"/> (µs) into <see cref="Frame"/>.</summary>
     public ID2D1Bitmap1 Render(long t)
     {
-        // Both clips of a transition stay on screen for its whole range.
-        var mixing = timeline.Layers.Where(l => l.TransitionOut?.Contains(t) == true)
-            .SelectMany(l => new[] { l.Id, l.TransitionOut!.Next.Id }).ToHashSet();
-        var active = timeline.Layers.Where(l => l.IsActive(t) || mixing.Contains(l.Id)).ToList();
-        ReleaseInactive(active.Select(l => l.Id).ToHashSet());
-
-        var images = new List<(VisualLayer Layer, ID2D1Bitmap1 Image, float? TextScale)>();
-        foreach (var layer in active)
+        FrameState state;
+        try { state = timeline.Frame(t); }
+        catch (CoreException e)
         {
-            if (Content(layer, t) is { } content) images.Add((layer, effects.Apply(layer, Colored(layer, content.Image), t), content.TextScale));
+            Warn(e.Message);
+            state = new FrameState(t, [], []);
+        }
+        ReleaseInactive(state.Layers.Select(f => layers[(int)f.Index].Id).ToHashSet());
+
+        var images = new List<Placed>();
+        foreach (var frame in state.Layers)
+        {
+            var layer = layers[(int)frame.Index];
+            if (Content(layer, frame) is { } content)
+                images.Add(new(layer, frame, effects.Apply(layer, Colored(layer, content.Image), frame.Effect), content.TextScale));
         }
         var main = images.FirstOrDefault(i => i.Layer.IsMainTrack);
-        var mixed = MixTransitions(images, t);
+        var mixed = MixTransitions(images);
         images.RemoveAll(i => mixed.Incoming.Contains(i.Layer.Id));
 
         // Filter-track filters colour what's painted below them: draw in runs between them.
-        var filters = timeline.Filters.Where(f => f.IsActive(t) && colorFilters.CanApply([f.Filter]))
+        var filters = state.Filters.Select(i => filterLayers[(int)i]).Where(f => colorFilters.CanApply([f.Filter]))
             .OrderBy(f => f.RenderIndex).ThenBy(f => f.TrackIndex).ToList();
         var next = 0;
         var first = true;
@@ -136,13 +149,13 @@ public sealed class Compositor : IDisposable
                 if (clear)
                 {
                     dc.Clear(new Color4(0, 0, 0, opaque ? 1 : 0));
-                    if (main.Layer?.Canvas is { } canvas) Background(dc, canvas, main.Image);
+                    if (main?.Layer.Canvas is { } canvas) Background(dc, canvas, main.Image);
                 }
-                foreach (var (layer, image, textScale) in run)
+                foreach (var placed in run)
                 {
-                    if (mixed.Plates.TryGetValue(layer.Id, out var plate)) dc.DrawBitmap(plate, 1, InterpolationMode.NearestNeighbor);
-                    else if (layer.BlendMode is { } mode && mode != Draft.BlendMode.Normal) Blend(dc, layer, image, textScale, t, mode);
-                    else Place(dc, layer, image, textScale, t);
+                    if (mixed.Plates.TryGetValue(placed.Layer.Id, out var plate)) dc.DrawBitmap(plate, 1, InterpolationMode.NearestNeighbor);
+                    else if (placed.Layer.BlendMode is { } mode && mode != Core.BlendMode.Normal) Blend(dc, placed, mode);
+                    else Place(dc, placed);
                 }
             });
             first = false;
@@ -158,24 +171,23 @@ public sealed class Compositor : IDisposable
 
     /// <summary>Each clip in a transition mixed with the next one, drawn later in the outgoing clip's place; the
     /// incoming clips are then not drawn on their own.</summary>
-    (Dictionary<string, ID2D1Bitmap1> Plates, HashSet<string> Incoming) MixTransitions(
-        List<(VisualLayer Layer, ID2D1Bitmap1 Image, float? TextScale)> images, long t)
+    (Dictionary<string, ID2D1Bitmap1> Plates, HashSet<string> Incoming) MixTransitions(List<Placed> images)
     {
         var plates = new Dictionary<string, ID2D1Bitmap1>();
         var incoming = new HashSet<string>();
-        foreach (var (layer, image, textScale) in images)
+        foreach (var placed in images)
         {
-            if (layer.TransitionOut is not { } transition || !transition.Contains(t)) continue;
-            var next = images.FirstOrDefault(i => ReferenceEquals(i.Layer, transition.Next));
-            if (next.Layer is null) continue;
+            if (placed.Frame.Transition is not { } transition) continue;
+            if (images.FirstOrDefault(i => i.Frame.Index == transition.Next) is not { } next) continue;
+            var layer = placed.Layer;
             if (!transitions.TryGetValue(layer.Id, out var mixer))
             {
                 mixer = new TransitionMixer(graphics, Width, Height);
                 transitions[layer.Id] = mixer;
             }
-            DrawPlate(mixer.A, layer, image, textScale, t);
-            DrawPlate(mixer.B, next.Layer, next.Image, next.TextScale, t);
-            mixer.Mix(transition.Kind, transition.Progress(t));
+            DrawPlate(mixer.A, placed);
+            DrawPlate(mixer.B, next);
+            mixer.Mix(transition.Kind, transition.Progress);
             plates[layer.Id] = mixer.Result;
             incoming.Add(next.Layer.Id);
         }
@@ -183,18 +195,23 @@ public sealed class Compositor : IDisposable
     }
 
     /// <summary>A clip placed on the frame, over its canvas background (and black, when opaque) on the main track.</summary>
-    void DrawPlate(ID2D1Bitmap1 target, VisualLayer layer, ID2D1Bitmap1 image, float? textScale, long t) =>
+    void DrawPlate(ID2D1Bitmap1 target, Placed placed) =>
         graphics.DrawInto(target, dc =>
         {
+            var layer = placed.Layer;
             dc.Clear(new Color4(0, 0, 0, layer.IsMainTrack && opaque ? 1 : 0));
-            if (layer.IsMainTrack && layer.Canvas is { } canvas) Background(dc, canvas, image);
-            Place(dc, layer, image, textScale, t);
+            if (layer.IsMainTrack && layer.Canvas is { } canvas) Background(dc, canvas, placed.Image);
+            Place(dc, placed);
         });
+
+    /// <summary>A layer's content in this frame: the bitmap with its clip effects, and the scale text and stickers were
+    /// rasterized at.</summary>
+    sealed record Placed(VisualLayer Layer, LayerFrame Frame, ID2D1Bitmap1 Image, float? TextScale);
 
     /// <summary><paramref name="image"/> through the clip's own filters, in order.</summary>
     ID2D1Bitmap1 Colored(VisualLayer layer, ID2D1Bitmap1 image)
     {
-        if (layer.Filters.Count == 0 || !colorFilters.CanApply(layer.Filters)) return image;
+        if (layer.Filters.Length == 0 || !colorFilters.CanApply(layer.Filters)) return image;
         var size = image.PixelSize;
         if (!filtered.TryGetValue(layer.Id, out var pair) || pair.A.PixelSize.Width != size.Width || pair.A.PixelSize.Height != size.Height)
         {
@@ -214,15 +231,15 @@ public sealed class Compositor : IDisposable
 
     // MARK: Content
 
-    (ID2D1Bitmap1 Image, float? TextScale)? Content(VisualLayer layer, long t)
+    (ID2D1Bitmap1 Image, float? TextScale)? Content(VisualLayer layer, LayerFrame layerFrame)
     {
-        var offset = t - layer.Target.Start;
+        var sourceTime = layerFrame.SourceTime;
         switch (layer.Content)
         {
-            case VideoContent video:
+            case VisualContent.Video video:
             {
                 if (Video(layer, video.Path) is not { } v) return null;
-                var frame = v.Reader.FrameAt(layer.TimeMap.SourceTime(offset));
+                var frame = v.Reader.FrameAt(sourceTime);
                 if (frame is null) return null;
                 if (frame.Version != v.Version)
                 {
@@ -230,13 +247,11 @@ public sealed class Compositor : IDisposable
                     v.Version = frame.Version;
                     if (v.Upright is { } upright) TurnUpright(v.Stored, upright, v.Reader.Rotation);
                 }
-                var sourceTime = layer.TimeMap.SourceTime(offset);
-                return (Masked(layer, Stabilized(layer, video.Path, CutOut(layer, v.Image, sourceTime), sourceTime), sourceTime), null);
+                return (Masked(layer, Stabilized(layer, video.Path, CutOut(layer, v.Image, sourceTime), sourceTime), layerFrame), null);
             }
-            case PhotoContent photo:
-                return photos.Load(photo.Path) is { } bitmap
-                    ? (Masked(layer, CutOut(layer, bitmap, 0), layer.TimeMap.SourceTime(offset)), null) : null;
-            case CompoundContent compound:
+            case VisualContent.Photo photo:
+                return photos.Load(photo.Path) is { } bitmap ? (Masked(layer, CutOut(layer, bitmap, 0), layerFrame), null) : null;
+            case VisualContent.Compound compound:
             {
                 if (!nested.TryGetValue(layer.Id, out var inner))
                 {
@@ -245,15 +260,14 @@ public sealed class Compositor : IDisposable
                     inner = new Compositor(graphics, compound.Timeline, w, h, warnings, photos, opaque: false);
                     nested[layer.Id] = inner;
                 }
-                var time = layer.TimeMap.SourceTime(offset);
-                return (Masked(layer, CutOut(layer, inner.Render(time), time), time), null);
+                return (Masked(layer, CutOut(layer, inner.Render(sourceTime), sourceTime), layerFrame), null);
             }
-            case TextContentLayer textLayer:
+            case VisualContent.Text textLayer:
             {
                 // Rendered once per clip, and again when a typewriter animation shows another character.
                 var spec = textLayer.Spec;
-                var reveal = spec.Animations.State(offset, layer.Target.Duration).Reveal;
-                var visible = TextAnimationState.VisibleLength(spec.Content.Text, reveal);
+                var visible = layerFrame.Text is { Reveal: < 1 } state
+                    ? (int)EccCore.VisibleTextLength(spec.Content.Text, state.Reveal) : spec.Content.Text.Length;
                 if (!texts.TryGetValue(layer.Id, out var cached) || cached.Visible != visible)
                 {
                     cached.Bitmap?.Dispose();
@@ -263,11 +277,12 @@ public sealed class Compositor : IDisposable
                 }
                 return cached.Bitmap is { } rendered ? (rendered, cached.Scale) : null;
             }
-            case StickerContent sticker:
+            case VisualContent.Sticker sticker:
             {
                 // Drawn every frame at the size it's shown at; placed like text, at 1 / scale.
+                var clock = sticker.Spec.Clock;
                 var scale = Layout.StickerRasterScale(layer);
-                var pixels = (int)Math.Ceiling(sticker.Clock.Diameter * Math.Min(Width, Height) * scale);
+                var pixels = (int)Math.Ceiling(clock.Diameter * Math.Min(Width, Height) * scale);
                 pixels = Math.Max(pixels, 4);
                 if (!stickers.TryGetValue(layer.Id, out var drawn) || drawn.PixelSize.Width != pixels)
                 {
@@ -275,8 +290,8 @@ public sealed class Compositor : IDisposable
                     drawn = graphics.CreateBitmap(pixels, pixels, BitmapOptions.Target);
                     stickers[layer.Id] = drawn;
                 }
-                stickerRenderer.Render(sticker.Clock, drawn, layer.TimeMap.SourceTime(offset));
-                return (drawn, (float)(pixels / (sticker.Clock.Diameter * Math.Min(Width, Height))));
+                stickerRenderer.Render(clock, drawn, layerFrame.ClockHands ?? new ClockHands(0, 90));
+                return (drawn, (float)(pixels / (clock.Diameter * Math.Min(Width, Height))));
             }
             default:
                 return null;
@@ -296,12 +311,13 @@ public sealed class Compositor : IDisposable
         return keyer.Apply(image);
     }
 
-    /// <summary>Clip masks: <paramref name="image"/> with the union of its masks at source time <paramref name="t"/> as its alpha.</summary>
-    ID2D1Bitmap1 Masked(VisualLayer layer, ID2D1Bitmap1 image, long t)
+    /// <summary>Clip masks: <paramref name="image"/> with the union of its masks in this frame (geometry from
+    /// <see cref="LayerFrame.Masks"/>) as its alpha.</summary>
+    ID2D1Bitmap1 Masked(VisualLayer layer, ID2D1Bitmap1 image, LayerFrame frame)
     {
-        if (layer.Masks.Count == 0) return image;
+        if (layer.Masks.Length == 0) return image;
         if (!clipMasks.TryGetValue(layer.Id, out var m)) clipMasks[layer.Id] = m = new ClipMaskLayer(layer.Masks);
-        return m.Apply(graphics, image, t);
+        return m.Apply(graphics, image, frame.SourceTime, frame.Masks);
     }
 
     /// <summary>"Enhance quality", skin retouch and "Chroma key", then "Remove background": <paramref name="image"/> with CapCut's mask at
@@ -356,7 +372,7 @@ public sealed class Compositor : IDisposable
         if (failed.Contains(layer.Id)) return null;
         try
         {
-            var reader = new MfVideoReader(path, layer.TimeMap.SourceStart);
+            var reader = new MfVideoReader(path, layer.TimeMap.SourceStart());
             // Media Foundation keeps HDR code values, which is what CapCut shows for hdr_settings.mode 0.
             if (reader.IsHdr && layer.ToneMapsHdr) Warn($"{Path.GetFileName(path)}: HDR video is converted without tone mapping (colours differ from CapCut)");
             var stored = graphics.CreateBitmap(reader.Width, reader.Height);
@@ -383,7 +399,7 @@ public sealed class Compositor : IDisposable
         {
             var map = layer.TimeMap;
             StabilizationPlan plan;
-            try { plan = VideoStabilization.Analyze(path, map.SourceStart, map.SourceStart + map.SourceDuration, layer.Stabilization); }
+            try { plan = VideoStabilization.Analyze(path, map.SourceStart(), map.SourceStart() + map.SourceDuration(), (int)layer.Stabilization); }
             catch (Exception e) when (e is SharpGen.Runtime.SharpGenException or IOException) { plan = new StabilizationPlan([], []); }
             s = new VideoStabilization(plan);
             stabilizations[layer.Id] = s;
@@ -434,18 +450,19 @@ public sealed class Compositor : IDisposable
 
     // MARK: Layout
 
-    void Place(ID2D1DeviceContext dc, VisualLayer layer, ID2D1Bitmap1 image, float? textScale, long t)
+    /// <summary>The clip transform (keyframes and clip animations, from the core) and a text clip's animation on top.</summary>
+    void Place(ID2D1DeviceContext dc, Placed placed)
     {
+        var (layer, frame, image, textScale) = placed;
         var size = image.PixelSize;
         float x0 = 0, y0 = 0, x1 = size.Width, y1 = size.Height;
         if (textScale is null && Layout.CropRect(layer.Crop, size.Width, size.Height) is { } crop)
             (x0, y0, x1, y1) = crop;
         float w = x1 - x0, h = y1 - y0;
         if (w <= 0 || h <= 0) return;
-        var transform = layer.Transform(t);
-        if (layer.Content is TextContentLayer { Spec.Animations: { IsEmpty: false } animations })
+        var transform = frame.Transform;
+        if (frame.Text is { } s)
         {
-            var s = animations.State(t - layer.Target.Start, layer.Target.Duration);
             transform = transform with
             {
                 ScaleX = transform.ScaleX * s.Scale, ScaleY = transform.ScaleY * s.Scale,
@@ -464,14 +481,14 @@ public sealed class Compositor : IDisposable
     /// <summary>Places <paramref name="layer"/> like <see cref="Place"/>, but blended with what's below it: the layer is
     /// drawn into its own frame, the frame so far is copied, and the Direct2D blend effect of the two replaces the
     /// frame. Like CapCut, it blends sRGB-encoded values.</summary>
-    void Blend(ID2D1DeviceContext dc, VisualLayer layer, ID2D1Bitmap1 image, float? textScale, long t, Draft.BlendMode mode)
+    void Blend(ID2D1DeviceContext dc, Placed placed, Core.BlendMode mode)
     {
         blendLayer ??= graphics.CreateBitmap(Width, Height, BitmapOptions.Target);
         blendBackdrop ??= graphics.CreateBitmap(Width, Height);
         dc.Flush(out _, out _);
         dc.Target = blendLayer;
         dc.Clear(new Color4(0, 0, 0, 0));
-        Place(dc, layer, image, textScale, t);
+        Place(dc, placed);
         dc.Flush(out _, out _);
         blendBackdrop.CopyFromBitmap(Frame).CheckError();
         dc.Target = Frame;
@@ -480,7 +497,7 @@ public sealed class Compositor : IDisposable
 
     /// <summary>Replaces the target with <paramref name="layer"/> blended over <paramref name="backdrop"/> (both
     /// target-sized).</summary>
-    public static void DrawBlended(ID2D1DeviceContext dc, ID2D1Bitmap1 backdrop, ID2D1Bitmap1 layer, Draft.BlendMode mode)
+    public static void DrawBlended(ID2D1DeviceContext dc, ID2D1Bitmap1 backdrop, ID2D1Bitmap1 layer, Core.BlendMode mode)
     {
         using var blend = new Vortice.Direct2D1.Effects.Blend(dc) { Mode = D2DBlendMode(mode) };
         blend.SetInput(0, backdrop, true);
@@ -488,17 +505,17 @@ public sealed class Compositor : IDisposable
         dc.DrawImage(blend.Output, null, null, InterpolationMode.NearestNeighbor, CompositeMode.SourceCopy);
     }
 
-    static Vortice.Direct2D1.BlendMode D2DBlendMode(Draft.BlendMode mode) => mode switch
+    static Vortice.Direct2D1.BlendMode D2DBlendMode(Core.BlendMode mode) => mode switch
     {
-        Draft.BlendMode.Screen => Vortice.Direct2D1.BlendMode.Screen,
-        Draft.BlendMode.Darken => Vortice.Direct2D1.BlendMode.Darken,
-        Draft.BlendMode.Lighten => Vortice.Direct2D1.BlendMode.Lighten,
-        Draft.BlendMode.Overlay => Vortice.Direct2D1.BlendMode.Overlay,
-        Draft.BlendMode.HardLight => Vortice.Direct2D1.BlendMode.HardLight,
-        Draft.BlendMode.SoftLight => Vortice.Direct2D1.BlendMode.SoftLight,
-        Draft.BlendMode.LinearBurn => Vortice.Direct2D1.BlendMode.LinearBurn,
-        Draft.BlendMode.ColorBurn => Vortice.Direct2D1.BlendMode.ColorBurn,
-        Draft.BlendMode.ColorDodge => Vortice.Direct2D1.BlendMode.ColorDodge,
+        Core.BlendMode.Screen => Vortice.Direct2D1.BlendMode.Screen,
+        Core.BlendMode.Darken => Vortice.Direct2D1.BlendMode.Darken,
+        Core.BlendMode.Lighten => Vortice.Direct2D1.BlendMode.Lighten,
+        Core.BlendMode.Overlay => Vortice.Direct2D1.BlendMode.Overlay,
+        Core.BlendMode.HardLight => Vortice.Direct2D1.BlendMode.HardLight,
+        Core.BlendMode.SoftLight => Vortice.Direct2D1.BlendMode.SoftLight,
+        Core.BlendMode.LinearBurn => Vortice.Direct2D1.BlendMode.LinearBurn,
+        Core.BlendMode.ColorBurn => Vortice.Direct2D1.BlendMode.ColorBurn,
+        Core.BlendMode.ColorDodge => Vortice.Direct2D1.BlendMode.ColorDodge,
         _ => Vortice.Direct2D1.BlendMode.Multiply,
     };
 

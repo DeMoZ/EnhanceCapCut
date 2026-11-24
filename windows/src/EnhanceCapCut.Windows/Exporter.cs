@@ -1,7 +1,9 @@
 using System.Diagnostics;
+using EnhanceCapCut.Core;
 using EnhanceCapCut.Draft;
 using EnhanceCapCut.Render;
 using Vortice.Direct2D1;
+using TimeSpan = System.TimeSpan;
 
 namespace EnhanceCapCut.Windows;
 
@@ -34,19 +36,20 @@ public sealed class Exporter(Timeline timeline, ExportSettings settings, string 
         var clockTime = Stopwatch.StartNew();
         var source = settings.BurnInSubtitles ? timeline : timeline.WithoutSubtitles();
         var (width, height) = settings.OutputSize(source.CanvasWidth, source.CanvasHeight);
-        var clock = FrameClock.For(settings.Fps(source.Fps));
-        var span = Range ?? new TimeRange(0, source.Duration);
+        var clock = FrameClock.For(settings.Fps(source.Fps()));
+        var span = Range ?? new TimeRange(0, source.Duration());
         var frameCount = clock.FrameCount(span.Duration);
         void Report(ExportProgress.Phases phase, double fraction, int done = 0) =>
             progress?.Invoke(new(phase, Math.Clamp(fraction, 0, 1), done, frameCount, clockTime.Elapsed));
 
         // 1. Audio.
         Report(ExportProgress.Phases.Audio, 0);
-        var audioTimeline = Range is { } r ? AudioMixer.TrimmedForAudio(source, r) : source;
+        // A partial export mixes the clips inside the range, cut to it (the core's AudioClipsIn).
+        var clips = Range is { } r ? source.AudioClipsIn(r) : source.AudioClips();
         var decoder = new MfAudioDecoder();
-        using var isolator = VoiceIsolation.Load(audioTimeline, Warnings, cancel);
+        using var isolator = VoiceIsolation.Load(clips, Warnings, cancel);
         var voice = new VoiceProcessor(decoder, isolator, Warnings);
-        var mix = AudioMixer.Mix(audioTimeline, decoder, Warnings, p => Report(ExportProgress.Phases.Audio, p * 0.08), cancel, voice);
+        var mix = AudioMixer.Mix(clips, span.Duration, decoder, Warnings, p => Report(ExportProgress.Phases.Audio, p * 0.08), cancel, voice);
         if (settings.NormalizeLoudness)
         {
             Report(ExportProgress.Phases.Loudness, 0.08);

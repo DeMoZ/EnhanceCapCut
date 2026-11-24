@@ -1,5 +1,5 @@
 using System.Numerics;
-using EnhanceCapCut.Draft;
+using EnhanceCapCut.Core;
 using Vortice.Direct2D1;
 using Vortice.Mathematics;
 
@@ -15,9 +15,9 @@ public sealed class StickerImageRenderer(Graphics graphics) : IDisposable
         MiterLimit = 10,
     });
 
-    /// <summary>Draws the clock <paramref name="offset"/> µs after its segment start into <paramref name="target"/>
-    /// (a square bitmap; its width is the outer diameter).</summary>
-    public void Render(ClockSticker clock, ID2D1Bitmap1 target, long offset)
+    /// <summary>Draws the clock with its hands at <paramref name="angles"/> (<see cref="LayerFrame.ClockHands"/>) into
+    /// <paramref name="target"/> (a square bitmap; its width is the outer diameter).</summary>
+    public void Render(ClockSticker clock, ID2D1Bitmap1 target, ClockHands angles)
     {
         var n = target.PixelSize.Width;
         graphics.DrawInto(target, dc =>
@@ -36,7 +36,7 @@ public sealed class StickerImageRenderer(Graphics graphics) : IDisposable
             using (var ringBrush = Brush(clock.RingColor)) dc.DrawEllipse(circle, ringBrush, ring);
 
             var width = (float)clock.HandWidth * r;
-            var (minute, hour) = ClockSticker.HandAngles(offset);
+            var (minute, hour) = (angles.Minute, angles.Hour);
             // Direct2D is y-down: clockwise from 12 o'clock is (sin a, -cos a).
             Vector2 Tip(double degrees, double length)
             {

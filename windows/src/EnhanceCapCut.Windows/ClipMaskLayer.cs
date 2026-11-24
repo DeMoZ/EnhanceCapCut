@@ -1,4 +1,4 @@
-using EnhanceCapCut.Draft;
+using EnhanceCapCut.Core;
 using EnhanceCapCut.Render;
 using Vortice.Direct2D1;
 using Vortice.Mathematics;
@@ -15,11 +15,12 @@ sealed class ClipMaskLayer(IReadOnlyList<ClipMask> masks) : IDisposable
     ID2D1Bitmap1? maskBitmap;
     ID2D1Bitmap1? result;
 
-    /// <summary><paramref name="image"/> with the masks at source time <paramref name="t"/> as its alpha.</summary>
-    public ID2D1Bitmap1 Apply(Graphics graphics, ID2D1Bitmap1 image, long t)
+    /// <summary><paramref name="image"/> with the masks at source time <paramref name="t"/> (their geometry in
+    /// <paramref name="geometries"/>, from the core) as its alpha.</summary>
+    public ID2D1Bitmap1 Apply(Graphics graphics, ID2D1Bitmap1 image, long t, IReadOnlyList<MaskGeometry> geometries)
     {
         var size = image.PixelSize;
-        if (size.Width <= 0 || size.Height <= 0 || frames.FrameAt(t, size.Width, size.Height) is not { } frame) return image;
+        if (size.Width <= 0 || size.Height <= 0 || frames.FrameAt(t, geometries, size.Width, size.Height) is not { } frame) return image;
         if (frame.Changed || maskBitmap is null)
         {
             if (maskBitmap is not { } existing || existing.PixelSize.Width != frame.Width || existing.PixelSize.Height != frame.Height)

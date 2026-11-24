@@ -492,6 +492,47 @@ on both sides and learn about `core/`.
   says not to. Cargo uplifts `target/<triple>/release/libecc_core.*` only when it rebuilds, so a fresh build in
   checkout A leaves checkout B's library in place. Seen when the old build's library got packaged.
 
+**Stage-4 outcome (Windows switch).**
+- **Deleted from C#**, as Swift's were in stage 3:
+  - the port in `EnhanceCapCut.Draft`: draft model, projects, timeline builder and its types, writers, `DubTimeline`,
+    segmenter, line wrapper and SRT;
+  - the CLI's `Golden.cs` dumps;
+  - the tests whose Rust twins came over in stage 1.
+  About 5,100 lines of code and 1,700 of tests.
+- **What `EnhanceCapCut.Draft` keeps:** the generated bindings, plus `CoreExtensions.cs` with the C# conveniences
+  (C# 14 extension members: this machine's `CoreEnvironment`, `ProjectLocator`, `CapCutApp.IsRunning`,
+  `DraftWriter`, `TimeRange.End`, `Crop.IsIdentity`…). What stays C# is unchanged: `ExportSettings`,
+  `VoiceFilterGraph`, `McpServer`, `Localization`, `SubtitleLanguage`.
+- **What changed on the native side:**
+  - `Compositor` draws what `Timeline.Frame` returns, like the Mac's `FrameCompositor`.
+  - `AudioMixer` mixes `AudioClip[]` (`Timeline.AudioClipsIn` for a partial export).
+  - The subtitle pipeline uses `CaptionCues`, `WrapCaption` and `DraftEdits`. Its tracks are the core's records,
+    with languages as codes.
+  - `ecc info` prints `FormatInfo`, in UTF-8 on Windows too.
+  - `Localization.Use` calls `SetCoreLanguage`.
+  - No word breaker is set, so Windows wraps no-space scripts with ICU4X (decision 7, option b).
+- **The audio mix asks the core once per clip.** A UniFFI call from C# costs about 170 ns, and a vectorized one about
+  100 ns per value (serialization), so evaluating the time map for every audio frame would add seconds per minute of
+  audio. `AudioMixer.SourceCurve` takes the map's two ends at constant speed, which is exact. For a speed curve it
+  samples `source_times` every 5 ms, linear in between: within one audio frame of `precise_source_time`, tested. The
+  volume envelope comes from `KeyframeTrack.breaks`, like the Mac's volume ramps.
+- **Golden runner:** both native CLIs print the core's `info`, so `golden.sh` compares that alone: the Swift CLI is
+  back in for it, and each CLI must also print the fixtures' committed `expected/info.txt`. `windows.yml` runs it on
+  Windows (`SKIP_SWIFT=1`), which makes the Windows-equals-macOS check cross-OS. The core's dumps are checked by
+  `cargo test` only. `known-differences.md` lost its Windows-only entries (C# writers, Arabic region, grapheme breaks).
+- **Tests:** 118 .NET tests remain: native rendering, audio, voice, export settings, MCP, updates, Whisper chunking,
+  the bindings, and localization. `LocalizationTests` also reads the core's `tr!` keys and, like the Swift one, fails
+  on a `ru.json` entry that no Swift, C# or Rust code uses.
+- **Results:**
+  - `golden.sh fixtures`: 94 identical, nothing different (Rust, Swift and C# CLIs and the expected outputs).
+  - `golden.sh local`: 79 projects, 122 timelines, 244 identical.
+  - `dotnet test`, `swift test` (83) and the Release build pass, with no warnings.
+  - On the PR, `windows.yml` passed on windows-latest: unit tests, the end-to-end export, `ui-smoke`, `update-smoke`,
+    and `ecc_core.dll` (2.3 MB) in the published folder. `golden.sh fixtures` there gave 56 identical, 0 different
+    (C# CLI, core, expected). `core.yml` passed on Linux, Windows and macOS.
+- **For the next release notes:** on Windows, captions in Thai, Lao, Khmer and Burmese break between words (ICU4X)
+  instead of at any character; Chinese and Japanese still break between characters.
+
 ## Risks / Trade-offs
 
 - [`uniffi-bindgen-cs` lags or stalls] → pinned pair of versions; spike in stage 0 before committing; fallback in

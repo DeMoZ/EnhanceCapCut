@@ -1,4 +1,4 @@
-using EnhanceCapCut.Draft;
+using EnhanceCapCut.Core;
 using EnhanceCapCut.Render;
 
 namespace EnhanceCapCut.Render.Tests;
@@ -15,7 +15,7 @@ public class MaskTests
     public void RectangleCenterSizeAndInvert()
     {
         // Half the frame, centered: x 10..<30, y 5..<15.
-        var g = new MaskGeometry(Width: 0.5, Height: 0.5);
+        var g = Core.Geometry(width: 0.5, height: 0.5);
         var r = Raster(MaskShape.Rectangle, g);
         Assert.Equal(255, At(r, 20, 10));
         Assert.Equal(255, At(r, 10, 5));
@@ -25,7 +25,7 @@ public class MaskTests
         Assert.Equal(0, At(inv, 20, 10));
         Assert.Equal(255, At(inv, 0, 0));
         // Center in half-frame units, +y up: (0.5, 0.5) is the top-right quarter's center (30, 5).
-        var moved = Raster(MaskShape.Rectangle, new MaskGeometry(CenterX: 0.5, CenterY: 0.5, Width: 0.2, Height: 0.2));
+        var moved = Raster(MaskShape.Rectangle, Core.Geometry(centerX: 0.5, centerY: 0.5, width: 0.2, height: 0.2));
         Assert.Equal(255, At(moved, 30, 5));
         Assert.Equal(0, At(moved, 10, 15));
     }
@@ -34,13 +34,13 @@ public class MaskTests
     public void RotationIsClockwise()
     {
         // A wide thin bar turned 90° becomes a tall one.
-        var r = Raster(MaskShape.Rectangle, new MaskGeometry(Width: 0.9, Height: 0.05, Rotation: 90), w: 40, h: 40);
+        var r = Raster(MaskShape.Rectangle, Core.Geometry(width: 0.9, height: 0.05, rotation: 90), w: 40, h: 40);
         Assert.Equal(255, At(r, 20, 3, w: 40));
         Assert.Equal(0, At(r, 35, 20, w: 40));
         // The line keeps what's above it; rotated clockwise by 90° that becomes the right side.
-        Assert.Equal(255, At(Raster(MaskShape.Line, new MaskGeometry()), 20, 2));
-        Assert.Equal(0, At(Raster(MaskShape.Line, new MaskGeometry()), 20, 17));
-        var turned = Raster(MaskShape.Line, new MaskGeometry(Rotation: 90));
+        Assert.Equal(255, At(Raster(MaskShape.Line, Core.Geometry()), 20, 2));
+        Assert.Equal(0, At(Raster(MaskShape.Line, Core.Geometry()), 20, 17));
+        var turned = Raster(MaskShape.Line, Core.Geometry(rotation: 90));
         Assert.Equal(0, At(turned, 2, 10));
         Assert.Equal(255, At(turned, 37, 10));
     }
@@ -48,7 +48,7 @@ public class MaskTests
     [Fact]
     public void Shapes()
     {
-        var g = new MaskGeometry(Width: 0.5, Height: 1);
+        var g = Core.Geometry(width: 0.5, height: 1);
         foreach (var shape in new[] { MaskShape.Circle, MaskShape.Heart, MaskShape.Star })
         {
             var r = Raster(shape, g);
@@ -56,10 +56,10 @@ public class MaskTests
             Assert.Equal(0, At(r, 1, 1));
         }
         // A rounded rectangle cuts its corners.
-        Assert.Equal(0, At(Raster(MaskShape.Rectangle, new MaskGeometry(Width: 0.5, Height: 1, RoundCorner: 1)), 11, 1));
-        Assert.Equal(255, At(Raster(MaskShape.Rectangle, new MaskGeometry(Width: 0.5, Height: 1)), 11, 1));
+        Assert.Equal(0, At(Raster(MaskShape.Rectangle, Core.Geometry(width: 0.5, height: 1, roundCorner: 1)), 11, 1));
+        Assert.Equal(255, At(Raster(MaskShape.Rectangle, Core.Geometry(width: 0.5, height: 1)), 11, 1));
         // Mirror: a band `height` tall.
-        var band = Raster(MaskShape.Mirror, new MaskGeometry(Height: 0.2));
+        var band = Raster(MaskShape.Mirror, Core.Geometry(height: 0.2));
         Assert.Equal(255, At(band, 5, 10));
         Assert.Equal(0, At(band, 5, 4));
     }
@@ -67,8 +67,8 @@ public class MaskTests
     [Fact]
     public void FeatherIsASoftEdge()
     {
-        var sharp = Raster(MaskShape.Line, new MaskGeometry(), w: 40, h: 200);
-        var soft = Raster(MaskShape.Line, new MaskGeometry(Feather: 0.5), w: 40, h: 200);
+        var sharp = Raster(MaskShape.Line, Core.Geometry(), w: 40, h: 200);
+        var soft = Raster(MaskShape.Line, Core.Geometry(feather: 0.5), w: 40, h: 200);
         Assert.Equal(255, At(sharp, 0, 90));
         var mid = At(soft, 0, 100);
         Assert.InRange(mid, 101, 154);
@@ -78,7 +78,7 @@ public class MaskTests
     [Fact]
     public void UnionAndBitmaps()
     {
-        var left = new MaskRaster.ShapeLayer(MaskShape.Rectangle, new MaskGeometry(CenterX: -0.5, Width: 0.5, Height: 1), false);
+        var left = new MaskRaster.ShapeLayer(MaskShape.Rectangle, Core.Geometry(centerX: -0.5, width: 0.5, height: 1), false);
         // A 2×1 brush frame: left hidden, right shown.
         var brush = new MaskRaster.BitmapLayer([0, 255], 2, 1, false);
         var r = MaskRaster.Render([left, brush], 40, 20);
@@ -87,21 +87,6 @@ public class MaskTests
         Assert.InRange(At(r, 20, 10), 100, 160);
         Assert.Equal(MaskRaster.MaxSide, MaskRaster.RasterSize(1920, 1080).Width);
         Assert.Equal(640, MaskRaster.RasterSize(640, 480).Width);
-    }
-
-    [Fact]
-    public void KeyframesAreOnTheSourceTimeAxis()
-    {
-        var mask = new ClipMask(MaskShape.Rectangle, null, new MaskGeometry(CenterX: 0.3), false,
-            new Dictionary<MaskProperty, KeyframeTrack> { [MaskProperty.PositionX] = new([10_000_000, 12_000_000], [0, 1]) });
-        Assert.Equal(0.5, mask.GeometryAt(11_000_000).CenterX, 9);
-        Assert.Equal(0, mask.GeometryAt(0).CenterX);
-        Assert.Equal(MaskProperty.Width, MaskProperties.FromType("KFTypeCommonMaskSizeWidth"));
-        Assert.Equal(MaskProperty.RoundCorner, MaskProperties.FromType("KFTypeMaskRoundCorner"));
-        Assert.Null(MaskProperties.FromType("KFTypeCommonMaskTwist"));
-        Assert.Equal(MaskShape.Heart, ClipMask.ShapeOf("geometric_shape", "Heart"));
-        Assert.Equal(MaskShape.Line, ClipMask.ShapeOf("line", "Split"));
-        Assert.Null(ClipMask.ShapeOf("custom", "Brush"));
     }
 
     [Fact]
@@ -138,28 +123,26 @@ public class MaskTests
                  {"id": "M3", "name": "Brush", "resource_type": "custom", "loader_work_space": "", "config": {}},
                  {"id": "M4", "name": "Wave", "resource_type": "wave", "config": {"expansion": 0.2}}]}}
             """;
-            var timeline = TimelineBuilder.Build(EnhanceCapCut.Draft.Draft.Parse(json), dir);
-            var masks = Assert.Single(timeline.Layers).Masks;
-            Assert.Equal(2, masks.Count);
-            Assert.Equal(MaskShape.Rectangle, masks[0].Shape);
+            // The core reads the masks (and evaluates their keyframes per frame); this side draws them.
+            var timeline = Core.Timeline(json, dir);
+            var masks = Assert.Single(timeline.Layers()).Masks;
+            Assert.Equal(2, masks.Length);
+            Assert.Equal(new ClipMaskKind.Shape(MaskShape.Rectangle), masks[0].Kind);
             Assert.True(masks[0].Inverted);
-            Assert.Equal(new MaskGeometry(0, 0.5, 0.2, 0.4, 30, 0.1, 0.2), masks[0].Geometry);
-            Assert.Equal(0.2, masks[0].GeometryAt(500_000).CenterX, 9);
-            Assert.Null(masks[1].Shape);
-            Assert.Equal(Path.GetFullPath(strokes), Path.GetFullPath(masks[1].BrushFolder!));
-            Assert.Empty(masks[1].Keyframes);
-            var found = timeline.Report.Unsupported.Select(i => $"{i.Category}: {i.Name}").ToHashSet();
-            HashSet<string> expected = ["Mask: brush strokes not saved in the project", "Mask: expansion", "Mask: Wave"];
-            Assert.Equal(expected, found);
+            Assert.Equal(Core.Geometry(0, 0.5, 0.2, 0.4, 30, 0.1, 0.2), masks[0].Geometry);
+            var geometries = Assert.Single(timeline.Frame(500_000).Layers).Masks;
+            Assert.Equal(0.2, geometries[0].CenterX, 9);
+            var brush = Assert.IsType<ClipMaskKind.Brush>(masks[1].Kind);
+            Assert.Equal(Path.GetFullPath(strokes), Path.GetFullPath(brush.Directory));
 
             // The brush frame, stretched over the clip, and redrawn only when it changes.
             var frames = new ClipMaskFrames([masks[1]]);
-            var first = frames.FrameAt(0, 4, 2)!.Value;
+            var first = frames.FrameAt(0, [], 4, 2)!.Value;
             Assert.Equal(4, first.Width);
             Assert.Equal(0, first.Pixels[0]);
             Assert.Equal(255, first.Pixels[3]);
             Assert.True(first.Changed);
-            Assert.False(frames.FrameAt(40_000, 4, 2)!.Value.Changed);
+            Assert.False(frames.FrameAt(40_000, [], 4, 2)!.Value.Changed);
         }
         finally
         {

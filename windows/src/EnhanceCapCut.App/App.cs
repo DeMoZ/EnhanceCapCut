@@ -109,7 +109,7 @@ sealed partial class App : Application, IXamlMetadataProvider
             model.RefreshProjects(selectOpen: true);
             var i = Array.IndexOf(args, "--project");
             if (i >= 0 && i + 1 < args.Length && model.Projects.FirstOrDefault(p => p.Name == args[i + 1]) is { } project)
-                model.SelectedProjectFolder = project.Folder;
+                model.SelectedProjectFolder = project.Path;
         }
         if (exportWindow is null)
         {

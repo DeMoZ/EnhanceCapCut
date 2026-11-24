@@ -1,3 +1,4 @@
+using EnhanceCapCut.Core;
 using EnhanceCapCut.Subtitles;
 
 namespace EnhanceCapCut.Draft.Tests;

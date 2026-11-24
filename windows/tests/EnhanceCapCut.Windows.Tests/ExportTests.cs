@@ -1,4 +1,6 @@
 using System.Runtime.InteropServices;
+using System.Text;
+using EnhanceCapCut.Core;
 using EnhanceCapCut.Draft;
 using EnhanceCapCut.Render;
 using EnhanceCapCut.Windows;
@@ -88,8 +90,8 @@ public sealed class ExportTests : IDisposable
     {
         if (!OperatingSystem.IsWindows()) return;
         var clip = WriteSourceClip();
-        var timeline = TimelineBuilder.Build(EnhanceCapCut.Draft.Draft.Parse(DraftJson(clip)), folder);
-        Assert.Empty(timeline.Report.MissingFiles);
+        var timeline = Timeline.FromDraft(Encoding.UTF8.GetBytes(DraftJson(clip)), folder, CoreEnvironment.Current);
+        Assert.Empty(timeline.Report().MissingFiles);
         var output = Path.Combine(folder, "out.mp4");
         var settings = new ExportSettings { Codec = ExportSettings.VideoCodec.H264, Quality = 90, NormalizeLoudness = false };
         var exporter = new Exporter(timeline, settings, output);
@@ -132,15 +134,28 @@ public sealed class ExportTests : IDisposable
         Assert.True(Math.Sqrt(sum / (to - from)) > 0.1);
     }
 
+    /// <summary>The text spec the core makes of one text material (<paramref name="fields"/>: its fields, without the
+    /// id), as the Mac's tests do.</summary>
+    static TextLayerSpec TextSpec(string fields)
+    {
+        var draft = """
+            {"canvas_config": {"width": 1080, "height": 1920}, "duration": 1000000,
+             "tracks": [{"type": "text", "segments": [{"id": "S", "material_id": "T", "target_timerange": {"start": 0, "duration": 1000000}}]}],
+             "materials": {"texts": [{"id": "T",
+            """ + fields + "}]}}";
+        var layer = Assert.Single(Timeline.FromDraft(Encoding.UTF8.GetBytes(draft), Path.GetTempPath(), CoreEnvironment.Current).Layers());
+        return Assert.IsType<VisualContent.Text>(layer.Content).Spec;
+    }
+
     [Fact]
     public void RendersTextWithOutline()
     {
         if (!OperatingSystem.IsWindows()) return;
         using var graphics = new Graphics();
         using var renderer = new TextImageRenderer(graphics);
-        var material = TextMaterial.From(System.Text.Json.JsonDocument.Parse("""{"id": "X", "font_size": 15}""").RootElement)!;
-        var content = TextContent.Parse("""{"text":"Hello\nworld","styles":[{"range":[0,11],"strokes":[{"width":0.08}]}]}""")!;
-        using var bitmap = renderer.Render(new TextLayerSpec(material, content), 1080, 1);
+        using var bitmap = renderer.Render(TextSpec(""""
+            "font_size": 15, "content": "{\"text\":\"Hello\\nworld\",\"styles\":[{\"range\":[0,11],\"strokes\":[{\"width\":0.08}]}]}"
+            """"), 1080, 1);
         Assert.NotNull(bitmap);
         // Two lines of ~95 px type: taller than one line, wider than it is tall.
         Assert.True(bitmap.PixelSize.Height > 180, $"height {bitmap.PixelSize.Height}");

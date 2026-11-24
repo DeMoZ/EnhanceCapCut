@@ -1,6 +1,6 @@
 using System.Globalization;
 using System.Numerics;
-using EnhanceCapCut.Draft;
+using EnhanceCapCut.Core;
 
 namespace EnhanceCapCut.Render;
 
@@ -56,10 +56,10 @@ public static class Layout
         var max = Math.Max(Math.Abs(layer.Clip.Scale.X), Math.Abs(layer.Clip.Scale.Y));
         foreach (var p in new[] { LayerProperty.ScaleX, LayerProperty.ScaleY })
         {
-            if (layer.Keyframes.TryGetValue(p, out var track) && track.Values.Count > 0)
-                max = Math.Max(max, track.Values.Max(Math.Abs));
+            if (layer.Keyframes.TryGetValue(p, out var track) && track.Values() is { Length: > 0 } values)
+                max = Math.Max(max, values.Max(Math.Abs));
         }
-        if (layer.Content is TextContentLayer textLayer) max *= textLayer.Spec.Animations.MaxScale;
+        if (layer.Content is VisualContent.Text text) max *= text.Spec.AnimationMaxScale;
         return (float)Math.Clamp(max, 1, 8);
     }
 
@@ -69,8 +69,8 @@ public static class Layout
         var max = Math.Max(Math.Abs(layer.Clip.Scale.X), Math.Abs(layer.Clip.Scale.Y));
         foreach (var p in new[] { LayerProperty.ScaleX, LayerProperty.ScaleY })
         {
-            if (layer.Keyframes.TryGetValue(p, out var track) && track.Values.Count > 0)
-                max = Math.Max(max, track.Values.Max(Math.Abs));
+            if (layer.Keyframes.TryGetValue(p, out var track) && track.Values() is { Length: > 0 } values)
+                max = Math.Max(max, values.Max(Math.Abs));
         }
         return Math.Clamp(max, 0.05, 8);
     }
@@ -78,8 +78,9 @@ public static class Layout
     /// <summary>A nested (compound clip) canvas rendered at the same pixel density as its parent.</summary>
     public static (int Width, int Height) NestedSize(Timeline parent, Timeline inner, int outW)
     {
-        var k = outW / (double)Math.Max(parent.CanvasWidth, 1);
-        return ((int)Math.Max(1, Math.Round(inner.CanvasWidth * k)), (int)Math.Max(1, Math.Round(inner.CanvasHeight * k)));
+        var k = outW / Math.Max(parent.Canvas().Width, 1);
+        var canvas = inner.Canvas();
+        return ((int)Math.Max(1, Math.Round(canvas.Width * k)), (int)Math.Max(1, Math.Round(canvas.Height * k)));
     }
 }
 

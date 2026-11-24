@@ -1,5 +1,5 @@
 using System.Numerics;
-using EnhanceCapCut.Draft;
+using EnhanceCapCut.Core;
 using EnhanceCapCut.Render;
 
 namespace EnhanceCapCut.Render.Tests;
@@ -48,9 +48,6 @@ sealed class FakeDecoder(float[] samples) : IAudioDecoder
 
 public class AudioTests
 {
-    static Timeline With(params AudioClip[] clips) =>
-        new("T", 1080, 1920, clips.Max(c => c.Target.End), 30, [], clips, new RenderReport());
-
     [Fact]
     public void LimiterKeepsTheSumUnderTheCeiling()
     {
@@ -65,9 +62,9 @@ public class AudioTests
     [Fact]
     public void ClipIsPlacedWithVolumeAndFades()
     {
-        var clip = new AudioClip("a", new TimeRange(500_000, 1_000_000), new TimeMap(0, 1_000_000, 1_000_000), 0.5,
+        var clip = Core.Clip("a", new TimeRange(500_000, 1_000_000), TimeMap.Constant(0, 1_000_000, 1_000_000), 0.5,
             200_000, 0, true);
-        var mix = AudioMixer.Mix(With(clip), new FakeDecoder(Signal.Sine(440, 3)), []);
+        var mix = Core.Mix(new FakeDecoder(Signal.Sine(440, 3)), clip);
         Assert.Equal(AudioMixer.Frames(1_500_000) * 2, mix.Length);
         Assert.True(Signal.Rms(mix, 0, 24_000) < 1e-6);
         // Fade-in: quieter at the start than after it; full level is 0.5 × 0.5 amplitude.
@@ -79,11 +76,9 @@ public class AudioTests
     public void VolumeKeyframesShapeTheClip()
     {
         // Full level for 1 s, a 0.1 s ramp down to a quarter, back up at 2 s (like voice-over ducking).
-        var clip = new AudioClip("a", new TimeRange(0, 3_000_000), new TimeMap(0, 3_000_000, 3_000_000), 1, 0, 0, true)
-        {
-            VolumeEnvelope = new KeyframeTrack([900_000, 1_000_000, 2_000_000, 2_100_000], [1, 0.25, 0.25, 1]),
-        };
-        var mix = AudioMixer.Mix(With(clip), new FakeDecoder(Signal.Sine(440, 3)), []);
+        var clip = Core.Clip("a", new TimeRange(0, 3_000_000), TimeMap.Constant(0, 3_000_000, 3_000_000), 1, 0, 0, true,
+            KeyframeTrack.Linear([900_000, 1_000_000, 2_000_000, 2_100_000], [1, 0.25, 0.25, 1]));
+        var mix = Core.Mix(new FakeDecoder(Signal.Sine(440, 3)), clip);
         var full = 0.5 / Math.Sqrt(2);
         Assert.InRange(Signal.Rms(mix, 9_600, 38_400), full - 0.01, full + 0.01);
         Assert.InRange(Signal.Rms(mix, 57_600, 86_400), full / 4 - 0.01, full / 4 + 0.01);
@@ -94,12 +89,12 @@ public class AudioTests
     public void PitchToggleResamplesAndOtherwiseKeepsThePitch()
     {
         // 2 s of source played in 1 s.
-        var map = new TimeMap(0, 2_000_000, 1_000_000);
-        var tape = new AudioClip("a", new TimeRange(0, 1_000_000), map, 1, 0, 0, PreservePitch: false);
+        var map = TimeMap.Constant(0, 2_000_000, 1_000_000);
+        var tape = Core.Clip("a", new TimeRange(0, 1_000_000), map, 1, 0, 0, preservePitch: false);
         var kept = tape with { PreservePitch = true };
         var source = Signal.Sine(300, 3);
-        var tapeMix = AudioMixer.Mix(With(tape), new FakeDecoder(source), []);
-        var keptMix = AudioMixer.Mix(With(kept), new FakeDecoder(source), []);
+        var tapeMix = Core.Mix(new FakeDecoder(source), tape);
+        var keptMix = Core.Mix(new FakeDecoder(source), kept);
         Assert.InRange(Signal.Frequency(tapeMix, 4_800, 43_200), 590, 610);
         Assert.InRange(Signal.Frequency(keptMix, 4_800, 43_200), 290, 310);
         // The time-stretch keeps the level.
@@ -118,23 +113,63 @@ public class AudioTests
         Assert.True(double.IsNegativeInfinity(Loudness.Integrated(new float[96_000 * 2])));
     }
 
+    /// <summary>A file for a draft's audio material to point at (the core skips missing media), JSON-escaped.</summary>
+    static string AudioFile()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "ecc-render-tests-audio.m4a");
+        if (!File.Exists(path)) File.WriteAllBytes(path, [0]);
+        return path.Replace("\\", "\\\\");
+    }
+
     [Fact]
     public void TrimmedAudioStartsAtTheRange()
     {
-        var clip = new AudioClip("a", new TimeRange(1_000_000, 2_000_000), new TimeMap(0, 2_000_000, 2_000_000), 1,
-            100_000, 100_000, true);
-        var trimmed = AudioMixer.TrimmedForAudio(With(clip), new TimeRange(2_000_000, 5_000_000));
-        var c = Assert.Single(trimmed.AudioClips);
+        // A partial export mixes the core's AudioClipsIn: the clips inside the range, cut to it and shifted to 0.
+        var timeline = Core.Timeline($$$"""
+            {"duration": 3000000, "tracks": [{"type": "audio", "segments": [
+               {"id": "S", "material_id": "A", "target_timerange": {"start": 1000000, "duration": 2000000},
+                "source_timerange": {"start": 0, "duration": 2000000}, "extra_material_refs": ["F"]}]}],
+             "materials": {"audios": [{"id": "A", "path": "{{{AudioFile()}}}"}],
+                           "audio_fades": [{"id": "F", "fade_in_duration": 100000, "fade_out_duration": 100000}]}}
+            """);
+        var c = Assert.Single(timeline.AudioClipsIn(new TimeRange(2_000_000, 5_000_000)));
         Assert.Equal(new TimeRange(0, 1_000_000), c.Target);
-        Assert.Equal(1_000_000, c.TimeMap.SourceStart);
+        Assert.Equal(1_000_000, c.TimeMap.SourceStart());
         Assert.Equal(0, c.FadeIn);
         Assert.Equal(100_000, c.FadeOut);
+    }
+
+    [Fact]
+    public void SpeedCurvesAreSampledFromTheCore()
+    {
+        // Constant speed is exact; a curve is the core's time map at CurveStepUs steps, linear in between.
+        var constant = AudioMixer.SourceCurve(TimeMap.Constant(500_000, 2_000_000, 1_000_000));
+        Assert.Equal(500_000, constant.At(0));
+        Assert.Equal(1_500_000.5, constant.At(500_000.25), 6);
+        Assert.Equal(2_500_000, constant.At(2_000_000));
+        var timeline = Core.Timeline($$$"""
+            {"duration": 2000000, "tracks": [{"type": "audio", "segments": [
+               {"id": "S", "material_id": "A", "target_timerange": {"start": 0, "duration": 2000000},
+                "source_timerange": {"start": 0, "duration": 2000000}, "extra_material_refs": ["SP"]}]}],
+             "materials": {"audios": [{"id": "A", "path": "{{{AudioFile()}}}"}],
+                           "speeds": [{"id": "SP", "mode": 1, "speed": 1, "curve_speed": {"speed_points": [
+                              {"x": 0, "y": 0.5}, {"x": 0.5, "y": 2}, {"x": 1, "y": 0.5}]}}]}}
+            """);
+        var map = Assert.Single(timeline.AudioClips()).TimeMap;
+        Assert.False(map.IsConstant());
+        var curve = AudioMixer.SourceCurve(map);
+        // Within one audio frame (20.8 µs at 48 kHz) of the core's exact time everywhere.
+        for (long offset = 0; offset <= map.TargetDuration(); offset += 7_919)
+            Assert.InRange(curve.At(offset) - map.PreciseSourceTime(offset), -20, 20);
+        var gains = AudioMixer.VolumeCurve(KeyframeTrack.Linear([0, 1_000_000], [0, 1]));
+        Assert.Equal(0.25, gains.At(250_000), 9);
     }
 }
 
 public class LayoutTests
 {
     static LayerTransform Identity => new(1, 1, 0, 0, 0, false, false, 1);
+    static Crop Crop(double left, double top, double right, double bottom) => new(new(left, top), new(right, bottom));
 
     [Fact]
     public void FitsAndCentersByDefault()
@@ -173,9 +208,8 @@ public class LayoutTests
     [Fact]
     public void CropAndCover()
     {
-        var crop = new Crop { UpperLeft = new(0.1, 0.2), LowerRight = new(0.9, 1) };
-        Assert.Equal((10f, 20f, 90f, 100f), Layout.CropRect(crop, 100, 100));
-        Assert.Null(Layout.CropRect(new Crop(), 100, 100));
+        Assert.Equal((10f, 20f, 90f, 100f), Layout.CropRect(Crop(0.1, 0.2, 0.9, 1), 100, 100));
+        Assert.Null(Layout.CropRect(Crop(0, 0, 1, 1), 100, 100));
         var cover = Layout.Cover(1920, 1080, 1080, 1920);
         Assert.Equal(1920, Vector2.Transform(new(0, 1080), cover).Y, 3);
     }

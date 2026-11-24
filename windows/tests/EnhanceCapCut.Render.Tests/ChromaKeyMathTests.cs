@@ -1,4 +1,4 @@
-using EnhanceCapCut.Draft;
+using EnhanceCapCut.Core;
 using EnhanceCapCut.Render;
 
 namespace EnhanceCapCut.Render.Tests;
@@ -10,7 +10,7 @@ public class ChromaKeyMathTests
     [Fact]
     public void MatteAndSpill()
     {
-        var green = new ChromaKey(0.1, 0.8, 0.2, 0.5);
+        var green = new ChromaKey(0.1, 0.8, 0.2, 0.5, 0, 0, 0);
         // The picked colour and nearby greens are removed; skin and blue are kept.
         Assert.Equal(0, ChromaKeyMath.Alpha(green, 0.1, 0.8, 0.2));
         Assert.Equal(0, ChromaKeyMath.Alpha(green, 0.15, 0.7, 0.2));
@@ -23,7 +23,7 @@ public class ChromaKeyMathTests
         // "Shadow" keeps dark pixels.
         Assert.Equal(1, ChromaKeyMath.Alpha(green with { Intensity = 1, Shadow = 1 }, 0.02, 0.2, 0.05));
         // A white screen is keyed by brightness.
-        var white = new ChromaKey(1, 1, 1, 0.3);
+        var white = new ChromaKey(1, 1, 1, 0.3, 0, 0, 0);
         Assert.Equal(0, ChromaKeyMath.Alpha(white, 0.95, 0.95, 0.95));
         Assert.Equal(1, ChromaKeyMath.Alpha(white, 0.3, 0.3, 0.3));
 
@@ -39,7 +39,7 @@ public class ChromaKeyMathTests
     [Fact]
     public void TablesRunBlueFastest()
     {
-        var key = new ChromaKey(0, 1, 0, 0.5, Spill: 1);
+        var key = new ChromaKey(0, 1, 0, 0.5, 0, 0, Spill: 1);
         var matte = ChromaKeyMath.MatteTable(key, 3);
         var color = ChromaKeyMath.ColorTable(key, 3);
         Assert.Equal(3 * 3 * 3 * 4, matte.Length);

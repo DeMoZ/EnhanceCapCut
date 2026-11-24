@@ -1,5 +1,5 @@
 using System.Globalization;
-using System.Text;
+using EnhanceCapCut.Core;
 using EnhanceCapCut.Draft;
 using static EnhanceCapCut.Draft.Localization;
 
@@ -7,8 +7,8 @@ namespace EnhanceCapCut.Subtitles;
 
 /// <summary>
 /// Timeline mix → speech recognition → cues → translations → voice-over: the counterpart of the macOS version's
-/// <c>SubtitlePipeline</c>. The result goes into the draft with <see cref="DraftSubtitleWriter"/> /
-/// <see cref="DraftVoiceOverWriter"/> and into .srt files.
+/// <c>SubtitlePipeline</c>. The result goes into the draft through the Rust core (<see cref="Output.Edits"/>,
+/// <see cref="DraftWriter"/>) and into .srt files.
 /// </summary>
 public static class SubtitlePipeline
 {
@@ -31,7 +31,15 @@ public static class SubtitlePipeline
         public string? VoiceOverFolder { get; init; }
     }
 
-    public sealed record Output(List<SubtitleTrack> Captions, List<VoiceOverTrack> VoiceOver);
+    /// <summary>The run's tracks, as the core's records (languages by code).</summary>
+    public sealed record Output(List<SubtitleTrack> Captions, List<VoiceOverTrack> VoiceOver)
+    {
+        /// <summary>What writing the run changes in a draft (an empty part leaves the draft's earlier one alone).</summary>
+        public DraftEdits Edits(OriginalAudio original, bool replacePrevious) =>
+            DraftWriter.Edits(Captions, VoiceOver, original, replacePrevious);
+
+        public int CueCount => Captions.Sum(t => t.Cues.Length);
+    }
 
     public delegate void Report(string step, double fraction);
 
@@ -69,12 +77,12 @@ public static class SubtitlePipeline
         // 2. Speech
         var words = await SpeechRecognizer.TranscribeAsync(audio, options.Source,
             p => report(L("Transcribing…"), 0.15 + (speechEnd - 0.15) * p), cancel);
-        var cues = Segmenter.Cues(words, options.Source.Code);
+        var cues = EccCore.CaptionCues([.. words], options.Source.Code).ToList();
 
         // 3. Translations
         var tracks = new List<SubtitleTrack>();
         var spoken = new Dictionary<string, List<CaptionCue>>();
-        if (options.IncludeOriginal && options.Captions) tracks.Add(new SubtitleTrack(options.Source, cues, IsOriginal: true, IsVisible: false));
+        if (options.IncludeOriginal && options.Captions) tracks.Add(new SubtitleTrack(options.Source.Code, [.. cues], IsOriginal: true, IsVisible: false));
         var translating = options.Captions ? targets : dubbing;
         if (translating.Count > 0)
         {
@@ -87,11 +95,11 @@ public static class SubtitlePipeline
                     p => report(L("Translating: {0}…", target.Title), baseFraction + (translateEnd - speechEnd) * p / translating.Count), cancel);
                 spoken[target.Code] = cues.Zip(translated, (c, t) => c with { Text = t }).ToList();
                 if (!options.Captions) continue;
-                var wrapped = cues.Zip(translated, (c, t) => c with { Text = LineWrapper.Wrap(t, target.Code) }).ToList();
-                tracks.Add(new SubtitleTrack(target, wrapped, IsOriginal: false, IsVisible: false));
+                var wrapped = cues.Zip(translated, (c, t) => c with { Text = Wrap(t, target.Code) }).ToArray();
+                tracks.Add(new SubtitleTrack(target.Code, wrapped, IsOriginal: false, IsVisible: false));
             }
         }
-        var visible = tracks.FindIndex(t => t.Language.Code == options.VisibleLanguage);
+        var visible = tracks.FindIndex(t => t.Language == options.VisibleLanguage);
         if (tracks.Count > 0) tracks[Math.Max(visible, 0)] = tracks[Math.Max(visible, 0)] with { IsVisible = true };
 
         // 4. Voice-over
@@ -131,9 +139,10 @@ public static class SubtitlePipeline
                         Progress, cancel);
                 }
                 var length = Math.Max(duration, lines.Count > 0 ? lines[^1].End : 0);
-                voiceOver.Add(new VoiceOverTrack(language, path, length, lines, IsAudible: false));
+                voiceOver.Add(new VoiceOverTrack(language.Code, path, length, [.. lines.Select(l => new LineRange(l.Start, l.End))],
+                    IsAudible: false, IsBackground: false));
             }
-            var audible = voiceOver.FindIndex(t => t.Language.Code == options.AudibleVoice);
+            var audible = voiceOver.FindIndex(t => t.Language == options.AudibleVoice);
             voiceOver[Math.Max(audible, 0)] = voiceOver[Math.Max(audible, 0)] with { IsAudible = true };
         }
         report(L("Done"), 1);
@@ -143,25 +152,27 @@ public static class SubtitlePipeline
     /// <summary>The timeline to transcribe: without voice-over (and its ducking) that earlier runs added.</summary>
     public static Timeline SpeechTimeline(CapCutProject project, ProjectTimeline timeline)
     {
-        var data = DraftVoiceOverWriter.WithoutVoiceOver(File.ReadAllBytes(timeline.DraftPath));
-        return TimelineBuilder.Build(EnhanceCapCut.Draft.Draft.Parse(Encoding.UTF8.GetString(data)), project.Folder);
+        var data = EccCore.WithoutVoiceOver(File.ReadAllBytes(timeline.DraftPath), new IdSource.Random());
+        return Timeline.FromDraft(data, project.Path, CoreEnvironment.Current);
+    }
+
+    /// <summary><paramref name="text"/> in balanced caption lines (the core's wrapping; as is if the core fails).</summary>
+    static string Wrap(string text, string language)
+    {
+        try { return EccCore.WrapCaption(text, language); }
+        catch (CoreException) { return text; }
     }
 
     /// <summary>A new folder for a run's voice-over audio, inside the project so CapCut can read it.</summary>
-    public static string VoiceOverFolder(CapCutProject project) => Path.Combine(project.Folder, "EnhanceCapCut",
+    public static string VoiceOverFolder(CapCutProject project) => Path.Combine(project.Path, "EnhanceCapCut",
         "voiceover " + DateTime.UtcNow.ToString("yyyy-MM-ddTHH-mm-ssZ", CultureInfo.InvariantCulture));
 
     /// <summary>
     /// The draft with the run's caption and voice-over tracks added. Only what the run made is touched: without
     /// captions the draft's earlier subtitles stay, without voice-over its earlier voice-over.
     /// </summary>
-    public static byte[] Apply(Output output, byte[] draft, OriginalAudio original, bool replacePrevious, string? projectFolder)
-    {
-        var data = draft;
-        if (output.Captions.Count > 0) data = DraftSubtitleWriter.Apply(output.Captions, data, replacePrevious);
-        if (output.VoiceOver.Count > 0) data = DraftVoiceOverWriter.Apply(output.VoiceOver, data, original, replacePrevious, projectFolder);
-        return data;
-    }
+    public static byte[] Apply(Output output, byte[] draft, OriginalAudio original, bool replacePrevious, string? projectFolder) =>
+        DraftWriter.Apply(output.Edits(original, replacePrevious), draft, projectFolder);
 
     /// <summary>Writes one .srt per track into <paramref name="folder"/>, named "&lt;base&gt; &lt;code&gt;.srt".</summary>
     public static List<string> WriteSrt(IReadOnlyList<SubtitleTrack> tracks, string folder, string baseName)
@@ -170,8 +181,8 @@ public static class SubtitlePipeline
         var safe = string.Concat(baseName.Select(c => "/:\\".Contains(c) ? '-' : c));
         return tracks.Select(t =>
         {
-            var path = Path.Combine(folder, $"{safe} {t.Language.Code}.srt");
-            File.WriteAllText(path, SrtWriter.Srt(t.Cues));
+            var path = Path.Combine(folder, $"{safe} {t.Language}.srt");
+            File.WriteAllText(path, EccCore.Srt(t.Cues));
             return path;
         }).ToList();
     }

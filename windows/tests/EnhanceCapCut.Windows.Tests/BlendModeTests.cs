@@ -20,7 +20,7 @@ public sealed class BlendModeTests
         return bitmap;
     }
 
-    static int[] Blend(Graphics graphics, EnhanceCapCut.Draft.BlendMode mode, byte alpha)
+    static int[] Blend(Graphics graphics, EnhanceCapCut.Core.BlendMode mode, byte alpha)
     {
         using var backdrop = Solid(graphics, 128, 128, 128, 255);
         using var layer = Solid(graphics, 204, 51, 128, alpha);
@@ -44,11 +44,11 @@ public sealed class BlendModeTests
     {
         if (!OperatingSystem.IsWindows()) return;
         using var graphics = new Graphics();
-        AssertClose([230, 153, 191, 255], Blend(graphics, EnhanceCapCut.Draft.BlendMode.Screen, 255), "screen = 1 − (1 − a)(1 − b)");
-        AssertClose([102, 26, 64, 255], Blend(graphics, EnhanceCapCut.Draft.BlendMode.Multiply, 255), "multiply = a · b");
-        AssertClose([128, 51, 128, 255], Blend(graphics, EnhanceCapCut.Draft.BlendMode.Darken, 255), "darken = min");
-        AssertClose([204, 128, 128, 255], Blend(graphics, EnhanceCapCut.Draft.BlendMode.Lighten, 255), "lighten = max");
-        AssertClose([179, 140, 160, 255], Blend(graphics, EnhanceCapCut.Draft.BlendMode.Screen, 128),
+        AssertClose([230, 153, 191, 255], Blend(graphics, EnhanceCapCut.Core.BlendMode.Screen, 255), "screen = 1 − (1 − a)(1 − b)");
+        AssertClose([102, 26, 64, 255], Blend(graphics, EnhanceCapCut.Core.BlendMode.Multiply, 255), "multiply = a · b");
+        AssertClose([128, 51, 128, 255], Blend(graphics, EnhanceCapCut.Core.BlendMode.Darken, 255), "darken = min");
+        AssertClose([204, 128, 128, 255], Blend(graphics, EnhanceCapCut.Core.BlendMode.Lighten, 255), "lighten = max");
+        AssertClose([179, 140, 160, 255], Blend(graphics, EnhanceCapCut.Core.BlendMode.Screen, 128),
             "opacity mixes the blended colour with the backdrop");
     }
 }

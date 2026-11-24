@@ -1,5 +1,6 @@
-# Builds and tests the Windows version (windows/, .NET) on Windows, then starts the app and keeps screenshots of its
-# windows as the `windows-ui` artifact, and updates a published app from one version to the next.
+# Builds and tests the Windows version (windows/, .NET) on Windows, checks that its `ecc info` prints what the Rust core
+# prints on every OS (scripts/golden.sh fixtures against the committed expected outputs), then starts the app and keeps
+# screenshots of its windows as the `windows-ui` artifact, and updates a published app from one version to the next.
 name: Windows
 
 on:
@@ -21,8 +22,16 @@ jobs:
           workspaces: core
       - run: dotnet build windows/EnhanceCapCut.slnx -c Release
       - run: dotnet test windows/EnhanceCapCut.slnx -c Release --no-build
+      - name: ecc info equals the core's on every fixture
+        shell: bash
+        run: SKIP_SWIFT=1 scripts/golden.sh fixtures
       - name: Publish the app
         run: dotnet publish windows/src/EnhanceCapCut.App -c Release -r win-x64 --self-contained -o build/app
+      - name: The Rust core is in the published app
+        shell: pwsh
+        run: |
+          if (-not (Test-Path build/app/ecc_core.dll)) { Write-Error "build/app has no ecc_core.dll"; exit 1 }
+          "ecc_core.dll: {0:N1} MB" -f ((Get-Item build/app/ecc_core.dll).Length / 1MB)
       - name: Start the app
         shell: pwsh
         run: windows/scripts/ui-smoke.ps1 -App build/app -Out build/ui
@@ -37,4 +46,10 @@ jobs:
         with:
           name: windows-ui
           path: build/ui
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: golden-diff-windows
+          path: build/golden/diff
           if-no-files-found: ignore

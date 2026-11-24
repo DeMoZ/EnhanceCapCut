@@ -51,9 +51,11 @@ docs/PLAN.md for the roadmap, docs/FORMAT.md for what we know about CapCut draft
 - `core/` (Rust, openspec/changes/rust-core): drafts read leniently (unknown, missing or mistyped fields must never
   fail a draft), draft → `Timeline` (visual layers in paint order, audio clips, report of unsupported features) and
   its evaluation over time (`Timeline.frame`), `ecc info`, caption segmentation and the draft writers. New CapCut
-  features start by being listed in the builder's report (`core/ecc-core/src/timeline/builder.rs`). The macOS app
-  uses it through the generated `EccCore` module (`scripts/build-core.sh`; Swift conveniences in
-  `EnhanceCapCutCore/Core`); a change to the exported API means regenerating both bindings (docs/DEVELOPMENT.md).
+  features start by being listed in the builder's report (`core/ecc-core/src/timeline/builder.rs`). Both apps use it:
+  macOS through the generated `EccCore` module (`scripts/build-core.sh`; Swift conveniences in
+  `EnhanceCapCutCore/Core`), Windows through the generated C# bindings in `EnhanceCapCut.Draft` (namespace
+  `EnhanceCapCut.Core`; C# conveniences in `CoreExtensions.cs`); a change to the exported API means regenerating both
+  bindings (docs/DEVELOPMENT.md).
 - `EnhanceCapCutCore/Support/Lenient.swift`: the same lenient reading for the app's own JSON (`AnyKey` container
   helpers `opt/num/str/bool/list`).
 - `EnhanceCapCutCore/Render`: decoding (`FrameSource`), compositing (`FrameCompositor`, Core Image),
@@ -66,11 +68,11 @@ docs/PLAN.md for the roadmap, docs/FORMAT.md for what we know about CapCut draft
 - Swift 6 toolchain in Swift 5 language mode; the app target is `@MainActor`, the core is plain classes.
 - Keep calibration constants named and documented where they're defined (see `TextRasterizer`).
 - `windows/`: the Windows version in C# (.NET 10; Media Foundation, Direct3D/Direct2D, DirectWrite, WinUI 3 — no
-  Swift there). Until the Windows switch (rust-core stage 4), `EnhanceCapCut.Draft` is a C# port of what is now the
-  Rust core and must stay in step with it: a change to draft parsing, the timeline builder, segmentation or the
-  writers in `core/` gets the same change in C#, and `scripts/golden.sh fixtures` must stay clean; only the engines
-  differ (Apple speech/Translation/voices on the Mac, Whisper/NLLB in `EnhanceCapCut.Subtitles` and
-  Windows voices in `EnhanceCapCut.Windows` on Windows). `dotnet test windows/EnhanceCapCut.slnx` runs on macOS too.
+  Swift there), on the same Rust core: draft parsing, the timeline builder, segmentation and the writers change in
+  `core/` only, and `scripts/golden.sh fixtures` must stay clean. What stays native is mirrored by hand: the renderers
+  and the voice processing; the engines differ (Apple speech/Translation/voices on the Mac, Whisper/NLLB in
+  `EnhanceCapCut.Subtitles` and Windows voices in `EnhanceCapCut.Windows` on Windows). `dotnet test
+  windows/EnhanceCapCut.slnx` runs on macOS too.
 - `windows/src/EnhanceCapCut.App` mirrors the macOS windows (`ExportView`/`SubtitlesView` and their models) row for
   row, with the same texts: a UI change on one side gets the same change on the other. The WinUI UI is built in code
   (no XAML markup) from the grouped-form pieces in `Form.cs`; on macOS it only compiles. CI's `windows-ui` artifact

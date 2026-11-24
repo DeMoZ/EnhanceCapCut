@@ -1,34 +1,25 @@
 # Known differences
 
 What the golden-parity runner (`scripts/golden.sh`, design decision 11 of `openspec/changes/rust-core`) accepts
-between the Rust core and the two native implementations. Where Swift and C# disagree, Swift is the reference; a C#
-difference stays listed here until the Windows switch replaces that code with the core.
+between the Rust core and the native CLIs. Both apps run on the core since stages 3 (macOS) and 4 (Windows), so both
+CLIs print the core's `ecc info` and the runner expects them to match it byte for byte; what is left here are the
+differences of the replaced Swift code that `golden.sh local` still normalizes, and one that no dump shows.
 
-Lines starting with `accepted:` are read by `golden.sh fixtures`: `accepted: <cli> <fixture> <command>` counts that
-difference as known instead of failing.
+Lines starting with `accepted: <cli> <fixture> info` are read by `golden.sh fixtures` and count that difference as
+known instead of failing. There are none.
 
 ## Everywhere (normalized by `golden.sh local`)
 
 - **Unicode normalization of file names.** Swift's `URL.lastPathComponent` and `URL.path` print decomposed names
-  (NFD, `и` + U+0306); the Rust core and C# print them as the draft stores them (usually NFC). After the macOS switch
+  (NFD, `и` + U+0306); the Rust core prints them as the draft stores them (usually NFC). Since the macOS switch
   `ecc info` prints the draft's form. `golden.sh local` compares after NFC normalization.
 - **Symlinked project folders.** Swift's `FileManager.contentsOfDirectory(at:)` returns real paths, so the cutout
-  mask folder of a project reached through a symlink prints with its real path; the Rust core and C# keep the path as
-  given. Only the dump differs; it is the same folder. `golden.sh local` maps both forms to `<project>`.
+  mask folder of a project reached through a symlink printed with its real path; the Rust core keeps the path as
+  given. It is the same folder. `golden.sh local` maps both forms to `<project>`.
 
-## Not in the dumps
+## Not in the outputs
 
-- **Line wrapping of scripts without spaces** (Thai, Lao, Khmer, Burmese, Chinese, Japanese): the core uses ICU4X
-  (design decision 7) instead of `NLTokenizer` (macOS) and grapheme breaks (Windows). Latin and Cyrillic wrap the same
-  as Swift. The writers in the dumps get ready-made cues, so wrapping isn't compared.
-- **Arabic caption language** (C#): Swift and the core write `ar-EG` (Foundation's likely region), C# `ar-SA`.
-
-## C# writers (until the Windows switch)
-
-- **A copied caption segment with `"clip": null`**: Swift and the core copy the `null` (the template's clip, as it
-  is); C# keeps the default clip, treating `null` as absent.
-- **The size of a copied caption style**: Swift and the core write it as a double (`"size":8.0`), C# as the draft had
-  it (`"size":8`).
-
-accepted: csharp captions dump-writers
-accepted: csharp odd-values dump-writers
+- **Line wrapping of scripts without spaces** (Thai, Lao, Khmer, Burmese, Chinese, Japanese): the macOS app gives the
+  core `NLTokenizer`'s word breaks (design decision 7, option b); Windows, the core's tests and the golden runner use
+  ICU4X. Latin and Cyrillic wrap the same everywhere. The writers in the dumps get ready-made cues, so wrapping isn't
+  compared.
