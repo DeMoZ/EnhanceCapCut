@@ -1,3 +1,4 @@
+import EccCore
 import Foundation
 
 /// The app's interface language. Texts are written in English in the code and wrapped in `L(...)`; the translations
@@ -42,6 +43,8 @@ public enum Localization {
     public static func use(_ language: Language) {
         self.language = language
         table = language == .english ? [:] : load(language) ?? [:]
+        // The Rust core's texts (report, writer errors, original-audio names) follow the interface language.
+        setCoreLanguage(code: language.rawValue)
     }
 
     /// The translation of `english`, or `english` itself.

@@ -14,12 +14,12 @@ final class CutoutMask {
     private var current: (time: Int64, image: CIImage)?
 
     init?(_ cutout: Cutout) {
-        let names = (try? FileManager.default.contentsOfDirectory(atPath: cutout.directory.path)) ?? []
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: cutout.directory)) ?? []
         let times = names.compactMap { Int64($0) }.sorted()
         guard !times.isEmpty else { return nil }
         self.cutout = cutout
         self.times = times
-        size = Self.storedSize(info: cutout.directory.deletingLastPathComponent().appendingPathComponent("maskinfo"))
+        size = Self.storedSize(info: cutout.directory.fileURL.deletingLastPathComponent().appendingPathComponent("maskinfo"))
     }
 
     /// The mask at source time `t`, scaled to `extent` (the frame it cuts out), as a red-channel mask.
@@ -39,7 +39,7 @@ final class CutoutMask {
     }
 
     private func load(_ time: Int64, aspect: CGFloat) -> CIImage? {
-        guard let data = try? Data(contentsOf: cutout.directory.appendingPathComponent(String(time))) else { return nil }
+        guard let data = try? Data(contentsOf: cutout.directory.fileURL.appendingPathComponent(String(time))) else { return nil }
         if size.map({ $0.width * $0.height }) != data.count { size = Self.inferSize(bytes: data.count, aspect: aspect) }
         guard let size else { return nil }
         return CIImage(bitmapData: data, bytesPerRow: size.width, size: CGSize(width: size.width, height: size.height),

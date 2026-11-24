@@ -12,7 +12,7 @@ final class SubtitlesModel: ObservableObject {
     enum Phase {
         case idle
         case running(step: String, fraction: Double)
-        case done(DraftSubtitleWriter.Result, summary: String, srt: [URL])
+        case done(WriteResult, summary: String, srt: [URL])
         case failed(String)
     }
 
@@ -189,7 +189,7 @@ final class SubtitlesModel: ObservableObject {
     var dubTimelineName: String? {
         guard let project = export.selectedProject, let heard = effectiveAudibleVoice else { return nil }
         let codes = [heard] + dubLanguages.map(\.code).filter { $0 != heard }
-        return DubTimeline.name(project: project, languages: codes, original: originalAudio)
+        return DraftWriter.dubName(project: project, languages: codes, original: originalAudio)
     }
 
     /// Cloning is on and this Mac can run it (Apple silicon).
@@ -248,7 +248,7 @@ final class SubtitlesModel: ObservableObject {
 
     /// Re-checks whether the selected project is open in CapCut.
     func refreshProjectState() {
-        projectIsOpen = export.selectedProject.map(DraftSubtitleWriter.isOpenInCapCut) ?? false
+        projectIsOpen = export.selectedProject?.isOpenInCapCut ?? false
         if case .done = phase { phase = .idle }
         if case .failed = phase { phase = .idle }
     }
@@ -444,7 +444,8 @@ final class SubtitlesModel: ObservableObject {
         }
         refreshProjectState()
         if projectIsOpen {
-            phase = .failed(DraftSubtitleError.projectOpen(project.name).localizedDescription)
+            phase = .failed(L("{0} is open in CapCut. Close the project (back to CapCut's home screen) and try again — "
+                + "otherwise CapCut overwrites the subtitles when it saves.", project.name))
             return
         }
         var options = SubtitlePipeline.Options(sourceLocale: Locale(identifier: sourceLocaleID),
@@ -483,21 +484,15 @@ final class SubtitlesModel: ObservableObject {
                 }
                 try Task.checkCancellation()
                 let tracks = output.captions
-                let cueCount = tracks.reduce(0) { $0 + $1.cues.count }
-                func apply(_ draft: Data) throws -> Data {
-                    try SubtitlePipeline.apply(output, to: draft, original: original, replacePrevious: replace,
-                                               projectURL: project.url)
-                }
+                let edits = output.edits(original: original, replacePrevious: replace)
                 // Voice-over goes to a dubbed copy of the timeline; captions alone into the timeline itself.
-                let result: DraftSubtitleWriter.Result
+                let result: WriteResult
                 var target = project.name
                 if let dubName, !output.voiceOver.isEmpty {
-                    result = try DubTimeline.create(project: project, source: projectTimeline, name: dubName,
-                                                    cueCount: cueCount, transform: apply).1
+                    result = try DraftWriter.createDub(edits, project: project, source: projectTimeline, name: dubName).result
                     target = L("the new timeline {0}", dubName)
                 } else {
-                    result = try DraftSubtitleWriter.write(project: project, timeline: projectTimeline, cueCount: cueCount,
-                                                           transform: apply)
+                    result = try DraftWriter.write(edits, project: project, timeline: projectTimeline)
                 }
                 draftWritten = true
                 let srt = try srtFolder.map { try SubtitlePipeline.writeSRT(tracks, to: $0, baseName: baseName) } ?? []

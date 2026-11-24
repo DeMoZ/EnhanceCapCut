@@ -61,7 +61,7 @@ final class ExportModel: ObservableObject {
     var ffmpegAvailable: Bool { LoudnessNormalizer.ffmpegPath != nil }
 
     var outputSize: CGSize? { timeline.map { settings.outputSize(canvas: $0.canvasSize) } }
-    var outputFPS: Double? { timeline.map { settings.fps(project: $0.fps) } }
+    var outputFPS: Double? { timeline.map { settings.fps(project: $0.fps()) } }
 
     var outputURL: URL? {
         guard let project = selectedProject, let size = outputSize, let fps = outputFPS else { return nil }
@@ -106,7 +106,7 @@ final class ExportModel: ObservableObject {
         guard let project = selectedProject, let projectTimeline = selectedTimeline else { return }
         Task.detached(priority: .userInitiated) {
             do {
-                let timeline = try TimelineBuilder.build(project: project, timeline: projectTimeline)
+                let timeline = try Timeline.build(project: project, timeline: projectTimeline)
                 await MainActor.run {
                     guard self.selectedProjectURL == project.url, self.selectedTimelineID == projectTimeline.id else { return }
                     self.timeline = timeline

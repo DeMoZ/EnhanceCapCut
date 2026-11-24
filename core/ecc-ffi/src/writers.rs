@@ -294,6 +294,18 @@ pub fn ducked_ranges(lines: Vec<LineRange>) -> Vec<TimeSpan> {
     voice_over::ducked_ranges(&lines).into_iter().map(|r| TimeSpan { start: r.start, end: r.end }).collect()
 }
 
+/// The ducking ramps (µs): the original goes down `down` before a line and back up `up` after it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Record)]
+pub struct DuckingRamps {
+    pub down: i64,
+    pub up: i64,
+}
+
+#[uniffi::export]
+pub fn ducking_ramps() -> DuckingRamps {
+    DuckingRamps { down: voice_over::FADE_DOWN, up: voice_over::FADE_UP }
+}
+
 /// The background track's gain at `t` (µs) for one ducked range: the complement of the original's ducking.
 #[uniffi::export]
 pub fn background_gain(t: i64, range: TimeSpan) -> f64 {

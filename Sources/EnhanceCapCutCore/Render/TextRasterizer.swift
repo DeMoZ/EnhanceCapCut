@@ -49,8 +49,9 @@ enum TextRasterizer {
         var strokeWidth: CGFloat = 0
         let styles = spec.content.styles.isEmpty ? [nil] : spec.content.styles.map(Optional.some)
         for style in styles {
-            let run = spec.content.utf16Range(of: style)
-            let range = NSRange(location: run.lowerBound, length: run.count)
+            let length = (spec.content.text as NSString).length
+            let range = style.map { NSRange(location: Int($0.utf16Start), length: Int($0.utf16End - $0.utf16Start)) }
+                ?? NSRange(location: 0, length: length)
             guard range.length > 0 else { continue }
             let size = CGFloat(style?.size ?? material.fontSize) * unit(style?.fontPath)
             maxFontSize = max(maxFontSize, size)
@@ -124,7 +125,7 @@ enum TextRasterizer {
         if material.typesetting == 1 {
             (pieces, textSize) = verticalPieces(fill: attributed, outline: outline, baseSize: baseSize, ascent: ascent,
                                                 letterSpacing: CGFloat(material.letterSpacing), limit: wrapWidth,
-                                                columnPitch: pitch, alignment: material.alignment)
+                                                columnPitch: pitch, alignment: Int(material.alignment))
             textSize = CGSize(width: ceil(textSize.width), height: ceil(textSize.height))
         } else {
             textSize = CGSize(width: ceil(lines.map(\.width).max() ?? 0),

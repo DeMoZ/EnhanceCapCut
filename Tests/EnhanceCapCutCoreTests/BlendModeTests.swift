@@ -3,39 +3,6 @@ import XCTest
 @testable import EnhanceCapCutCore
 
 final class BlendModeTests: XCTestCase {
-    func testMixModeMaterialBecomesTheLayersBlendMode() throws {
-        let json = #"""
-        {"tracks": [{"type": "video", "segments": [
-            {"id": "S0", "material_id": "V", "extra_material_refs": ["M0"], "target_timerange": {"start": 0, "duration": 1000000}},
-            {"id": "S1", "material_id": "V", "extra_material_refs": ["M1"], "target_timerange": {"start": 0, "duration": 1000000}},
-            {"id": "S2", "material_id": "V", "extra_material_refs": ["M2"], "target_timerange": {"start": 0, "duration": 1000000}},
-            {"id": "S3", "material_id": "V", "extra_material_refs": ["M3"], "target_timerange": {"start": 0, "duration": 1000000}},
-            {"id": "S4", "material_id": "V", "extra_material_refs": ["M4"], "target_timerange": {"start": 0, "duration": 1000000}},
-            {"id": "S5", "material_id": "V", "target_timerange": {"start": 0, "duration": 1000000}}]}],
-         "materials": {"videos": [{"id": "V", "type": "photo", "path": "/p.png"}],
-          "effects": [
-            {"id": "M0", "type": "mix_mode", "name": "Screen", "effect_id": "871339", "resource_id": "6758325170760323597"},
-            {"id": "M1", "type": "mix_mode", "name": "", "resource_id": "6758325895519277582"},
-            {"id": "M2", "type": "mix_mode", "name": "Soft light"},
-            {"id": "M3", "type": "mix_mode", "name": "Normal"},
-            {"id": "M4", "type": "mix_mode", "name": "Vivid", "effect_id": "1", "resource_id": "2"}]}}
-        """#
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("ecc-blend-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: dir) }
-        try Data([0]).write(to: dir.appendingPathComponent("p.png"))
-        let draft = try JSONDecoder().decode(Draft.self, from: Data(json.replacingOccurrences(
-            of: "/p.png", with: dir.appendingPathComponent("p.png").path).utf8))
-        let timeline = TimelineBuilder.build(draft: draft, projectURL: dir)
-        let modes = Dictionary(uniqueKeysWithValues: timeline.layers.map { ($0.id, $0.blendMode) })
-        XCTAssertEqual(modes["S0"]!, .screen)
-        XCTAssertEqual(modes["S1"]!, .multiply)
-        XCTAssertEqual(modes["S2"]!, .softLight)
-        XCTAssertEqual(modes["S3"]!, .normal)
-        XCTAssertNil(modes["S4"]!)
-        XCTAssertNil(modes["S5"]!)
-        XCTAssertEqual(timeline.report.unsupported.map(\.id), ["Blend mode/Vivid"], "only the unknown mode is reported")
-    }
 
     /// The blend runs on sRGB-encoded values (like CapCut's and Direct2D's) although the working space is linear.
     func testBlendsSRGBValues() {

@@ -15,6 +15,12 @@ record! {
     TimeRange = d::TimeRange { start: i64, duration: i64 }
 }
 
+impl From<TimeRange> for d::TimeRange {
+    fn from(r: TimeRange) -> Self {
+        d::TimeRange::new(r.start, r.duration)
+    }
+}
+
 record! { Point2 = d::Point2 { x: f64, y: f64 } }
 
 record! {
@@ -71,25 +77,63 @@ record! {
     }
 }
 
-record! { TextStroke = d::TextStroke { width: f64, color: Vec<f64>, alpha: f64 } }
-
 record! {
-    /// `range` is in UTF-16 units of `TextContent.text`.
-    TextStyle = d::TextStyle {
-        range: Vec<i64>,
-        size: Option<f64>,
-        font_path: Option<String>,
-        fill_color: Option<Vec<f64>>,
-        fill_alpha: Option<f64>,
-        strokes: Vec<TextStroke>,
-        bold: bool,
-        italic: bool,
-        underline: bool,
-        effect_style_path: Option<String>,
-    }
+    #[derive(PartialEq)]
+    TextStroke = d::TextStroke { width: f64, color: Vec<f64>, alpha: f64 }
 }
 
-record! { TextContent = d::TextContent { text: String, styles: Vec<TextStyle> } }
+/// A style run of a text. `range` is the draft's (code points); `utf16_start`/`utf16_end` are the same run in UTF-16
+/// units of `TextContent.text`, clamped to it (an `NSRange` / .NET string range).
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct TextStyle {
+    pub range: Vec<i64>,
+    pub utf16_start: u64,
+    pub utf16_end: u64,
+    pub size: Option<f64>,
+    pub font_path: Option<String>,
+    pub fill_color: Option<Vec<f64>>,
+    pub fill_alpha: Option<f64>,
+    pub strokes: Vec<TextStroke>,
+    pub bold: bool,
+    pub italic: bool,
+    pub underline: bool,
+    pub effect_style_path: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct TextContent {
+    pub text: String,
+    pub styles: Vec<TextStyle>,
+}
+
+impl Ffi for d::TextContent {
+    type Out = TextContent;
+    fn ffi(self) -> TextContent {
+        let styles = self
+            .styles
+            .iter()
+            .map(|style| {
+                let run = self.utf16_range(Some(style));
+                let style = style.clone();
+                TextStyle {
+                    range: style.range,
+                    utf16_start: run.start as u64,
+                    utf16_end: run.end as u64,
+                    size: style.size,
+                    font_path: style.font_path,
+                    fill_color: style.fill_color,
+                    fill_alpha: style.fill_alpha,
+                    strokes: style.strokes.ffi(),
+                    bold: style.bold,
+                    italic: style.italic,
+                    underline: style.underline,
+                    effect_style_path: style.effect_style_path,
+                }
+            })
+            .collect();
+        TextContent { text: self.text, styles }
+    }
+}
 
 // Animations.
 
@@ -233,7 +277,38 @@ record! {
 
 simple_enum! { ClockStyle = t::ClockStyle { WhiteOutline, BlueWhite } }
 
-record! { ClockSticker = t::ClockSticker { style: ClockStyle } }
+/// A "Clock Time" sticker, drawn natively: its style and the look of that style (sizes as fractions of the radius,
+/// except `diameter`: of the canvas's shorter side at clip scale 1; sRGB colours 0…1, `face_color` `None` =
+/// transparent). The hands' angles come with each frame (`LayerFrame.clock_hands`).
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct ClockSticker {
+    pub style: ClockStyle,
+    pub diameter: f64,
+    pub ring_width: f64,
+    pub minute_hand: f64,
+    pub hour_hand: f64,
+    pub hand_width: f64,
+    pub ring_color: Vec<f64>,
+    pub face_color: Option<Vec<f64>>,
+    pub hand_color: Vec<f64>,
+}
+
+impl Ffi for t::ClockSticker {
+    type Out = ClockSticker;
+    fn ffi(self) -> ClockSticker {
+        ClockSticker {
+            style: self.style.ffi(),
+            diameter: self.diameter(),
+            ring_width: self.ring_width(),
+            minute_hand: self.minute_hand(),
+            hour_hand: self.hour_hand(),
+            hand_width: self.hand_width(),
+            ring_color: self.ring_color().to_vec(),
+            face_color: self.face_color().map(|c| c.to_vec()),
+            hand_color: self.hand_color().to_vec(),
+        }
+    }
+}
 
 record! { StickerSpec = t::StickerSpec { name: String, clock: ClockSticker } }
 
@@ -268,12 +343,27 @@ record! {
 
 // Layers.
 
-record! {
-    TextLayerSpec = t::TextLayerSpec {
-        material: TextMaterial,
-        content: TextContent,
-        animations: TextAnimations,
-        glow: Option<TextGlow>,
+/// A text clip: its material, text and styles, animations (`animation_max_scale`: the largest scale they reach, so the
+/// text can be rasterized sharp at it) and the approximated look of its CapCut text effect (`glow`).
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct TextLayerSpec {
+    pub material: TextMaterial,
+    pub content: TextContent,
+    pub animations: TextAnimations,
+    pub animation_max_scale: f64,
+    pub glow: Option<TextGlow>,
+}
+
+impl Ffi for t::TextLayerSpec {
+    type Out = TextLayerSpec;
+    fn ffi(self) -> TextLayerSpec {
+        TextLayerSpec {
+            animation_max_scale: self.animations.max_scale(),
+            material: self.material.ffi(),
+            content: self.content.ffi(),
+            animations: self.animations.ffi(),
+            glow: self.glow.ffi(),
+        }
     }
 }
 

@@ -27,8 +27,9 @@ dotnet test windows/EnhanceCapCut.slnx
 the C header and module map; `--universal` for arm64 + x86_64) and writes its generated Swift bindings to
 `Sources/EccCore/EccCore.swift`, which is committed; `swift build` fails with a missing `EccCoreFFI.xcframework`
 until it has run once.
-`EnhanceCapCutCore` re-exports the `EccCore` module, whose types its own same-named types shadow until the Swift code
-moves to the core.
+`EnhanceCapCutCore` re-exports the `EccCore` module, so the app and the CLI use the core's types (`Timeline`,
+`VisualLayer`, `CapCutProject`…) directly; `Sources/EnhanceCapCutCore/Core/CoreExtensions.swift` adds the Swift
+conveniences (URLs, `CGSize`, `Identifiable`).
 
 Layout: `Sources/EnhanceCapCutCore` (draft model, timeline, renderer, exporter, subtitles, localization),
 `Sources/EnhanceCapCut` (app, Services provider, SwiftUI windows), `Sources/ecc` (CLI), `App/Info.plist` (bundle +
@@ -46,9 +47,11 @@ on Intel Macs voice cloning is unavailable.
 ## Rust core and golden parity
 
 `core/` is the shared Rust core the apps are moving to ([openspec/changes/rust-core](../openspec/changes/rust-core)).
-Until the switch it sits next to the Swift and C# code; both apps already link it (`scripts/build-core.sh` for
-Swift, the `BuildRustCore` target of `EnhanceCapCut.Draft` for .NET) but nothing calls it yet. It needs a Rust
-toolchain (`rust-toolchain.toml` pins it; `rustup` installs it on first use).
+The macOS app and CLI run on it: drafts, timelines and their evaluation (`Timeline.frame`), `ecc info`, caption
+segmentation and wrapping, and writing captions, voice-over and dubbed timelines (the renderers, speech, translation
+and voices stay native). The Windows version links it (the `BuildRustCore` target of `EnhanceCapCut.Draft`) but still
+uses its C# port until stage 4. It needs a Rust toolchain (`rust-toolchain.toml` pins it; `rustup` installs it on
+first use).
 
 The apps see it only through `core/ecc-ffi` and its generated bindings, both committed: `Sources/EccCore/EccCore.swift`
 (rewritten by `scripts/build-core.sh`) and `windows/src/EnhanceCapCut.Draft/Generated/ecc_core.cs` (rewritten by
@@ -56,18 +59,19 @@ The apps see it only through `core/ecc-ffi` and its generated bindings, both com
 `cargo install uniffi-bindgen-cs --git https://github.com/NordSecurity/uniffi-bindgen-cs --tag v0.12.0+v0.32.0 --locked`).
 After changing the exported API, run both and commit the bindings; CI regenerates them and fails on a difference.
 
-Every worktree builds the core into its own `core/target` (a minute or two from scratch). To share one build cache,
-set `CARGO_TARGET_DIR` (for example `export CARGO_TARGET_DIR=~/.cache/ecc-target`); the scripts and the .NET build
-follow it.
+Every worktree builds the core into its own `core/target` (a minute or two from scratch). Keep it that way: don't
+point several checkouts at one `CARGO_TARGET_DIR`. Cargo keeps one copy of each final library per folder and doesn't
+rewrite it when its build is up to date, so another checkout's build leaves a stale `libecc_core` that the scripts
+then package. The scripts and the .NET build do follow `CARGO_TARGET_DIR` for a single checkout (CI caches).
 
 ```sh
 cd core && cargo test                # the core's tests and the committed golden outputs
-scripts/golden.sh fixtures           # Swift, C# and Rust on every fixture project
+scripts/golden.sh fixtures           # C# and Rust on every fixture project
 scripts/golden.sh local              # the same on every timeline of your CapCut library
 ```
 
-While the core is ported, the Swift and C# CLIs have two hidden commands (not in help) that print canonical dumps the
-runner compares with the core's `ecc-golden`:
+Until the Windows switch, the C# CLI has two hidden commands (not in help) that print canonical dumps the runner
+compares with the core's `ecc-golden` (the Swift CLI's went away with its port in stage 3):
 
 - `ecc dump-timeline [project] [--timeline name|number]` — the built timeline: report, every layer's static data
   (content, timing, time map, crop, clip, keyframes, masks, effects, transitions, animations, text style), audio clips
@@ -79,8 +83,8 @@ runner compares with the core's `ecc-golden`:
   original-audio mode, then `withoutVoiceOver`) run on the draft with fixed tracks; new UUIDs become `<id1>`,
   `<id2>`… in order of appearance.
 
-The three implementations are `Sources/ecc/Golden.swift`, `windows/src/ecc/Golden.cs` and
-`core/ecc-golden/src/dump.rs`; a change to the format goes into all three. Fixtures are in `core/fixtures/<name>/`
+The two implementations are `windows/src/ecc/Golden.cs` and `core/ecc-golden/src/dump.rs`; a change to the format
+goes into both. Fixtures are in `core/fixtures/<name>/`
 (`draft.fixture.json`, optional `timelines.fixture.json` and `media.txt`, see `core/ecc-golden/src/fixtures.rs`) with
 the core's outputs in `expected/`: `UPDATE_GOLDEN=1 cargo test -p ecc-golden` rewrites them. Differences the runner
 accepts are listed, with reasons, in `core/fixtures/known-differences.md`. Set `RUST_BACKTRACE=1` to see where a

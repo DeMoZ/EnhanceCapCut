@@ -23,135 +23,18 @@ final class SubtitleWriterTests: XCTestCase {
         try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
     }
 
-    func testAddsCaptionTracks() throws {
-        let out = try DraftSubtitleWriter.apply(tracks(), to: Data(draft.utf8), replacePrevious: true)
-        let d = try json(out)
-        let tracks = try XCTUnwrap(d["tracks"] as? [[String: Any]])
-        XCTAssertEqual(tracks.count, 3)
-        XCTAssertEqual(tracks[1]["attribute"] as? Int, 2)  // hidden
-        XCTAssertEqual(tracks[2]["attribute"] as? Int, 0)
-        XCTAssertEqual(tracks[1]["type"] as? String, "text")
-
-        let segments = try XCTUnwrap(tracks[1]["segments"] as? [[String: Any]])
-        XCTAssertEqual(segments.count, 2)
-        let range = try XCTUnwrap(segments[1]["target_timerange"] as? [String: Any])
-        XCTAssertEqual(range["start"] as? Int, 2_000_000)
-        XCTAssertEqual(range["duration"] as? Int, 1_000_000)  // 3.01 s snaps to the 3 s frame
-        XCTAssertEqual(segments[0]["track_render_index"] as? Int, 1)
-
-        let materials = try XCTUnwrap(d["materials"] as? [String: Any])
-        let texts = try XCTUnwrap(materials["texts"] as? [[String: Any]])
-        XCTAssertEqual(texts.count, 3)
-        XCTAssertEqual((materials["material_animations"] as? [Any])?.count, 3)
-        let first = try XCTUnwrap(texts.first { $0["id"] as? String == segments[0]["material_id"] as? String })
-        XCTAssertEqual(first["type"] as? String, "subtitle")
-        XCTAssertEqual(first["language"] as? String, "ru-RU")
-        let content = try json(Data(try XCTUnwrap(first["content"] as? String).utf8))
-        XCTAssertEqual(content["text"] as? String, "Привет, мир")
-        let style = try XCTUnwrap((content["styles"] as? [[String: Any]])?.first)
-        XCTAssertEqual(style["range"] as? [Int], [0, 11])
-
-        // Untouched parts stay byte-for-byte, and floats keep their decimal point.
-        let text = String(decoding: out, as: UTF8.self)
-        XCTAssertTrue(text.hasPrefix(#"{"id":"D","fps":30.0,"duration":10000000,"tracks":[{"id":"V","type":"video","flag":0,"attribute":0,"segments":[]},"#))
-        XCTAssertTrue(text.hasSuffix(#""canvas_config":{"ratio":"original","width":1080,"height":1920}}"#))
-        XCTAssertTrue(text.contains(#""line_max_width":0.82"#))
-        XCTAssertTrue(text.contains(#""font_size":8.0"#))
-    }
-
-    func testReplacesPreviousRun() throws {
-        let once = try DraftSubtitleWriter.apply(tracks(), to: Data(draft.utf8), replacePrevious: true)
-        let twice = try DraftSubtitleWriter.apply(tracks(), to: once, replacePrevious: true)
-        let d = try json(twice)
-        XCTAssertEqual((d["tracks"] as? [Any])?.count, 3)
-        let materials = try XCTUnwrap(d["materials"] as? [String: Any])
-        XCTAssertEqual((materials["texts"] as? [Any])?.count, 3)
-        XCTAssertEqual((materials["material_animations"] as? [Any])?.count, 3)
-
-        let kept = try DraftSubtitleWriter.apply(tracks(), to: once, replacePrevious: false)
-        XCTAssertEqual((try json(kept)["tracks"] as? [Any])?.count, 5)
-    }
-
-    func testCopiesStyleOfExistingCaption() throws {
-        let styled = try DraftSubtitleWriter.apply(tracks(), to: Data(draft.utf8), replacePrevious: true)
-        // Make the generated captions look like the user's own: bigger and higher.
-        let text = String(decoding: styled, as: UTF8.self)
-            .replacingOccurrences(of: #"\"size\":8.0"#, with: #"\"size\":13.0"#)
-            .replacingOccurrences(of: #""y":-0.65"#, with: #""y":-0.4"#)
-            .replacingOccurrences(of: DraftSubtitleWriter.trackNamePrefix, with: "Mine")
-        let out = try DraftSubtitleWriter.apply(Array(tracks().prefix(1)), to: Data(text.utf8), replacePrevious: true)
-        let d = try json(out)
-        let track = try XCTUnwrap((d["tracks"] as? [[String: Any]])?.last)
-        let segment = try XCTUnwrap((track["segments"] as? [[String: Any]])?.first)
-        let transform = try XCTUnwrap((segment["clip"] as? [String: Any])?["transform"] as? [String: Any])
-        XCTAssertEqual(transform["y"] as? Double, -0.4)
-        let texts = try XCTUnwrap((d["materials"] as? [String: Any])?["texts"] as? [[String: Any]])
-        let material = try XCTUnwrap(texts.first { $0["id"] as? String == segment["material_id"] as? String })
-        XCTAssertEqual(material["font_size"] as? Double, 13)
-    }
-
-    func testThaiCaptionsAreTwiceAsLarge() throws {
-        let th = SubtitleLanguage(Locale.Language(identifier: "th"))
-        let thai = SubtitleTrack(language: th, cues: [CaptionCue(start: 0.5, end: 2, text: "สวัสดี")], isOriginal: false, isVisible: true)
-        let out = try DraftSubtitleWriter.apply(tracks() + [thai], to: Data(draft.utf8), replacePrevious: true)
-        let texts = try XCTUnwrap((try json(out)["materials"] as? [String: Any])?["texts"] as? [[String: Any]])
-        func size(_ language: String) throws -> (Double?, Double?) {
-            let m = try XCTUnwrap(texts.first { $0["language"] as? String == language })
-            let content = try json(Data(try XCTUnwrap(m["content"] as? String).utf8))
-            return (m["font_size"] as? Double, (content["styles"] as? [[String: Any]])?.first?["size"] as? Double)
-        }
-        XCTAssertEqual(try size("th-TH").0, 16)
-        XCTAssertEqual(try size("th-TH").1, 16)
-        XCTAssertEqual(try size("en-US").0, 8)
-
-        // Copied from a caption that is already Thai: its size is kept, not doubled again.
-        XCTAssertEqual(DraftSubtitleWriter.sizeFactor(for: "th", template: ["language": "th-TH"]), 1)
-        XCTAssertEqual(DraftSubtitleWriter.sizeFactor(for: "th", template: ["language": "ru-RU"]), 2)
-        XCTAssertEqual(DraftSubtitleWriter.sizeFactor(for: "en", template: nil), 1)
-    }
-
-    func testWrapsThaiAtWordsWithinTheLineLimit() {
+    func testWrapsThaiAtTheMacsWordsWithinTheLineLimit() throws {
+        // The core wraps at NLTokenizer's words on the Mac (design decision 7, option b).
+        NativeWordBreaker.install
         let text = "ผมได้ยินมาว่าปลาหมึกกล้วยและปลาหมึกกระดองต้องย่างแค่หนึ่งนาทีหรือยี่สิบนาทีเท่านั้น"
-        let wrapped = LineWrapper.wrap(text, language: "th")
+        let wrapped = try wrapCaption(text: text, language: "th")
         let lines = wrapped.split(separator: "\n").map(String.init)
         XCTAssertGreaterThan(lines.count, 2)
         XCTAssertEqual(lines.joined(), text)                       // nothing lost or added
-        for line in lines { XCTAssertLessThanOrEqual(line.count, LineWrapper.lineLimit(for: "th") + 4) }
-        for word in ["ปลาหมึก", "หนึ่ง", "ยี่สิบ", "เท่านั้น"] {   // whole words, never cut between lines
+        for line in lines { XCTAssertLessThanOrEqual(line.count, 17 + 4) }   // Thai's line limit
+        for word in ["ปลาหมึก", "หนึ่ง", "ยี่สิบ", "เท่านั้น", "กระดอง"] {   // whole words, never cut between lines
             XCTAssertTrue(lines.contains { $0.contains(word) }, word)
         }
-    }
-
-    func testThaiNumbersStayWithTheirWord() {
-        XCTAssertEqual(LineWrapper.keepNumbersWithNext(["ปรุงเป็นเวลา ", "1 ", "นาที"]), ["ปรุงเป็นเวลา ", "1 นาที"])
-        let wrapped = LineWrapper.wrap("ปรุงเป็นเวลา 1 นาทีหรือ 20 นาทีเท่านั้นนะครับ", language: "th")
-        XCTAssertFalse(wrapped.contains("1\n") || wrapped.contains("20\n"), wrapped)
-    }
-
-    func testWrapsLongTextIntoMoreLinesOnlyWhenNeeded() {
-        let two = LineWrapper.wrap("They add a little sugar and form such sausages for the market.", language: "en")
-        XCTAssertEqual(two.split(separator: "\n").count, 2)
-        let long = String(repeating: "word ", count: 30).trimmingCharacters(in: .whitespaces)
-        let lines = LineWrapper.wrap(long, language: "en").split(separator: "\n")
-        XCTAssertEqual(lines.count, 4)
-        for line in lines { XCTAssertLessThanOrEqual(line.count, Segmenter.maxCharsPerLine) }
-    }
-
-    func testScannerHandlesStringsWithBrackets() throws {
-        let data = Data(#"{"a":"x]}\"[{","b":[1,{"c":"]"},[2]],"d":null}"#.utf8)
-        let s = JSONScanner(data)
-        let root = try s.root()
-        XCTAssertEqual(try s.members(root).map(\.key), ["a", "b", "d"])
-        let b = try XCTUnwrap(try s.value("b", in: root))
-        XCTAssertEqual(try s.elements(b).count, 3)
-    }
-
-    func testSegmenterSplitsAtPauses() {
-        let words = [("Привет", 0.0, 0.4), ("мир", 0.45, 0.8), ("как", 2.0, 2.2), ("дела", 2.25, 2.6)]
-            .map { TimedWord(text: $0.0, start: $0.1, end: $0.2) }
-        let cues = Segmenter.cues(from: words, language: "ru")
-        XCTAssertEqual(cues.map(\.text), ["Привет мир.", "Как дела."])
-        XCTAssertEqual(cues[0].start, 0)
     }
 
     func testChunkerCutsInThePauses() {

@@ -3,7 +3,7 @@ import CoreImage
 /// Mixes the two clips of a transition. Both come in as "plates": the clip placed on the canvas (with the canvas
 /// background on the main track), extent = the frame.
 enum TransitionMixer {
-    static func mix(_ kind: LayerTransition.Kind, from a: CIImage, to b: CIImage, progress p: Double,
+    static func mix(_ kind: TransitionKind, from a: CIImage, to b: CIImage, progress p: Double,
                     rect: CGRect) -> CIImage {
         switch kind {
         case .crossFade:
@@ -21,15 +21,17 @@ enum TransitionMixer {
         ])
     }
 
-    /// See `FlashbackLook`: the dissolved picture averaged over copies zoomed and turned about the centre.
+    /// The core's flashback look (`flashbackFrame`): the dissolved picture averaged over copies zoomed and turned about
+    /// the centre.
     private static func flashback(_ a: CIImage, _ b: CIImage, _ p: Double, rect: CGRect) -> CIImage {
-        let mixed = dissolve(a, b, FlashbackLook.mix(p)).cropped(to: rect)
-        guard FlashbackLook.strength(p) > 0.001 else { return mixed }
+        let look = flashbackFrame(progress: p)
+        let mixed = dissolve(a, b, look.mix).cropped(to: rect)
+        guard look.strength > 0.001 else { return mixed }
         // Edge pixels fill what turning uncovers.
         let source = mixed.clampedToExtent()
         var result = CIImage(color: .clear).cropped(to: rect)
-        for i in 0..<FlashbackLook.blurCopies {
-            let (scale, rotation) = FlashbackLook.copy(i, at: p)
+        for (i, copy) in look.copies.enumerated() {
+            let scale = copy.scale, rotation = copy.rotation
             let transform = CGAffineTransform(translationX: -rect.midX, y: -rect.midY)
                 .concatenating(CGAffineTransform(scaleX: scale, y: scale))
                 .concatenating(CGAffineTransform(rotationAngle: -rotation * .pi / 180))
@@ -42,5 +44,24 @@ enum TransitionMixer {
             result = copy.composited(over: result)
         }
         return result.cropped(to: rect)
+    }
+}
+
+extension BlendMode {
+    /// The Core Image filter of an overlay blend mode; `nil` for normal.
+    var coreImageFilter: String? {
+        switch self {
+        case .normal: nil
+        case .screen: "CIScreenBlendMode"
+        case .darken: "CIDarkenBlendMode"
+        case .lighten: "CILightenBlendMode"
+        case .overlay: "CIOverlayBlendMode"
+        case .hardLight: "CIHardLightBlendMode"
+        case .softLight: "CISoftLightBlendMode"
+        case .linearBurn: "CILinearBurnBlendMode"
+        case .colorBurn: "CIColorBurnBlendMode"
+        case .colorDodge: "CIColorDodgeBlendMode"
+        case .multiply: "CIMultiplyBlendMode"
+        }
     }
 }

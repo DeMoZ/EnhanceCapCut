@@ -3,29 +3,6 @@ import XCTest
 @testable import EnhanceCapCutCore
 
 final class QualityEnhanceTests: XCTestCase {
-    func testEnhanceQualityIsRenderedAndOtherAIProcessingIsReported() throws {
-        let json = #"""
-        {"tracks": [{"type": "video", "segments": [
-            {"id": "S0", "material_id": "V0", "target_timerange": {"start": 0, "duration": 1000000}},
-            {"id": "S1", "material_id": "V1", "target_timerange": {"start": 1000000, "duration": 1000000}}]}],
-         "materials": {"videos": [
-            {"id": "V0", "type": "photo", "path": "/p.png", "video_algorithm": {"algorithms": [{"type": "QualityEnhance"}],
-             "path": "##_draftpath_placeholder_X_##/Resources/videoAlg/a_0_1000000.mp4", "quality_enhance": {"level": 0}}},
-            {"id": "V1", "type": "photo", "path": "/p.png", "video_algorithm": {"algorithms": [{"type": "GenAiSmartEdit"}]}}]}}
-        """#
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("ecc-enhance-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: dir) }
-        try Data([0]).write(to: dir.appendingPathComponent("p.png"))
-        let draft = try JSONDecoder().decode(Draft.self, from: Data(json.replacingOccurrences(
-            of: "/p.png", with: dir.appendingPathComponent("p.png").path).utf8))
-        let timeline = TimelineBuilder.build(draft: draft, projectURL: dir)
-        let enhance = Dictionary(uniqueKeysWithValues: timeline.layers.map { ($0.id, $0.enhancesQuality) })
-        XCTAssertEqual(enhance["S0"], true)
-        XCTAssertEqual(enhance["S1"], false)
-        XCTAssertEqual(timeline.report.unsupported.map { "\($0.category): \($0.name) ×\($0.count)" },
-                       ["AI processing: GenAiSmartEdit ×1"])
-    }
 
     func testUpscalesSmallFramesAndSharpens() {
         XCTAssertEqual(QualityEnhance.scale(width: 360, height: 640), 2)

@@ -1,17 +1,18 @@
 #!/bin/bash
-# Golden parity runner for the Rust core (openspec/changes/rust-core, design decision 11). It compares what the Swift
-# CLI, the Windows (C#) CLI and the Rust core print for the same projects:
+# Golden parity runner for the Rust core (openspec/changes/rust-core, design decision 11). It compares what the Windows
+# (C#) CLI and the Rust core print for the same projects; the macOS app and CLI run on the core since stage 3, so the
+# Swift side is the core itself:
 #
 #   scripts/golden.sh fixtures       every fixture in core/fixtures, written once as draft_info.json and once as
 #                                    draft_content.json: `info`, `dump-timeline` and `dump-writers` of every timeline
-#                                    must be byte-identical in all three
+#                                    must be byte-identical in both
 #   scripts/golden.sh local [root]   every project and timeline of a CapCut library (default: CapCut's drafts folder),
 #                                    one timeline at a time: `info` and `dump-timeline`; file names are compared after
 #                                    Unicode NFC normalization and project folders through their real path, the two
 #                                    accepted differences of core/fixtures/known-differences.md
 #
-# The three CLIs are built first (release). SKIP_SWIFT=1 or SKIP_CSHARP=1 leaves one out (the Rust core is always
-# compared). Differences are saved under build/golden/; the exit status is 1 when there are any.
+# Both CLIs are built first (release); SKIP_CSHARP=1 runs the core alone. Differences are saved under build/golden/;
+# the exit status is 1 when there are any.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 REPO=$(pwd -P)
@@ -24,11 +25,6 @@ echo "Building the CLIs…"
 (cd core && cargo build --quiet --release -p ecc-golden)
 RUST="${CARGO_TARGET_DIR:-$REPO/core/target}/release/ecc-golden"
 CLIS=("rust:$RUST")
-if [ "${SKIP_SWIFT:-0}" != 1 ]; then
-    scripts/build-core.sh >/dev/null
-    swift build --quiet -c release --product ecc
-    CLIS+=("swift:$(swift build -c release --show-bin-path)/ecc")
-fi
 if [ "${SKIP_CSHARP:-0}" != 1 ]; then
     dotnet build windows/src/ecc -c Release --nologo -v quiet -p:TargetFramework=net10.0 -o "$OUT/csharp-cli" >/dev/null
     CLIS+=("csharp:$OUT/csharp-cli/ecc")

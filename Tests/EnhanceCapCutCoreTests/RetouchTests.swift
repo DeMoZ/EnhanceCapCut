@@ -3,32 +3,6 @@ import XCTest
 @testable import EnhanceCapCutCore
 
 final class RetouchTests: XCTestCase {
-    func testSkinRetouchIsRenderedAndMakeupLooksAreReported() throws {
-        let json = #"""
-        {"tracks": [{"type": "video", "segments": [
-            {"id": "S0", "material_id": "V", "extra_material_refs": ["E0", "E1", "R"], "target_timerange": {"start": 0, "duration": 1000000}},
-            {"id": "S1", "material_id": "V", "extra_material_refs": ["E2", "R", "D"], "target_timerange": {"start": 1000000, "duration": 1000000}}]}],
-         "materials": {"videos": [{"id": "V", "type": "photo", "path": "/p.png"}],
-          "effects": [
-            {"id": "E0", "type": "figure", "sub_type": "auto_beauty", "name": "Sparkly Skin"},
-            {"id": "E1", "type": "figure", "sub_type": "auto_beauty", "name": "", "intensity_key": "face_adjust_fuling"},
-            {"id": "E2", "type": "figure", "sub_type": "exclusion_face", "name": "Cherry Cola"},
-            {"id": "R", "type": "makeup_root", "sub_type": "auto_beauty", "name": "makeup-root"}],
-          "manual_deformations": [{"id": "D", "type": "manual_deformation"}]}}
-        """#
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("ecc-retouch-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: dir) }
-        try Data([0]).write(to: dir.appendingPathComponent("p.png"))
-        let draft = try JSONDecoder().decode(Draft.self, from: Data(json.replacingOccurrences(
-            of: "/p.png", with: dir.appendingPathComponent("p.png").path).utf8))
-        let timeline = TimelineBuilder.build(draft: draft, projectURL: dir)
-        let retouch = Dictionary(uniqueKeysWithValues: timeline.layers.map { ($0.id, $0.retouchesSkin) })
-        XCTAssertEqual(retouch["S0"], true)
-        XCTAssertEqual(retouch["S1"], false, "a makeup look alone is not a skin retouch")
-        XCTAssertEqual(Set(timeline.report.unsupported.map { "\($0.category): \($0.name) ×\($0.count)" }),
-                       ["Beauty / makeup: Cherry Cola ×1", "Manual deformation: body/face reshape ×1"])
-    }
 
     func testSkinWeight() {
         XCTAssertEqual(SkinRetouchMath.weight(0.545, 0.361, 0.337), SkinRetouchMath.strength, accuracy: 1e-9, "skin")

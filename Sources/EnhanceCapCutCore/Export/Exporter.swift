@@ -54,9 +54,9 @@ public final class Exporter: @unchecked Sendable {
     public func run(progress: @escaping (ExportProgress) -> Void) async throws {
         let started = Date()
         let size = settings.outputSize(canvas: timeline.canvasSize)
-        let fps = settings.fps(project: timeline.fps)
+        let fps = settings.fps(project: timeline.fps())
         let frameDuration = Self.frameDuration(fps)
-        let span = range ?? TimeRange(start: 0, duration: timeline.duration)
+        let span = range ?? TimeRange(start: 0, duration: timeline.duration())
         let frameCount = max(1, Int((Double(span.duration) / 1_000_000 * fps).rounded(.down)))
 
         let temp = FileManager.default.temporaryDirectory.appendingPathComponent("EnhanceCapCut-\(UUID().uuidString)")
@@ -71,8 +71,9 @@ public final class Exporter: @unchecked Sendable {
         // 1. Audio.
         report(.audio, 0)
         var audioURL = temp.appendingPathComponent("mix.caf")
-        let audioTimeline = range.map { trimmedForAudio(timeline, to: $0) } ?? timeline
-        try await AudioRenderer.render(audioTimeline, to: audioURL, isCancelled: { self.isCancelled }) { p in
+        // A partial export mixes the clips cut to its range.
+        let clips = range.map { timeline.audioClipsIn(range: $0) } ?? timeline.audioClips()
+        try await AudioRenderer.render(clips, duration: span.duration, to: audioURL, isCancelled: { self.isCancelled }) { p in
             report(.audio, p * 0.08)
         }
         if settings.normalizeLoudness {
@@ -247,23 +248,5 @@ public final class Exporter: @unchecked Sendable {
         }
         return [AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: 48_000, AVNumberOfChannelsKey: 2,
                 AVEncoderBitRateKey: 256_000]
-    }
-
-    /// For partial exports: shift audio clips so the range starts at zero.
-    private func trimmedForAudio(_ timeline: Timeline, to range: TimeRange) -> Timeline {
-        var clips: [AudioClip] = []
-        for clip in timeline.audioClips {
-            let start = max(clip.target.start, range.start), end = min(clip.target.end, range.end)
-            guard end > start else { continue }
-            var copy = clip
-            copy.target = TimeRange(start: start - range.start, duration: end - start)
-            copy.timeMap = clip.timeMap.slice(from: start - clip.target.start, to: end - clip.target.start)
-            copy.volumeEnvelope = clip.volumeEnvelope?.shifted(by: start - clip.target.start)
-            if start != clip.target.start { copy.fadeIn = 0 }
-            if end != clip.target.end { copy.fadeOut = 0 }
-            clips.append(copy)
-        }
-        return Timeline(name: timeline.name, canvasSize: timeline.canvasSize, duration: range.duration, fps: timeline.fps,
-                        layers: [], audioClips: clips, report: timeline.report)
     }
 }

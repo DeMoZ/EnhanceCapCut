@@ -370,7 +370,7 @@ struct SubtitlesView: View {
                 }
                 Text(L("Open the project in CapCut to see the result.")).font(.caption).foregroundStyle(.secondary)
                 HStack {
-                    Button(L("Show Backup")) { model.reveal(result.backupFolder) }
+                    Button(L("Show Backup")) { model.reveal(result.backupURL) }
                     if let first = srt.first { Button(L("Show .srt Files")) { model.reveal(first) } }
                 }
                 .controlSize(.small)

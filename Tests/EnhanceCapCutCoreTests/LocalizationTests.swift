@@ -2,8 +2,9 @@ import EnhanceCapCutCore
 import XCTest
 
 /// The translation tables against the code: every `L("…")` key of the Swift sources has a translation with the same
-/// `{n}` placeholders and `**` marks, and no table keeps keys that neither app uses any more. The Windows version's
-/// tests (LocalizationTests.cs) check its keys against the same tables.
+/// `{n}` placeholders and `**` marks, and no table keeps keys that neither app nor the Rust core (`tr!("…")` in
+/// `core/`) uses any more. The Windows version's tests (LocalizationTests.cs) and the core's (`cargo test`) check their
+/// keys against the same tables.
 final class LocalizationTests: XCTestCase {
     static let repo = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
 
@@ -27,6 +28,7 @@ final class LocalizationTests: XCTestCase {
     func testNoUnusedKeys() throws {
         var used = try Self.keys(in: ["Sources/EnhanceCapCut", "Sources/EnhanceCapCutCore"], fileExtension: "swift")
         used.formUnion(try Self.keys(in: ["windows/src"], fileExtension: "cs"))
+        used.formUnion(try Self.keys(in: ["core"], fileExtension: "rs", call: "tr!"))
         // The Windows version's language names are looked up by their English name (`SubtitleLanguage.Title`).
         let languages = try String(contentsOf: Self.repo.appendingPathComponent("windows/src/EnhanceCapCut.Draft/Subtitles.cs"), encoding: .utf8)
         used.formUnion(Self.matches(#"new\("[^"]+", "([^"]+)""#, in: languages))
@@ -54,17 +56,19 @@ final class LocalizationTests: XCTestCase {
         return try JSONDecoder().decode([String: String].self, from: Data(contentsOf: url))
     }
 
-    /// The keys of `L(...)` calls: a literal, or literals joined with `+` (the same rule as in LocalizationTests.cs).
-    static func keys(in folders: [String], fileExtension: String) throws -> Set<String> {
+    /// The keys of `L(...)` calls (`call`: `tr!` for the Rust core): a literal, or literals joined with `+` (the same
+    /// rule as in LocalizationTests.cs).
+    static func keys(in folders: [String], fileExtension: String, call name: String = "L") throws -> Set<String> {
         let literal = #""((?:[^"\\\n]|\\.)*)""#
-        let call = try NSRegularExpression(pattern: #"(?<![A-Za-z0-9_])L\(\s*("# + literal + #"(?:\s*\+\s*"# + literal + #")*)"#)
+        let call = try NSRegularExpression(pattern: #"(?<![A-Za-z0-9_])"# + NSRegularExpression.escapedPattern(for: name)
+            + #"\(\s*("# + literal + #"(?:\s*\+\s*"# + literal + #")*)"#)
         let part = try NSRegularExpression(pattern: literal)
         var keys = Set<String>()
         for folder in folders {
             let root = repo.appendingPathComponent(folder)
             let files = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil)?.compactMap { $0 as? URL } ?? []
             for file in files where file.pathExtension == fileExtension
-                && !file.path.contains("/bin/") && !file.path.contains("/obj/") {
+                && !file.path.contains("/bin/") && !file.path.contains("/obj/") && !file.path.contains("/target/") {
                 let source = try String(contentsOf: file, encoding: .utf8) as NSString
                 for match in call.matches(in: source as String, range: NSRange(location: 0, length: source.length)) {
                     let joined = source.substring(with: match.range(at: 1))

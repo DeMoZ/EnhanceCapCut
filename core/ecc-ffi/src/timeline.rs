@@ -101,6 +101,11 @@ impl Timeline {
         self.inner.audio_clips.clone().ffi()
     }
 
+    /// For partial exports: the audio clips that play in `range`, cut to it and shifted so it starts at 0.
+    pub fn audio_clips_in(&self, range: crate::types::TimeRange) -> Vec<AudioClip> {
+        self.inner.audio_clips_in(range.into()).ffi()
+    }
+
     /// Filters on filter tracks (each colours the layers painted below it).
     pub fn filters(&self) -> Vec<FilterLayer> {
         self.inner.filters.clone().ffi()

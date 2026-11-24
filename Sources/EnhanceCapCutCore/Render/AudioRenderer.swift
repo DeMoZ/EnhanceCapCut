@@ -9,17 +9,25 @@ import AVFoundation
 enum AudioRenderer {
     static let sampleRate = 48_000.0
 
+    /// The whole timeline's sound.
     static func render(_ timeline: Timeline, to url: URL, tracksPerMix: Int = maxTracksPerMix,
+                       isCancelled: () -> Bool, progress: (Double) -> Void) async throws {
+        try await render(timeline.audioClips(), duration: timeline.duration(), to: url, tracksPerMix: tracksPerMix,
+                         isCancelled: isCancelled, progress: progress)
+    }
+
+    /// `clips` mixed over `duration` µs (a part of a timeline: `Timeline.audioClipsIn(range:)`).
+    static func render(_ clips: [AudioClip], duration: Int64, to url: URL, tracksPerMix: Int = maxTracksPerMix,
                        isCancelled: () -> Bool, progress: (Double) -> Void) async throws {
         let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: sampleRate, channels: 2, interleaved: true)!
         let file = try AVAudioFile(forWriting: url, settings: format.settings, commonFormat: .pcmFormatFloat32,
                                    interleaved: true)
-        let totalFrames = AVAudioFramePosition(Double(timeline.duration) / 1_000_000 * sampleRate)
+        let totalFrames = AVAudioFramePosition(Double(duration) / 1_000_000 * sampleRate)
         let out = MixWriter(file: file, format: format, totalFrames: totalFrames,
                             limiter: PeakLimiter(sampleRate: sampleRate))
 
         let composition = AVMutableComposition()
-        let gain = max(1, timeline.audioClips.map(\.volume).max() ?? 1)
+        let gain = max(1, clips.map(\.volume).max() ?? 1)
         // One composition track per clip, each with its own pitch algorithm: CapCut keeps the pitch of
         // sped-up clips unless the clip's "pitch" toggle is on, which plays them like a tape (varispeed).
         // Clips are deliberately not packed onto shared tracks: AVAssetReaderAudioMixOutput can block
@@ -33,7 +41,7 @@ enum AudioRenderer {
             .appendingPathComponent("voice-\(UUID().uuidString)"))
         defer { voice.removeFiles() }
 
-        for clip in timeline.audioClips.sorted(by: { $0.target.start < $1.target.start }) {
+        for clip in clips.sorted(by: { $0.target.start < $1.target.start }) {
             let processed = try await voice.process(clip, isCancelled: isCancelled)
             var sourceShift = processed?.sourceOffset ?? 0
             var sourceURL = processed?.url ?? clip.url
@@ -44,7 +52,7 @@ enum AudioRenderer {
                                                                    isCancelled: isCancelled) else { continue }
                 sourceURL = url
                 sourceShift = 0
-                map = TimeMap(sourceStart: 0, sourceDuration: clip.target.duration, targetDuration: clip.target.duration)
+                map = TimeMap.constant(sourceStart: 0, sourceDuration: clip.target.duration, targetDuration: clip.target.duration)
             }
             let asset = AVURLAsset(url: sourceURL)
             guard let source = try? await asset.loadTracks(withMediaType: .audio).first,
@@ -54,12 +62,12 @@ enum AudioRenderer {
                                                           preferredTrackID: kCMPersistentTrackID_Invalid) else { continue }
 
             // Pieces of (source range, timeline range); a speed curve is approximated in 50 ms steps.
-            let steps = map.isConstant ? 1 : max(1, Int(clip.target.duration / 50_000))
+            let steps = map.isConstant() ? 1 : max(1, Int(clip.target.duration / 50_000))
             var inserted = false
             for k in 0..<steps {
                 let o0 = clip.target.duration * Int64(k) / Int64(steps)
                 let o1 = clip.target.duration * Int64(k + 1) / Int64(steps)
-                let s0 = map.sourceTime(atOffset: o0) - sourceShift, s1 = map.sourceTime(atOffset: o1) - sourceShift
+                let s0 = map.sourceTime(offset: o0) - sourceShift, s1 = map.sourceTime(offset: o1) - sourceShift
                 let src = CMTimeRange(start: us(s0), end: us(s1)).intersection(sourceRange)
                 guard src.duration > .zero, o1 > o0 else { continue }
                 let at = us(clip.target.start + o0)
@@ -87,7 +95,7 @@ enum AudioRenderer {
             // Explicit ramps covering the clip from start to end pin the level (fade in, hold, fade out),
             // with a break at every volume keyframe (and every 50 ms along eased ones).
             func level(_ t: Int64) -> Float {
-                var g = v * Float(clip.volumeEnvelope?.value(at: t - start) ?? 1)
+                var g = v * Float(clip.volumeEnvelope?.value(offset: t - start) ?? 1)
                 if t < start + fadeIn { g *= Float(t - start) / Float(fadeIn) }
                 if t > end - fadeOut { g *= Float(end - t) / Float(fadeOut) }
                 return g
@@ -104,7 +112,7 @@ enum AudioRenderer {
             spans.append(clip.target)
         }
         if !tracks.isEmpty {
-            let range = CMTimeRange(start: .zero, duration: us(timeline.duration))
+            let range = CMTimeRange(start: .zero, duration: us(duration))
             let groups = stride(from: 0, to: tracks.count, by: max(1, tracksPerMix))
                 .map { $0..<min($0 + max(1, tracksPerMix), tracks.count) }
             if groups.count == 1 {

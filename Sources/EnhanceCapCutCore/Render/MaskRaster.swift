@@ -176,25 +176,28 @@ final class ClipMaskFrames {
     init(_ masks: [ClipMask]) {
         self.masks = masks
         for (i, mask) in masks.enumerated() {
-            if case let .brush(folder) = mask.kind {
+            if case let .brush(directory) = mask.kind {
+                let folder = directory.fileURL
                 brushes[i] = (BrushFrames.times(in: folder), BrushFrames.size(in: folder), nil)
             }
         }
     }
 
-    /// The coverage frame at source time `t` for a clip frame of `width`×`height` pixels; `changed` is false when it
-    /// is the same as the previous call's.
-    func frame(at t: Int64, width: Double, height: Double) -> (pixels: [UInt8], width: Int, height: Int, changed: Bool)? {
+    /// The coverage frame at source time `t` for a clip frame of `width`×`height` pixels, with the masks' geometry at
+    /// that time (`LayerFrame.masks`, one per mask); `changed` is false when it is the same as the previous call's.
+    func frame(at t: Int64, geometries: [MaskGeometry], width: Double, height: Double)
+        -> (pixels: [UInt8], width: Int, height: Int, changed: Bool)? {
         let (w, h) = MaskRaster.rasterSize(width: width, height: height)
         var layers: [MaskRaster.Layer] = []
         var key = "\(w)x\(h)"
         for (i, mask) in masks.enumerated() {
             switch mask.kind {
             case let .shape(shape):
-                let g = mask.geometry(at: t)
+                let g = i < geometries.count ? geometries[i] : mask.geometry
                 layers.append(.shape(shape, g, inverted: mask.inverted))
-                key += "|\(shape.rawValue) \(g.centerX) \(g.centerY) \(g.width) \(g.height) \(g.rotation) \(g.feather) \(g.roundCorner) \(mask.inverted)"
-            case let .brush(folder):
+                key += "|\(shape) \(g.centerX) \(g.centerY) \(g.width) \(g.height) \(g.rotation) \(g.feather) \(g.roundCorner) \(mask.inverted)"
+            case let .brush(directory):
+                let folder = directory.fileURL
                 guard var brush = brushes[i], !brush.times.isEmpty else { continue }
                 let time = CutoutMask.nearest(brush.times, to: t)
                 if brush.frame?.time != time {

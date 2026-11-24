@@ -5,7 +5,7 @@
 //! Khmer and Burmese, and by grapheme cluster for Chinese and Japanese (design decision 7). This replaces
 //! `NLTokenizer` on macOS and the grapheme split on Windows, so both platforms break these lines the same way.
 
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock, RwLock};
 
 use icu_segmenter::options::WordBreakInvariantOptions;
 use icu_segmenter::{WordSegmenter, WordSegmenterBorrowed};
@@ -322,8 +322,62 @@ const NO_LINE_START: &str =
 /// Characters that don't end a line (opening brackets): kept with the unit after them.
 const NO_LINE_END: &str = "（(「『【〈《〔［{“‘";
 
+/// The platform's own word breaks for scripts without spaces (design decision 7, option b): the word ranges of a text in
+/// a language, as UTF-8 byte offsets, or `None` to use ICU4X. The macOS app sets `NLTokenizer`; without one (Windows, the
+/// CLIs' tests, the golden runner) ICU4X's LSTM breaks are used.
+pub type WordBreaker = dyn Fn(&str, &str) -> Option<Vec<(usize, usize)>> + Send + Sync;
+
+fn word_breaker() -> &'static RwLock<Option<Arc<WordBreaker>>> {
+    static BREAKER: OnceLock<RwLock<Option<Arc<WordBreaker>>>> = OnceLock::new();
+    BREAKER.get_or_init(|| RwLock::new(None))
+}
+
+/// Sets (or, with `None`, removes) the platform's word breaker used by `word_units`.
+pub fn set_word_breaker(breaker: Option<Arc<WordBreaker>>) {
+    *word_breaker().write().unwrap_or_else(|e| e.into_inner()) = breaker;
+}
+
+/// Word units from the platform's word ranges, as the macOS app made them before the core: characters between words
+/// (spaces, punctuation) go with the word before them, or form the first unit. `None` when the ranges don't fit `text`
+/// (out of order, out of bounds or not on character boundaries).
+fn native_units(text: &str, ranges: &[(usize, usize)]) -> Option<Vec<String>> {
+    let mut units: Vec<String> = Vec::new();
+    let mut cursor = 0;
+    for &(start, end) in ranges {
+        if start < cursor
+            || end < start
+            || end > text.len()
+            || !text.is_char_boundary(start)
+            || !text.is_char_boundary(end)
+        {
+            return None;
+        }
+        if cursor < start {
+            match units.last_mut() {
+                Some(last) => last.push_str(&text[cursor..start]),
+                None => units.push(text[cursor..start].to_string()),
+            }
+        }
+        if end > start {
+            units.push(text[start..end].to_string());
+        }
+        cursor = end;
+    }
+    if cursor < text.len() {
+        match units.last_mut() {
+            Some(last) => last.push_str(&text[cursor..]),
+            None => units.push(text[cursor..].to_string()),
+        }
+    }
+    Some(units)
+}
+
 /// Word units for scripts without spaces, keeping every original character (spaces too), so they join back to `text`.
 pub fn word_units(text: &str, language: &str) -> Vec<String> {
+    let breaker = word_breaker().read().unwrap_or_else(|e| e.into_inner()).clone();
+    if let Some(units) = breaker.and_then(|b| b(text, language)).and_then(|r| native_units(text, &r)) {
+        return units;
+    }
     #[derive(PartialEq)]
     enum Kind {
         /// Spaces and punctuation: kept with the unit before.
@@ -480,6 +534,32 @@ mod tests {
         assert_eq!(LineWrapper::keep_numbers_with_next(tokens), ["ปรุงเป็นเวลา ", "1 นาที"]);
         let wrapped = LineWrapper::wrap("ปรุงเป็นเวลา 1 นาทีหรือ 20 นาทีเท่านั้นนะครับ", Some("th"));
         assert!(!wrapped.contains("1\n") && !wrapped.contains("20\n"), "{wrapped}");
+    }
+
+    #[test]
+    fn a_native_word_breaker_gives_the_units() {
+        // Answers only for its own language code, so the other tests (running at the same time) keep ICU4X.
+        set_word_breaker(Some(Arc::new(|text: &str, language: &str| {
+            (language == "th-x-native").then(|| {
+                let words = ["ออกกำลังกาย", "ทุก", "วัน"];
+                let mut ranges = Vec::new();
+                for w in words {
+                    if let Some(i) = text.find(w) {
+                        ranges.push((i, i + w.len()));
+                    }
+                }
+                ranges
+            })
+        })));
+        // Spaces and punctuation go with the word before; a leading gap is its own unit.
+        assert_eq!(word_units(" ออกกำลังกาย ทุกวัน!", "th-x-native"), [" ", "ออกกำลังกาย ", "ทุก", "วัน!"]);
+        let wrapped = LineWrapper::wrap(&"ออกกำลังกาย ทุกวัน ".repeat(3), Some("th-x-native"));
+        assert!(wrapped.contains('\n') && !wrapped.contains("ออกกำลัง\n"), "{wrapped}");
+        // Ranges that don't fit the text fall back to ICU4X.
+        assert_eq!(native_units("abc", &[(0, 2), (1, 3)]), None);
+        assert_eq!(native_units("aé", &[(0, 2)]), None);
+        // Other languages still use ICU4X.
+        assert_eq!(word_units("วันนี้อากาศดีมาก", "th").concat(), "วันนี้อากาศดีมาก");
     }
 
     #[test]

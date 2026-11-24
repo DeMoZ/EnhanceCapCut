@@ -153,60 +153,6 @@ final class VoiceFilterGraphTests: XCTestCase {
 }
 
 final class VoiceFilterParsingTests: XCTestCase {
-    func testAudioEffectsBecomeFiltersOrAreReported() throws {
-        let dir = try VoiceSignal.tempDir()
-        defer { try? FileManager.default.removeItem(at: dir) }
-        let media = dir.appendingPathComponent("a.caf")
-        try VoiceSignal.write([Float](repeating: 0, count: 4_800), to: media)
-        // A cache with one usable preset (found by resource id) and one using an unknown processor.
-        let cache = dir.appendingPathComponent("cache")
-        let good = cache.appendingPathComponent("111/hash")
-        let bad = cache.appendingPathComponent("222/hash")
-        for (folder, processor) in [(good, "Gain"), (bad, "PitchShifter")] {
-            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            let preset: [String: Any] = [
-                "nodes": [["node_id": "p", "processor_name": processor, "processor_state": ["parameters": ["Gain dB": -6.0]]]],
-                "connections": [],
-                "ports": [["internal_node_id": "p", "port_direction": "input", "port_type": "audio"],
-                          ["internal_node_id": "p", "port_direction": "output", "port_type": "audio"]],
-            ]
-            try JSONSerialization.data(withJSONObject: preset).write(to: folder.appendingPathComponent("mdsp_preset.json"))
-        }
-        func path(_ url: URL?) -> String? { url?.resolvingSymlinksInPath().path }
-        XCTAssertEqual(path(VoiceFilter.locate(path: nil, resourceID: "111", cacheRoots: [cache])), path(good))
-        XCTAssertEqual(path(VoiceFilter.locate(path: cache.appendingPathComponent("111"), resourceID: "")), path(good))
-        XCTAssertNil(VoiceFilter.locate(path: nil, resourceID: "333", cacheRoots: [cache]))
-
-        let json = """
-        {
-          "materials": {
-            "audios": [{"id": "A", "path": "\(media.path)", "type": "record"}],
-            "audio_effects": [
-              {"id": "FX-GOOD", "type": "audio_effect", "name": "Booming", "path": "\(good.path)", "resource_id": "111",
-               "category_name": "Voice filters",
-               "audio_adjust_params": [{"name": "strength", "value": "0.5", "default_value": 1.0}]},
-              {"id": "FX-BAD", "name": "Robot", "path": "\(bad.path)", "resource_id": "222"},
-              {"id": "FX-MISSING", "name": "Old Hollywood", "path": "/nonexistent/effect", "resource_id": null}
-            ]
-          },
-          "tracks": [{"type": "audio", "segments": [
-            {"material_id": "A", "extra_material_refs": ["FX-GOOD"], "target_timerange": {"start": 0, "duration": 100000}},
-            {"material_id": "A", "extra_material_refs": ["FX-BAD"], "target_timerange": {"start": 100000, "duration": 100000}},
-            {"material_id": "A", "extra_material_refs": ["FX-MISSING"], "target_timerange": {"start": 200000, "duration": 100000}}
-          ]}]
-        }
-        """
-        let draft = try JSONDecoder().decode(Draft.self, from: Data(json.utf8))
-        XCTAssertEqual(draft.materials.audioEffects.map(\.strength), [0.5, 1, 1])
-        XCTAssertEqual(draft.materials.audioEffects.map(\.resourceID), ["111", "222", ""])
-        let timeline = TimelineBuilder.build(draft: draft, projectURL: dir)
-        let filters = timeline.audioClips.sorted { $0.target.start < $1.target.start }.map(\.voice.filter)
-        XCTAssertEqual(filters.map { $0?.name }, ["Booming", nil, nil])
-        XCTAssertEqual(filters.first??.strength, 0.5)
-        XCTAssertEqual(path(filters.first??.directory), path(good))
-        let reported = timeline.report.unsupported.filter { $0.category == "Audio effect" }.map(\.name).sorted()
-        XCTAssertEqual(reported, ["Old Hollywood", "Robot"])
-    }
 
     func testVoiceProcessorAppliesTheFilterFromTheClipStart() async throws {
         let dir = try VoiceSignal.tempDir()
@@ -223,10 +169,10 @@ final class VoiceFilterParsingTests: XCTestCase {
                       ["internal_node_id": "p", "port_direction": "output", "port_type": "audio"]],
         ] as [String: Any]).write(to: preset.appendingPathComponent("mdsp_preset.json"))
 
-        let clip = AudioClip(url: media, target: TimeRange(start: 0, duration: 1_000_000),
-                             timeMap: TimeMap(sourceStart: 1_500_000, sourceDuration: 1_000_000, targetDuration: 1_000_000),
+        let clip = audioClip(url: media, target: TimeRange(start: 0, duration: 1_000_000),
+                             timeMap: TimeMap.constant(sourceStart: 1_500_000, sourceDuration: 1_000_000, targetDuration: 1_000_000),
                              volume: 1, fadeIn: 0, fadeOut: 0, preservePitch: true,
-                             voice: VoiceEffects(filter: VoiceFilter(name: "Quiet", directory: preset)))
+                             voice: effects(filter: VoiceFilter(name: "Quiet", directory: preset.path, strength: 1)))
         let processor = VoiceProcessor(directory: dir.appendingPathComponent("work"))
         defer { processor.removeFiles() }
         let output = try await processor.process(clip, isCancelled: { false })

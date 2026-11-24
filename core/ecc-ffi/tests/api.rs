@@ -374,3 +374,33 @@ fn captions_and_names() {
     let default = default_environment();
     assert!(!default.projects_root.is_empty() && !default.capcut_cache_roots.is_empty());
 }
+
+#[test]
+fn looks_and_partial_audio() {
+    assert_eq!(visible_text_length("héllo 😳".into(), 0.5), 3);
+    assert_eq!(visible_text_length("héllo 😳".into(), 1.0), 8);
+    assert_eq!(lut_layout(512, 512), Some(LutLayout::Grid { size: 64, tiles_per_row: 8 }));
+    assert_eq!(lut_layout(1024, 32), Some(LutLayout::Row { size: 32 }));
+    assert_eq!(lut_layout(100, 11), None);
+    let edge = flashback_frame(0.0);
+    assert_eq!((edge.mix, edge.strength), (0.0, 0.0));
+    let cut = flashback_frame(0.5);
+    assert_eq!(cut.copies.len(), 16);
+    assert!(cut.strength > 0.99 && cut.mix > 0.4 && cut.mix < 0.6);
+    assert!(cut.copies[15].scale > cut.copies[0].scale);
+
+    let scratch = Scratch::new();
+    let project = scratch.project("voice", DraftName::Info);
+    let built = Timeline::build(project.clone(), None, env(&project)).unwrap();
+    let all = built.audio_clips();
+    assert!(!all.is_empty());
+    let first = &all[0];
+    let range = TimeRange { start: first.target.start + 100_000, duration: 200_000 };
+    let cut = built.audio_clips_in(range.clone());
+    let clip = &cut[0];
+    assert_eq!(clip.target.start, 0);
+    assert_eq!(clip.target.duration, 200_000.min(first.target.start + first.target.duration - range.start));
+    assert_eq!(clip.fade_in, 0);
+    assert_eq!(clip.time_map.source_time(0), first.time_map.source_time(100_000));
+    assert!(built.audio_clips_in(TimeRange { start: built.duration() + 1, duration: 10 }).is_empty());
+}

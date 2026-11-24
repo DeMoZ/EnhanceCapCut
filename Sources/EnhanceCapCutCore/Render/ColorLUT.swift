@@ -55,14 +55,14 @@ final class ColorLUT {
                 rgb += [r, g, b]
             }
         }
-        guard n >= 2, n <= ColorFilter.maxSize, rgb.count == n * n * n * 3 else { return nil }
+        guard n >= 2, n <= Int(lutMaxSize()), rgb.count == n * n * n * 3 else { return nil }
         return (n, rgb)
     }
 
     static func readImage(_ url: URL) -> (size: Int, rgb: [Float])? {
         guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
               let image = CGImageSourceCreateImageAtIndex(source, 0, nil),
-              let layout = ColorFilter.layout(width: image.width, height: image.height) else { return nil }
+              let layout = lutLayout(width: UInt64(image.width), height: UInt64(image.height)) else { return nil }
         let w = image.width, h = image.height
         var pixels = [UInt8](repeating: 0, count: w * h * 4)
         // Draw in the image's own space (lookup images are untagged sRGB) so the entries aren't colour-converted.
@@ -79,7 +79,7 @@ final class ColorLUT {
     }
 
     /// The table in RGBA8 pixels (top row first) laid out as `layout`.
-    static func table(_ pixels: [UInt8], width: Int, layout: ColorFilter.Layout) -> [Float] {
+    static func table(_ pixels: [UInt8], width: Int, layout: LutLayout) -> [Float] {
         let n = layout.size
         var rgb = [Float](repeating: 0, count: n * n * n * 3)
         for b in 0..<n {
