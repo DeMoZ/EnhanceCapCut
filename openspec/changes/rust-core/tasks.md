@@ -141,9 +141,9 @@ Stages follow design.md → Migration Plan. Each group ends in a state where bot
   and `ecc` (`info` prints `format_info`) to the generated types, call `set_core_language` at startup, and verify
   `dotnet test windows/EnhanceCapCut.slnx` passes on macOS
 - [x] 8.2 Extend the C# `LocalizationTests` to `core/**/*.rs` keys and verify it passes
-- [ ] 8.3 Verify `windows.yml` passes: unit tests, end-to-end export test, `ui-smoke.ps1` screenshots and
+- [x] 8.3 Verify `windows.yml` passes: unit tests, end-to-end export test, `ui-smoke.ps1` screenshots and
   `update-smoke.ps1`, with `ecc_core.dll` in the published folder
-- [ ] 8.4 Run the Windows `ecc info` on the fixtures and verify it equals the macOS CLI byte for byte, then
+- [x] 8.4 Run the Windows `ecc info` on the fixtures and verify it equals the macOS CLI byte for byte, then
   remove the Windows-only entries from `known-differences.md`
 
 ## 9. Stage 5 — removal of the duplicated core

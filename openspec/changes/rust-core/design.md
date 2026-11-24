@@ -527,6 +527,9 @@ on both sides and learn about `core/`.
   - `golden.sh fixtures`: 94 identical, nothing different (Rust, Swift and C# CLIs and the expected outputs).
   - `golden.sh local`: 79 projects, 122 timelines, 244 identical.
   - `dotnet test`, `swift test` (83) and the Release build pass, with no warnings.
+  - On the PR, `windows.yml` passed on windows-latest: unit tests, the end-to-end export, `ui-smoke`, `update-smoke`,
+    and `ecc_core.dll` (2.3 MB) in the published folder. `golden.sh fixtures` there gave 56 identical, 0 different
+    (C# CLI, core, expected). `core.yml` passed on Linux, Windows and macOS.
 - **For the next release notes:** on Windows, captions in Thai, Lao, Khmer and Burmese break between words (ICU4X)
   instead of at any character; Chinese and Japanese still break between characters.
 
