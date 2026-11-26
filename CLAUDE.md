@@ -48,11 +48,11 @@ docs/PLAN.md for the roadmap, docs/FORMAT.md for what we know about CapCut draft
 
 ## Code layout and style
 
-- `core/` (Rust, openspec/changes/rust-core): drafts read leniently (unknown, missing or mistyped fields must never
-  fail a draft), draft → `Timeline` (visual layers in paint order, audio clips, report of unsupported features) and
-  its evaluation over time (`Timeline.frame`), `ecc info`, caption segmentation and the draft writers. New CapCut
-  features start by being listed in the builder's report (`core/ecc-core/src/timeline/builder.rs`). Both apps use it:
-  macOS through the generated `EccCore` module (`scripts/build-core.sh`; Swift conveniences in
+- `core/` (Rust, openspec/changes/archive/2026-11-26-rust-core): drafts read leniently (unknown, missing or mistyped
+  fields must never fail a draft), draft → `Timeline` (visual layers in paint order, audio clips, report of unsupported
+  features) and its evaluation over time (`Timeline.frame`), `ecc info`, caption segmentation and the draft writers. New
+  CapCut features start by being listed in the builder's report (`core/ecc-core/src/timeline/builder.rs`). Both apps use
+  it: macOS through the generated `EccCore` module (`scripts/build-core.sh`; Swift conveniences in
   `EnhanceCapCutCore/Core`), Windows through the generated C# bindings in `EnhanceCapCut.Draft` (namespace
   `EnhanceCapCut.Core`; C# conveniences in `CoreExtensions.cs`); a change to the exported API means regenerating both
   bindings (docs/DEVELOPMENT.md).

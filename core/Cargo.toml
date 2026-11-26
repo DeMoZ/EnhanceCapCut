@@ -1,4 +1,4 @@
-# The platform-independent core shared by the macOS and Windows apps (openspec/changes/rust-core).
+# The platform-independent core shared by the macOS and Windows apps (openspec/changes/archive/2026-11-26-rust-core).
 [workspace]
 resolver = "2"
 members = ["ecc-core", "ecc-ffi", "ecc-golden", "uniffi-bindgen"]

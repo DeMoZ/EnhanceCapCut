@@ -17,8 +17,9 @@ let package = Package(
         // Voice cloning (Chatterbox) runs in ONNX Runtime, as on Windows: Microsoft's libonnxruntime.dylib, loaded at
         // run time (OnnxRuntime.swift) and shipped in the app by scripts/build-app.sh.
         .target(name: "EnhanceCapCutCore", dependencies: ["whisper", "EccCore"]),
-        // The Rust core (core/, openspec/changes/rust-core): scripts/build-core.sh builds its framework into
-        // build/core and writes the generated Swift bindings into Sources/EccCore. Run it before `swift build`.
+        // The Rust core (core/, openspec/changes/archive/2026-11-26-rust-core): scripts/build-core.sh builds its
+        // framework into build/core and writes the generated Swift bindings into Sources/EccCore. Run it before `swift
+        // build`.
         .binaryTarget(name: "EccCoreFFI", path: "build/core/EccCoreFFI.xcframework"),
         .target(name: "EccCore", dependencies: ["EccCoreFFI"]),
         // Speech recognition with Whisper (whisper.cpp v1.9.5, the same model as the Windows version).

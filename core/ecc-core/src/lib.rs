@@ -1,6 +1,6 @@
 //! The platform-independent core of EnhanceCapCut: reading CapCut projects and drafts leniently, building the
 //! timeline and evaluating it over time, the `ecc info` report, and (in later stages) subtitles and the draft writers. Pure Rust without FFI knowledge; the apps reach it
-//! through the `ecc-ffi` bindings (openspec/changes/rust-core, design decisions 1–2).
+//! through the `ecc-ffi` bindings (openspec/changes/archive/2026-11-26-rust-core, design decisions 1–2).
 
 pub mod draft;
 pub mod env;

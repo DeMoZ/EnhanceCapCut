@@ -3,7 +3,8 @@
 The platform-independent core of EnhanceCapCut, the one implementation both apps run on: the macOS app through the
 generated Swift bindings (`Sources/EccCore`), the Windows version through the generated C# ones
 (`windows/src/EnhanceCapCut.Draft/Generated`). It replaced the Swift and C# copies of this code; the plan, its stages
-and the decisions are in [`openspec/changes/rust-core`](../openspec/changes/rust-core).
+and the decisions are in
+[`openspec/changes/archive/2026-11-26-rust-core`](../openspec/changes/archive/2026-11-26-rust-core).
 
 - `ecc-core` (library `ecc`): pure Rust, no FFI. Lenient draft models (`draft::model`, read like `Lenient.swift`),
   byte-preserving JSON editing (`draft::json`), projects and timelines on disk (`project`), per-OS folders

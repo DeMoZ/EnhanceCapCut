@@ -2,9 +2,9 @@ import AppKit
 import EccCore
 import Foundation
 
-// Swift conveniences on the Rust core's generated types (EccCore, openspec/changes/rust-core task 7.1): file URLs for
-// the paths, CGSize for sizes, Date for times, the conformances SwiftUI and dictionaries need. No core logic here —
-// that lives in core/ and is reached through the generated functions.
+// Swift conveniences on the Rust core's generated types (EccCore, openspec/changes/archive/2026-11-26-rust-core task
+// 7.1): file URLs for the paths, CGSize for sizes, Date for times, the conformances SwiftUI and dictionaries need. No
+// core logic here — that lives in core/ and is reached through the generated functions.
 
 extension String {
     /// A path from the core as a file URL.

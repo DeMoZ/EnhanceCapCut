@@ -1,9 +1,10 @@
 # Known differences
 
-What the golden-parity runner (`scripts/golden.sh`, design decision 11 of `openspec/changes/rust-core`) accepts
-between the Rust core and the native CLIs. Both apps run on the core since stages 3 (macOS) and 4 (Windows), so both
-CLIs print the core's `ecc info` and the runner expects them to match it byte for byte; what is left here are the
-differences of the replaced Swift code that `golden.sh local` still normalizes, and one that no dump shows.
+What the golden-parity runner (`scripts/golden.sh`, design decision 11 of
+`openspec/changes/archive/2026-11-26-rust-core`) accepts between the Rust core and the native CLIs. Both apps run on the
+core since stages 3 (macOS) and 4 (Windows), so both CLIs print the core's `ecc info` and the runner expects them to
+match it byte for byte; what is left here are the differences of the replaced Swift code that `golden.sh local` still
+normalizes, and one that no dump shows.
 
 Lines starting with `accepted: <cli> <fixture> info` are read by `golden.sh fixtures` and count that difference as
 known instead of failing. There are none.

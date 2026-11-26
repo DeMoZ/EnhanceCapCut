@@ -1,7 +1,7 @@
 #!/bin/bash
-# Golden parity runner for the Rust core (openspec/changes/rust-core, design decision 11). Both apps run on the core
-# since stages 3 (macOS) and 4 (Windows), and both CLIs print the core's `ecc info`; this checks that what they print is
-# byte for byte what the core prints (`ecc-golden`), on each OS it runs on:
+# Golden parity runner for the Rust core (openspec/changes/archive/2026-11-26-rust-core, design decision 11). Both apps
+# run on the core since stages 3 (macOS) and 4 (Windows), and both CLIs print the core's `ecc info`; this checks that
+# what they print is byte for byte what the core prints (`ecc-golden`), on each OS it runs on:
 #
 #   scripts/golden.sh fixtures       every fixture in core/fixtures, written once as draft_info.json and once as
 #                                    draft_content.json: `info` of every timeline must be identical in every CLI, and
