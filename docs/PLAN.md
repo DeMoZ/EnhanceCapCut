@@ -243,11 +243,11 @@ instead of `draft_info.json`, and keeps its projects in
   CI starts it and keeps screenshots.
   - Open: check on a real Windows machine with CapCut; a tray icon or global hotkey (the Mac's Services entry);
     an app icon.
-- [x] The shared Rust core (openspec/changes/rust-core, stage 4): the C# port of stage 1 (draft model, project lookup,
-  timeline builder, segmentation and line wrapping, caption / voice-over / dubbed-timeline writers) is replaced by
-  `core/`, the same code the Mac runs; the renderer draws what `Timeline.Frame` returns. `ecc info` is the core's
-  report, byte for byte the macOS CLI's (CI checks both against the fixtures' expected output). Captions in Thai, Lao,
-  Khmer and Burmese now break between words (ICU4X) instead of at any character.
+- [x] The shared Rust core (openspec/changes/archive/2026-11-26-rust-core, stage 4): the C# port of stage 1 (draft
+  model, project lookup, timeline builder, segmentation and line wrapping, caption / voice-over / dubbed-timeline
+  writers) is replaced by `core/`, the same code the Mac runs; the renderer draws what `Timeline.Frame` returns. `ecc
+  info` is the core's report, byte for byte the macOS CLI's (CI checks both against the fixtures' expected output).
+  Captions in Thai, Lao, Khmer and Burmese now break between words (ICU4X) instead of at any character.
 - [x] One core (rust-core stage 5, after 0.11.0 shipped both apps on it): the Swift and C# copies of the draft model,
   timeline builder, segmentation and writers, their tests and the CLIs' dump commands are gone; `core/` is the only
   implementation, `core/fixtures/*/expected/` its reference.

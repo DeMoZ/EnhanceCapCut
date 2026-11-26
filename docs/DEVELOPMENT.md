@@ -46,12 +46,13 @@ on Intel Macs voice cloning is unavailable.
 
 ## Rust core and golden parity
 
-`core/` is the Rust core both apps run on ([openspec/changes/rust-core](../openspec/changes/rust-core)): drafts,
-timelines and their evaluation (`Timeline.frame`), `ecc info`, caption segmentation and wrapping, and writing
-captions, voice-over and dubbed timelines (the renderers, speech, translation and voices stay native). The macOS app
-links it through `scripts/build-core.sh`, the Windows version through the `BuildRustCore` target of
-`EnhanceCapCut.Draft`, whose `CoreExtensions.cs` adds the C# conveniences (this machine's folders, project lookup,
-`DraftWriter`). It needs a Rust toolchain (`rust-toolchain.toml` pins it; `rustup` installs it on first use).
+`core/` is the Rust core both apps run on
+([openspec/changes/archive/2026-11-26-rust-core](../openspec/changes/archive/2026-11-26-rust-core)): drafts, timelines
+and their evaluation (`Timeline.frame`), `ecc info`, caption segmentation and wrapping, and writing captions, voice-over
+and dubbed timelines (the renderers, speech, translation and voices stay native). The macOS app links it through
+`scripts/build-core.sh`, the Windows version through the `BuildRustCore` target of `EnhanceCapCut.Draft`, whose
+`CoreExtensions.cs` adds the C# conveniences (this machine's folders, project lookup, `DraftWriter`). It needs a Rust
+toolchain (`rust-toolchain.toml` pins it; `rustup` installs it on first use).
 
 The core is the only implementation of all this: a change to draft reading, the timeline, segmentation or the
 writers is made once in `core/` and both apps get it. What stays native is kept alike on both platforms by hand:

@@ -2,9 +2,10 @@ using System.Diagnostics;
 
 namespace EnhanceCapCut.Core;
 
-// C# conveniences on the Rust core's generated types (Generated/ecc_core.cs, openspec/changes/rust-core stage 4), the
-// counterpart of the macOS CoreExtensions.swift: this machine's folders, project lookup, dates, small predicates the
-// renderers ask. No core logic here — that lives in core/ and is reached through the generated functions.
+// C# conveniences on the Rust core's generated types (Generated/ecc_core.cs,
+// openspec/changes/archive/2026-11-26-rust-core stage 4), the counterpart of the macOS CoreExtensions.swift: this
+// machine's folders, project lookup, dates, small predicates the renderers ask. No core logic here — that lives in
+// core/ and is reached through the generated functions.
 
 /// <summary>Extension members of the generated records and objects.</summary>
 public static class CoreExtensions

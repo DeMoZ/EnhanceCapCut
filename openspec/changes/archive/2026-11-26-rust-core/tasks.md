@@ -130,7 +130,7 @@ Stages follow design.md → Migration Plan. Each group ends in a state where bot
 - [x] 7.5 Render three recent projects (keyframes with easing, a compound clip, captions in Thai) with the old and
   new builds via `ecc render`, and verify frame grabs match within tolerance and look right next to the matching
   CapCut exports among the 10 newest in `/Volumes/NVME_4TB/VideoFromCapCut/`
-- [ ] 7.6 Write captions and a voice-over into a test project from the app, open it in CapCut, and verify the
+- [x] 7.6 Write captions and a voice-over into a test project from the app, open it in CapCut, and verify the
   tracks appear and play; verify export time of a reference project is within 2 % of the previous build
 - [x] 7.7 Note the Thai/CJK line-break change in the next release notes and verify it is in
   `docs/releases/<tag>.md` (nothing to note on macOS: with option (b) of decision 7 the Mac keeps NLTokenizer's
