@@ -1,6 +1,7 @@
-//! `ecc-golden`: the Rust side of the golden-parity runner (design decision 11). It prints what the native CLIs
-//! print, from the Rust core: `info` as `ecc info` does, and the canonical `dump-timeline` / `dump-writers` that the
-//! hidden commands of both native CLIs print too (see `dump` and docs/DEVELOPMENT.md › Golden parity).
+//! `ecc-golden`: the core's golden outputs (design decision 11): `info` as `ecc info` prints it, which
+//! `scripts/golden.sh` compares with both native CLIs, and the canonical `dump-timeline` / `dump-writers`, which
+//! `cargo test` compares with the fixtures' `expected/` (see `dump` and docs/DEVELOPMENT.md › Rust core and golden
+//! parity).
 
 use std::process::ExitCode;
 

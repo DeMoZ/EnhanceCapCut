@@ -1,6 +1,6 @@
 # Checks the Rust core (core/, openspec/changes/rust-core): formatting, lints and tests on Linux, the tests on Windows
 # too (where the per-OS defaults, `cfg(windows)`, are compiled), and on macOS the Swift build and tests plus the golden
-# parity of the Swift, C# and Rust implementations on the fixture projects. The toolchain comes from
+# check on the fixture projects (both CLIs print the core's `ecc info`, byte for byte). The toolchain comes from
 # rust-toolchain.toml.
 name: Core
 

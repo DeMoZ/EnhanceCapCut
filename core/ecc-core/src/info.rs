@@ -108,7 +108,7 @@ pub fn format_info(project: &CapCutProject, selected: &ProjectTimeline, timeline
     out
 }
 
-/// Why `info` couldn't produce a report. The texts are the Swift CLI's (`fail(…)`), which stay English.
+/// Why `info` couldn't produce a report. The texts stay English, like all CLI output.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InfoError {
     ProjectNotFound(String),

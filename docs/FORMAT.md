@@ -25,7 +25,7 @@ of the main timeline. `timeline_layout.json` describes CapCut's dock of open tim
 Projects without `project.json` have a single timeline: the root draft.
 
 Every timeline draft's root `id` is its timeline id; segment and material ids are not shared between the timelines
-of the author's projects. A voice-over run adds a timeline of its own (`DubTimeline`): a new UUID, an entry
+of the author's projects. A voice-over run adds a timeline of its own (the core's `create_dub_timeline`): a new UUID, an entry
 `{create_time, id, is_marked_delete: false, name, update_time}` (µs) appended to `project.json`'s `timelines`, a
 folder `Timelines/<id>/` with the transformed draft (root `id` replaced) and an identical `template-2.tmp`, plus the
 source folder's `attachment_editing.json`, `attachment_pc_common.json` and `common_attachment/` (plain JSON);

@@ -1,5 +1,5 @@
-//! The canonical dumps the golden-parity runner compares (design decision 11). The same format is produced by the
-//! hidden `ecc dump-timeline` / `ecc dump-writers` of the Swift and C# CLIs; see docs/DEVELOPMENT.md › Golden parity.
+//! The canonical dumps of the core (design decision 11), which `cargo test` compares with the fixtures' committed
+//! `expected/`; see docs/DEVELOPMENT.md › Rust core and golden parity.
 //!
 //! One JSON object per line, fields in a fixed order; doubles as `%.6f`, integers as they are, paths inside the
 //! project folder as `<project>/…`.
@@ -14,7 +14,7 @@ use ecc::writers::subtitles::{self, SubtitleTrack};
 use ecc::writers::voice_over::{self, OriginalAudio, VoiceOverTrack};
 use ecc::writers::RandomIds;
 
-/// A JSON value written by hand, so all three implementations print it the same way.
+/// A JSON value written by hand, so the dumps keep a fixed field order and number format.
 pub enum J {
     Null,
     Bool(bool),

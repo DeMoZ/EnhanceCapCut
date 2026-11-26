@@ -248,6 +248,9 @@ instead of `draft_info.json`, and keeps its projects in
   `core/`, the same code the Mac runs; the renderer draws what `Timeline.Frame` returns. `ecc info` is the core's
   report, byte for byte the macOS CLI's (CI checks both against the fixtures' expected output). Captions in Thai, Lao,
   Khmer and Burmese now break between words (ICU4X) instead of at any character.
+- [x] One core (rust-core stage 5, after 0.11.0 shipped both apps on it): the Swift and C# copies of the draft model,
+  timeline builder, segmentation and writers, their tests and the CLIs' dump commands are gone; `core/` is the only
+  implementation, `core/fixtures/*/expected/` its reference.
 - [ ] Stage 4: voice effects. Apple's voice isolation has no Windows counterpart; candidates are an ONNX
   model through DirectML. Until then they are listed as not rendered.
 - [ ] Stage 5: release build in CI (self-contained installer).

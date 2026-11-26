@@ -10,8 +10,8 @@ public enum SpeechEngine: String, CaseIterable, Sendable {
 }
 
 /// Timeline → audio mix → speech recognition → cues → translations → voice-over. The result goes into
-/// the draft with `DraftSubtitleWriter` / `DraftVoiceOverWriter` and into `.srt` files. Ported from
-/// SubDub, the Final Cut Pro version.
+/// the draft through the core's writers (`DraftWriter`) and into `.srt` files. Ported from SubDub, the Final Cut Pro
+/// version.
 @available(macOS 26, *)
 public final class SubtitlePipeline {
     public struct Options {
