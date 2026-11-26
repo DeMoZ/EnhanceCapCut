@@ -65,7 +65,7 @@ docs/PLAN.md for the roadmap, docs/FORMAT.md for what we know about CapCut draft
   `DeMoZ/donations` repo (`enhancecapcut.json`, localized texts; the format is in that repo's README). Never hardcode
   donation links in the app. C# twin: `EnhanceCapCut.Subtitles/Donations.cs`.
 - Times are `Int64` microseconds like in the draft; convert to `CMTime` at AVFoundation boundaries.
-- Swift 6 toolchain in Swift 5 language mode; the app target is `@MainActor`, the core is plain classes.
+- Swift 6 toolchain in Swift 5 language mode; the app target is `@MainActor`, `EnhanceCapCutCore` is plain classes.
 - Keep calibration constants named and documented where they're defined (see `TextRasterizer`).
 - `windows/`: the Windows version in C# (.NET 10; Media Foundation, Direct3D/Direct2D, DirectWrite, WinUI 3 — no
   Swift there), on the same Rust core: draft parsing, the timeline builder, segmentation and the writers change in

@@ -149,17 +149,20 @@ Stages follow design.md → Migration Plan. Each group ends in a state where bot
 
 ## 9. Stage 5 — removal of the duplicated core
 
-- [ ] 9.1 After one release shipped with both switches and no core regression reports, delete Swift
+- [x] 9.1 After one release shipped with both switches and no core regression reports, delete Swift
   `Draft/`, `Timeline/`, `Segmenter`, `DraftSubtitleWriter`, `DraftVoiceOverWriter`, `DubTimeline` and their tests
   that moved to Rust, and verify `swift build` and `swift test` pass
-- [ ] 9.2 Delete the C# twins in `EnhanceCapCut.Draft` and their moved tests, and verify `dotnet test` passes on
+- [x] 9.2 Delete the C# twins in `EnhanceCapCut.Draft` and their moved tests, and verify `dotnet test` passes on
   macOS and Windows CI
-- [ ] 9.3 Remove the hidden dump commands from both native CLIs and the Swift/C# producers in `golden.sh`
+- [x] 9.3 Remove the hidden dump commands from both native CLIs and the Swift/C# producers in `golden.sh`
   (snapshots in `core/fixtures/*/expected/` stay the reference), and verify `cargo test` and `core.yml` pass
-- [ ] 9.4 Update `CLAUDE.md` (drop the "keep Swift and C# in step" rules, describe `core/` and where core
+- [x] 9.4 Update `CLAUDE.md` (drop the "keep Swift and C# in step" rules, describe `core/` and where core
   changes go), `docs/DEVELOPMENT.md`, `windows/README.md`, `docs/PLAN.md` and the `openspec/config.yaml`
   context, and verify a search for the old type names outside `core/` finds only generated bindings and the docs
   mention one core
+- Stage 5 note: the Swift and C# code and tests went away with the switches (stage 3, #104; stage 4, #105), together
+  with the hidden dump commands and the Swift/C# producers in `golden.sh`; stage 5 removed the last references in
+  comments and docs and checked the search above (only generated bindings and docs remain).
 
 ## Workflow follow-up
 

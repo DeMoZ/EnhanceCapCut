@@ -1,8 +1,9 @@
 # core — the shared Rust core
 
-The platform-independent core of EnhanceCapCut, being moved from the duplicated Swift (`Sources/EnhanceCapCutCore`)
-and C# (`windows/src/EnhanceCapCut.Draft`) code into one Rust crate. The plan, its stages and the decisions are in
-[`openspec/changes/rust-core`](../openspec/changes/rust-core). Until the switch stages, the apps don't use it yet.
+The platform-independent core of EnhanceCapCut, the one implementation both apps run on: the macOS app through the
+generated Swift bindings (`Sources/EccCore`), the Windows version through the generated C# ones
+(`windows/src/EnhanceCapCut.Draft/Generated`). It replaced the Swift and C# copies of this code; the plan, its stages
+and the decisions are in [`openspec/changes/rust-core`](../openspec/changes/rust-core).
 
 - `ecc-core` (library `ecc`): pure Rust, no FFI. Lenient draft models (`draft::model`, read like `Lenient.swift`),
   byte-preserving JSON editing (`draft::json`), projects and timelines on disk (`project`), per-OS folders
@@ -20,11 +21,11 @@ and C# (`windows/src/EnhanceCapCut.Draft`) code into one Rust crate. The plan, i
   exported functions on every fixture. Names of the generated bindings are in `ecc-ffi/uniffi.toml`.
 - `uniffi-bindgen`: the Swift binding generator (`uniffi` with its `cli` feature), run by the build scripts, never
   linked into the apps.
-- `ecc-golden`: the Rust side of the golden-parity runner: `info`, `dump-timeline` and `dump-writers`
-  (`[project] [--timeline name|number]`) print what the hidden commands of the Swift and C# CLIs print, and
-  `materialize` writes a fixture as a project. `fixtures/` holds the synthetic projects with their expected outputs
-  and `known-differences.md`; `scripts/golden.sh fixtures|local` compares the three implementations (see
-  docs/DEVELOPMENT.md › Rust core and golden parity).
+- `ecc-golden`: the golden outputs: `info`, `dump-timeline` and `dump-writers` (`[project] [--timeline name|number]`)
+  print the core's report, built timeline and writer results, and `materialize` writes a fixture as a project.
+  `fixtures/` holds the synthetic projects with their expected outputs (`expected/`, the reference that `cargo test`
+  checks) and `known-differences.md`; `scripts/golden.sh fixtures|local` checks that both native CLIs print the
+  core's `ecc info` (see docs/DEVELOPMENT.md › Rust core and golden parity).
 
 ```bash
 cd core

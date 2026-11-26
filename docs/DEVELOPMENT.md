@@ -53,6 +53,10 @@ links it through `scripts/build-core.sh`, the Windows version through the `Build
 `EnhanceCapCut.Draft`, whose `CoreExtensions.cs` adds the C# conveniences (this machine's folders, project lookup,
 `DraftWriter`). It needs a Rust toolchain (`rust-toolchain.toml` pins it; `rustup` installs it on first use).
 
+The core is the only implementation of all this: a change to draft reading, the timeline, segmentation or the
+writers is made once in `core/` and both apps get it. What stays native is kept alike on both platforms by hand:
+the renderers, the voice processing and the windows.
+
 The apps see it only through `core/ecc-ffi` and its generated bindings, both committed: `Sources/EccCore/EccCore.swift`
 (rewritten by `scripts/build-core.sh`) and `windows/src/EnhanceCapCut.Draft/Generated/ecc_core.cs` (rewritten by
 `scripts/csharp-bindings.sh`, which needs the pinned C# generator:
@@ -72,8 +76,8 @@ scripts/golden.sh local              # the same on every timeline of your CapCut
 
 Both CLIs print the core's `ecc info`; the runner checks that they print it byte for byte as the core's `ecc-golden`
 does, and on the fixtures also as the committed `expected/info.txt` (CI runs it on macOS with both CLIs and on
-Windows with the C# one). `ecc-golden` also prints two canonical dumps, which `cargo test` compares with `expected/`
-(the native CLIs' twins went away with their ports in stages 3 and 4):
+Windows with the C# one). `ecc-golden` also prints two canonical dumps, which `cargo test` compares with `expected/`;
+the snapshots there are the reference for the core's behaviour:
 
 - `ecc-golden dump-timeline [project] [--timeline name|number]` — the built timeline: report, every layer's static data
   (content, timing, time map, crop, clip, keyframes, masks, effects, transitions, animations, text style), audio clips
